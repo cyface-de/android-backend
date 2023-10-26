@@ -239,7 +239,6 @@ class SyncAdapter private constructor(
 
         for (index in 0 until measurementCount) {
             val measurement = measurements[index]
-            if (error) return
 
             val fileCount = persistence.fileDao!!.countByMeasurementId(measurement.id)
             Log.d(TAG, "Preparing to upload Measurement (id ${measurement.id}) with $fileCount attachments.")
@@ -282,27 +281,39 @@ class SyncAdapter private constructor(
 
                 for (fileIndex in 0 until syncableFileCount) {
                     val file = files[fileIndex]
-                    if (error) return
 
                     Log.d(TAG, "Preparing to upload File (id ${file.id}).")
                     validateFileFormat(file)
 
-                    val transferFile = file.path.toFile() // FIXME: Needs to be wrapped as cyf
+                    var transferTempFile: File? = null
+                    try {
+                        transferTempFile = serializeFile(file, persistence)
 
-                    if (isSyncRequestAborted(account, authority)) return
+                        if (isSyncRequestAborted(account, authority)) return
 
-                    val indexWithinMeasurement = fileIndex + 1 // the core file is index 0
-                    val progressListener = DefaultUploadProgressListener(measurementCount, index, measurement.id, fileCount, indexWithinMeasurement, progressListeners)
-                    error = !syncAttachment(
-                        file.id,
-                        metaData,
-                        syncPerformer,
-                        transferFile,
-                        syncResult,
-                        fromBackground,
-                        persistence,
-                        progressListener
-                    )
+                        val indexWithinMeasurement = fileIndex + 1 // the core file is index 0
+                        val progressListener = DefaultUploadProgressListener(
+                            measurementCount,
+                            index,
+                            measurement.id,
+                            fileCount,
+                            indexWithinMeasurement,
+                            progressListeners
+                        )
+                        error = !syncAttachment(
+                            file.id,
+                            metaData,
+                            syncPerformer,
+                            transferTempFile,
+                            syncResult,
+                            fromBackground,
+                            persistence,
+                            progressListener
+                        )
+                        if (error) return
+                    } finally {
+                        delete(transferTempFile)
+                    }
                 }
 
                 persistence.markSyncableAttachmentsAs(MeasurementStatus.SYNCED, measurement.id)
@@ -323,6 +334,14 @@ class SyncAdapter private constructor(
             compressedTransferTempFile = MeasurementSerializer().writeSerializedCompressed(measurement.id, persistence)
         }
         return compressedTransferTempFile
+    }
+
+    private fun serializeFile(file: de.cyface.persistence.model.File, persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>): File? {
+        var transferTempFile: File?
+        runBlocking {
+            transferTempFile = MeasurementSerializer().writeSerializedFile(file, persistence)
+        }
+        return transferTempFile
     }
 
     private suspend fun syncMeasurement(

@@ -26,8 +26,10 @@ import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.content.AbstractCyfaceTable.Companion.DATABASE_QUERY_LIMIT
+import de.cyface.persistence.model.File
 import de.cyface.persistence.model.Measurement
 import de.cyface.protos.model.Event
+import de.cyface.protos.model.File.FileType
 import de.cyface.protos.model.LocationRecords
 import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.DataSerializable
@@ -141,7 +143,7 @@ object TransferFileSerializer {
         val transferFileHeader = DataSerializable.transferFileHeader()
         val measurementBytes = builder.build().toByteArray()
         try {
-            // The stream must be closed by the called in a finally catch
+            // The stream must be closed by the caller in a finally catch
             withContext(Dispatchers.IO) {
                 bufferedOutputStream.write(transferFileHeader)
                 bufferedOutputStream.write(measurementBytes)
@@ -226,5 +228,90 @@ object TransferFileSerializer {
             cursor?.close()
         }
         return serializer.result()
+    }
+
+    /**
+     * Loads and serializes a [File] from the persistence layer.
+     *
+     * @param file The reference of the entry to load
+     */
+    @Throws(CursorIsNullException::class)
+    private fun loadFile(
+        file: File
+    ): de.cyface.protos.model.File {
+        val serializer = FileSerializer()
+        try {
+            serializer.readFrom(file)
+        } catch (e: RemoteException) {
+            throw java.lang.IllegalStateException(e)
+        }
+        return serializer.result()
+    }
+
+    /**
+     * Implements the core algorithm of loading data of a [File] from the [PersistenceLayer]
+     * and serializing it into an array of bytes, ready to be transferred.
+     *
+     * We use the {@param loader} to access the measurement data. FIXME?
+     *
+     * We assemble the data using a buffer to avoid OOM exceptions.
+     *
+     * **ATTENTION:** The caller must make sure the {@param bufferedOutputStream} is closed when no longer needed
+     * or the app crashes.
+     *
+     * @param bufferedOutputStream The `OutputStream` to which the serialized data should be written. Injecting
+     * this allows us to compress the serialized data without the need to write it into a temporary file.
+     * We require a [BufferedOutputStream] for performance reasons.
+     * @param reference The [de.cyface.persistence.model.File] to load
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @JvmStatic
+    @Throws(CursorIsNullException::class)
+    suspend fun loadSerializedFile(
+        bufferedOutputStream: BufferedOutputStream,
+        reference: File,
+    ) {
+        val file = loadFile(reference)
+
+        val builder = de.cyface.protos.model.Measurement.newBuilder()
+            .setFormatVersion(MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION.toInt());
+        when (reference.type) {
+            FileType.CSV -> {
+                builder.capturingLog = file
+            }
+
+            FileType.JPG -> {
+                builder.addAllImages(mutableListOf(file))
+            }
+
+            else -> {
+                throw IllegalArgumentException("Unsupported type: ${reference.type}")
+            }
+        }
+
+        // Currently loading one image per transfer file into memory (~ 2-5 MB / image).
+        // - To add all high-res image data or video data in the future we cannot use the pre-compiled
+        // builder but have to stream the data without loading it into memory to avoid an OOM exception.
+        val transferFileHeader = DataSerializable.transferFileHeader()
+        val measurementBytes = builder.build().toByteArray()
+        try {
+            // The stream must be closed by the caller in a finally catch
+            withContext(Dispatchers.IO) {
+                bufferedOutputStream.write(transferFileHeader)
+                bufferedOutputStream.write(measurementBytes)
+                bufferedOutputStream.flush()
+            }
+        } catch (e: IOException) {
+            throw IllegalStateException(e)
+        }
+        Log.d(
+            TAG, String.format(
+                "Serialized file: %s",
+                DataSerializable.humanReadableSize(
+                    (transferFileHeader.size + measurementBytes.size).toLong(),
+                    true
+                )
+            )
+        )
     }
 }
