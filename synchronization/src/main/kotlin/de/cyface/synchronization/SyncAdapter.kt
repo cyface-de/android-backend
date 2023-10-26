@@ -613,13 +613,19 @@ class SyncAdapter private constructor(
             endLocation = RequestMetaData.GeoLocation(l!!.timestamp, l.lat, l.lon)
         }
 
-        // Attachments
         return runBlocking {
+            // Attachments
             val logCount = persistence.fileDao!!.countByMeasurementIdAndType(measurement.id, FileType.CSV)
             val imageCount = persistence.fileDao!!.countByMeasurementIdAndType(measurement.id, FileType.JPG)
-            val otherFiles = persistence.fileDao!!.countByMeasurementId(measurement.id)
-            val unsupportedFiles = otherFiles - logCount - imageCount
+            val allFiles = persistence.fileDao!!.countByMeasurementId(measurement.id)
+            val unsupportedFiles = allFiles - logCount - imageCount
             require(unsupportedFiles == 0) { "Number of unsupported files: $unsupportedFiles" }
+            val filesSize = if (allFiles > 0) {
+                val sampleFile = persistence.fileDao!!.loadOneByMeasurementId(measurement.id)
+                val folderPath = File(sampleFile!!.path.parent.toUri())
+                getFolderSize(folderPath)
+            } else 0
+
 
             // Non location meta data
             val deviceType = Build.MODEL
@@ -645,9 +651,25 @@ class SyncAdapter private constructor(
                 RequestMetaData.CURRENT_TRANSFER_FILE_FORMAT_VERSION,
                 logCount,
                 imageCount,
-                0
+                0,
+                filesSize
             )
         }
+    }
+
+    private fun getFolderSize(folder: File): Long {
+        var size: Long = 0
+        val files = folder.listFiles()
+        if (files != null) {
+            for (file in files) {
+                size += if (file.isFile) {
+                    file.length()
+                } else {
+                    getFolderSize(file)
+                }
+            }
+        }
+        return size
     }
 
     /**
