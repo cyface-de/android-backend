@@ -1102,14 +1102,14 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * an actual [MeasurementStatus.OPEN] or [MeasurementStatus.PAUSED] measurement.
      */
     @Throws(NoSuchMeasurementException::class)
-    fun loadCurrentlyCapturedMeasurementFromPersistence(): Measurement? {
+    fun loadCurrentlyCapturedMeasurementFromPersistence(): Measurement {
         Log.v(TAG, "Trying to load currently captured measurement from PersistenceLayer!")
         val openMeasurements = loadMeasurements(MeasurementStatus.OPEN)
         val pausedMeasurements = loadMeasurements(MeasurementStatus.PAUSED)
-        if (openMeasurements!!.isEmpty() && pausedMeasurements!!.isEmpty()) {
+        if (openMeasurements.isEmpty() && pausedMeasurements.isEmpty()) {
             throw NoSuchMeasurementException("No currently captured measurement found!")
         }
-        check(openMeasurements.size + pausedMeasurements!!.size <= 1) { "More than one currently captured measurement found!" }
+        check(openMeasurements.size + pausedMeasurements.size <= 1) { "More than one currently captured measurement found!" }
         return (if (openMeasurements.size == 1) openMeasurements else pausedMeasurements)[0]
     }
 
