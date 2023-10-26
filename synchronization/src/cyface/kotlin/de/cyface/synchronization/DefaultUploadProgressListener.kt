@@ -18,6 +18,8 @@
  */
 package de.cyface.synchronization
 
+import android.util.Log
+import de.cyface.synchronization.Constants.TAG
 import de.cyface.uploader.UploadProgressListener
 
 /**

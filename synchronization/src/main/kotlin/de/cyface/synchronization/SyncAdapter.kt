@@ -276,11 +276,12 @@ class SyncAdapter private constructor(
             // The status in the database could have changed due to upload, reload it
             val currentStatus = persistence.measurementRepository!!.loadById(measurement.id)!!.status
             if (currentStatus === MeasurementStatus.SYNCABLE_ATTACHMENTS) {
-                val files = persistence.fileDao!!.loadAllByMeasurementIdAndStatus(measurement.id, FileStatus.SAVED)
-                val syncableFileCount = files.size
+                val syncableFiles = persistence.fileDao!!.loadAllByMeasurementIdAndStatus(measurement.id, FileStatus.SAVED)
+                val totalFiles = persistence.fileDao!!.countByMeasurementId(measurement.id)
+                val syncedFiles = totalFiles - syncableFiles.size
 
-                for (fileIndex in 0 until syncableFileCount) {
-                    val file = files[fileIndex]
+                for (fileIndex in syncableFiles.indices) {
+                    val file = syncableFiles[fileIndex]
 
                     Log.d(TAG, "Preparing to upload File (id ${file.id}).")
                     validateFileFormat(file)
@@ -291,7 +292,7 @@ class SyncAdapter private constructor(
 
                         if (isSyncRequestAborted(account, authority)) return
 
-                        val indexWithinMeasurement = fileIndex + 1 // the core file is index 0
+                        val indexWithinMeasurement = 1 + syncedFiles + fileIndex // ccyf is index 0
                         val progressListener = DefaultUploadProgressListener(
                             measurementCount,
                             index,
@@ -678,6 +679,7 @@ class SyncAdapter private constructor(
         /**
          * A String to filter log output from [SyncPerformer] logs.
          */
+        @Suppress("SpellCheckingInspection")
         const val TAG = "de.cyface.sync.adaptr"
 
         /**
@@ -698,7 +700,7 @@ class SyncAdapter private constructor(
         /**
          * The file extension of the measurement file which is transmitted on synchronization.
          */
-        @Suppress("SpellCheckingInspection")
+        @Suppress("SpellCheckingInspection", "RedundantSuppression")
         private const val COMPRESSED_TRANSFER_FILE_EXTENSION = "ccyf"
     }
 }
