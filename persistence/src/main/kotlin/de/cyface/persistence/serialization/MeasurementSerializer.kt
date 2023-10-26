@@ -172,6 +172,7 @@ class MeasurementSerializer {
             loadSerialized(outputStream, measurementId, persistenceLayer)
             outputStream.flush()
         }
+        compressor.end()
         Log.d(
             TAG,
             "loadSerializedCompressed: finished after " + (System.currentTimeMillis() - startTimestamp) / 1000
