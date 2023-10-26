@@ -36,6 +36,7 @@ import de.cyface.serializer.DataSerializable
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.BufferedOutputStream
 import java.io.IOException
@@ -205,7 +206,7 @@ object TransferFileSerializer {
     private fun loadLocations(
         measurementId: Long,
         persistence: PersistenceLayer<*>
-    ): LocationRecords {
+    ): LocationRecords = runBlocking {
         val serializer = LocationSerializer()
         var cursor: Cursor? = null
         try {
@@ -227,7 +228,7 @@ object TransferFileSerializer {
         } finally {
             cursor?.close()
         }
-        return serializer.result()
+        return@runBlocking serializer.result()
     }
 
     /**
@@ -274,7 +275,7 @@ object TransferFileSerializer {
         val file = loadFile(reference)
 
         val builder = de.cyface.protos.model.Measurement.newBuilder()
-            .setFormatVersion(MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION.toInt());
+            .setFormatVersion(MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION.toInt())
         when (reference.type) {
             FileType.CSV -> {
                 builder.capturingLog = file

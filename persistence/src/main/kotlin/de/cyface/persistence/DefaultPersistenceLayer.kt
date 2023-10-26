@@ -341,19 +341,21 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
 
         // Also delete syncable attachments binaries when the measurement is skipped or deprecated
         if (newStatus == MeasurementStatus.SKIPPED || newStatus == MeasurementStatus.DEPRECATED) {
-            val files = fileDao!!.loadAllByMeasurementIdAndStatus(measurementId, FileStatus.SAVED)
-            files.forEach {
-                // TODO: Test this with large measurements (multiple hours) to ensure this does
-                // not block the persistence. In case we want to do this in a non-blocking way
-                // we need to ensure sync can handle this
-                @Suppress("KotlinConstantConditions")
-                val newFileStatus = if (newStatus == MeasurementStatus.SKIPPED) FileStatus.SKIPPED
+            runBlocking {
+                val files = fileDao!!.loadAllByMeasurementIdAndStatus(measurementId, FileStatus.SAVED)
+                files.forEach {
+                    // TODO: Test this with large measurements (multiple hours) to ensure this does
+                    // not block the persistence. In case we want to do this in a non-blocking way
+                    // we need to ensure sync can handle this
+                    @Suppress("KotlinConstantConditions")
+                    val newFileStatus = if (newStatus == MeasurementStatus.SKIPPED) FileStatus.SKIPPED
                     else if (newStatus == MeasurementStatus.DEPRECATED) FileStatus.DEPRECATED
                     else throw IllegalArgumentException("Unexpected status: $newStatus")
-                markSavedAs(newFileStatus, it)
-                Log.d(TAG, "Cleaned up file (id ${it.id}): $newFileStatus")
+                    markSavedAs(newFileStatus, it)
+                    Log.d(TAG, "Cleaned up file (id ${it.id}): $newFileStatus")
+                }
+                cleanupEmptyFolder(measurementId)
             }
-            cleanupEmptyFolder(measurementId)
         }
     }
 
@@ -376,7 +378,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         cleanupEmptyFolder(measurementId)
     }
 
-    private fun cleanupEmptyFolder(measurementId: Long) {
+    private fun cleanupEmptyFolder(measurementId: Long) = runBlocking {
         val file = fileDao!!.loadOneByMeasurementId(measurementId)
         file?.let {
             val parentDir = it.path.toFile().parentFile

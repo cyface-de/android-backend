@@ -38,17 +38,17 @@ import kotlinx.coroutines.flow.Flow
 interface MeasurementDao {
 
     @Insert
-    fun insert(measurement: Measurement): Long
+    suspend fun insert(measurement: Measurement): Long
 
     @Query("SELECT * FROM ${MeasurementTable.URI_PATH}")
-    fun getAll(): List<Measurement>
+    suspend fun getAll(): List<Measurement>
 
     /**
      * Loads all measurements which are not in the [MeasurementStatus.OPEN] or
      * [MeasurementStatus.PAUSED] state starting with the newest measurement.
      */
     @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${MeasurementTable.COLUMN_STATUS} NOT IN ('OPEN', 'PAUSED') ORDER BY ${BaseColumns.ID} DESC")
-    fun loadAllCompleted(): List<Measurement>
+    suspend fun loadAllCompleted(): List<Measurement>
 
     /**
      * Loads and observes all measurements which are not in the [MeasurementStatus.OPEN] or
@@ -58,7 +58,7 @@ interface MeasurementDao {
     fun observeAllCompleted(): Flow<List<Measurement>>
 
     @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
-    fun loadById(id: Long): Measurement?
+    suspend fun loadById(id: Long): Measurement?
 
     /**
      * Loads and observes a measurement.
@@ -69,7 +69,7 @@ interface MeasurementDao {
     fun observeById(id: Long): Flow<Measurement?>
 
     @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${MeasurementTable.COLUMN_STATUS} = :status")
-    fun loadAllByStatus(status: MeasurementStatus): List<Measurement>
+    suspend fun loadAllByStatus(status: MeasurementStatus): List<Measurement>
 
     // Try simplified updates: [RFR-341]
     // https://developer.android.com/training/data-storage/room/accessing-data#convenience-update
@@ -77,17 +77,17 @@ interface MeasurementDao {
     //fun update(vararg measurements: Measurement)
 
     @Query("UPDATE ${MeasurementTable.URI_PATH} SET ${MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION} = :fileFormatVersion WHERE ${BaseColumns.ID} = :id")
-    fun updateFileFormatVersion(id: Long, fileFormatVersion: Short): Int
+    suspend fun updateFileFormatVersion(id: Long, fileFormatVersion: Short): Int
 
     @Query("UPDATE ${MeasurementTable.URI_PATH} SET ${MeasurementTable.COLUMN_STATUS} = :status WHERE ${BaseColumns.ID} = :id")
-    fun update(id: Long, status: MeasurementStatus): Int
+    suspend fun update(id: Long, status: MeasurementStatus): Int
 
     @Query("UPDATE ${MeasurementTable.URI_PATH} SET ${MeasurementTable.COLUMN_DISTANCE} = :distance WHERE ${BaseColumns.ID} = :id")
-    fun updateDistance(id: Long, distance: Double): Int
+    suspend fun updateDistance(id: Long, distance: Double): Int
 
     @Query("DELETE FROM ${MeasurementTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
-    fun deleteItemById(id: Long): Int
+    suspend fun deleteItemById(id: Long): Int
 
     @Query("DELETE FROM ${MeasurementTable.URI_PATH}")
-    fun deleteAll(): Int
+    suspend fun deleteAll(): Int
 }

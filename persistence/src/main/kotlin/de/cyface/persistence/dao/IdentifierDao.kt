@@ -34,8 +34,8 @@ import de.cyface.persistence.model.Identifier
 @Dao
 interface IdentifierDao {
     @Insert
-    fun insert(identifier: Identifier): Long
+    suspend fun insert(identifier: Identifier): Long
 
     @Query("SELECT * FROM ${IdentifierTable.URI_PATH}")
-    fun getAll(): List<Identifier>
+    suspend fun getAll(): List<Identifier>
 }

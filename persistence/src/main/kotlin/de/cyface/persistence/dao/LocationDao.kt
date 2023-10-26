@@ -36,19 +36,19 @@ import de.cyface.persistence.model.GeoLocation
 @Dao
 interface LocationDao {
     @Insert
-    fun insert(location: GeoLocation): Long
+    suspend fun insert(location: GeoLocation): Long
 
     @Insert
-    fun insertAll(vararg locations: GeoLocation)
+    suspend fun insertAll(vararg locations: GeoLocation)
 
     @Query("SELECT * FROM ${LocationTable.URI_PATH}")
-    fun getAll(): List<GeoLocation>
+    suspend fun getAll(): List<GeoLocation>
 
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM ${LocationTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY ${BaseColumns.TIMESTAMP} ASC")
-    fun loadAllByMeasurementId(measurementId: Long): List<GeoLocation>
+    suspend fun loadAllByMeasurementId(measurementId: Long): List<GeoLocation>
 
     /**
      * Returns a [Cursor] which points to a specific page defined by [limit] and [offset] of all locations
@@ -68,13 +68,13 @@ interface LocationDao {
      * Returns the number of locations found for a specific [measurementId].
      */
     @Query("SELECT COUNT(*) FROM ${LocationTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
-    fun countByMeasurementId(measurementId: Long): Int
+    suspend fun countByMeasurementId(measurementId: Long): Int
 
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM ${LocationTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${LocationTable.COLUMN_SPEED} > :lowerSpeedThreshold AND ${LocationTable.COLUMN_ACCURACY} < :accuracyThreshold AND ${LocationTable.COLUMN_SPEED} < :upperSpeedThreshold ORDER BY ${BaseColumns.TIMESTAMP} ASC")
-    fun loadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt(
+    suspend fun loadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt(
         measurementId: Long,
         lowerSpeedThreshold: Double,
         accuracyThreshold: Double,
@@ -82,8 +82,8 @@ interface LocationDao {
     ): List<GeoLocation>
 
     @Query("DELETE FROM ${LocationTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
-    fun deleteItemByMeasurementId(measurementId: Long): Int
+    suspend fun deleteItemByMeasurementId(measurementId: Long): Int
 
     @Query("DELETE FROM ${LocationTable.URI_PATH}")
-    fun deleteAll(): Int
+    suspend fun deleteAll(): Int
 }

@@ -39,19 +39,16 @@ import kotlinx.coroutines.flow.Flow
  */
 class EventRepository(private val dao: EventDao) {
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun insert(event: Event): Long {
         return dao.insert(event)
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun getAll(): List<Event> {
         return dao.getAll()
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun loadById(id: Long): Event? {
         return dao.loadById(id)
@@ -60,7 +57,6 @@ class EventRepository(private val dao: EventDao) {
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun loadAllByMeasurementId(measurementId: Long): List<Event>? {
         return dao.loadAllByMeasurementId(measurementId)
@@ -85,7 +81,6 @@ class EventRepository(private val dao: EventDao) {
      *
      * The events are ordered by timestamp.
      */
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun selectAllByMeasurementId(measurementId: Long, offset: Int, limit: Int): Cursor? {
         return dao.selectAllByMeasurementId(measurementId, offset, limit)
@@ -94,7 +89,6 @@ class EventRepository(private val dao: EventDao) {
     /**
      * Returns the number of events found for a specific [measurementId].
      */
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun countByMeasurementId(measurementId: Long): Int {
         return dao.countByMeasurementId(measurementId)
@@ -103,25 +97,21 @@ class EventRepository(private val dao: EventDao) {
     /**
      * Ordered by timestamp is required.
      */
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun loadAllByMeasurementIdAndType(measurementId: Long, type: EventType): List<Event>? {
         return dao.loadAllByMeasurementIdAndType(measurementId, type)
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun deleteItemByMeasurementId(measurementId: Long): Int {
         return dao.deleteItemById(measurementId)
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun deleteItemById(id: Long): Int {
         return dao.deleteItemById(id)
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun deleteAll(): Int {
         return dao.deleteAll()

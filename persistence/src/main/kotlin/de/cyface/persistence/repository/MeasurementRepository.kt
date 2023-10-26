@@ -35,15 +35,11 @@ import kotlinx.coroutines.flow.Flow
  */
 class MeasurementRepository(private val dao: MeasurementDao) {
 
-    // `suspend` tells the compiler this is long running code and may not be executed from the main thread.
-
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun insert(measurement: Measurement): Long {
         return dao.insert(measurement)
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun getAll(): List<Measurement> {
         return dao.getAll()
@@ -58,13 +54,11 @@ class MeasurementRepository(private val dao: MeasurementDao) {
         return dao.observeAllCompleted()
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun loadAllCompleted(): List<Measurement> {
         return dao.loadAllCompleted()
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun loadById(id: Long): Measurement? {
         return dao.loadById(id)
@@ -81,37 +75,31 @@ class MeasurementRepository(private val dao: MeasurementDao) {
         return dao.observeById(id)
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun loadAllByStatus(status: MeasurementStatus): List<Measurement> {
         return dao.loadAllByStatus(status)
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun updateFileFormatVersion(id: Long, fileFormatVersion: Short): Int {
         return dao.updateFileFormatVersion(id, fileFormatVersion)
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun update(id: Long, status: MeasurementStatus): Int {
         return dao.update(id, status)
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun updateDistance(id: Long, distance: Double): Int {
         return dao.updateDistance(id, distance)
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun deleteItemById(id: Long): Int {
         return dao.deleteItemById(id)
     }
 
-    @Suppress("RedundantSuspendModifier")
     @WorkerThread
     suspend fun deleteAll(): Int {
         return dao.deleteAll()

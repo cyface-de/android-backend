@@ -32,6 +32,7 @@ import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.serializer.model.Point3DType
 import de.cyface.utils.Validate
+import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -154,7 +155,7 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
             // Using the timestamp of the latest pressure sample
             val timestamp = pressures[pressures.size - 1].timestamp
             val pressure = Pressure(timestamp, averagePressure, measurementIdentifier)
-            persistenceLayer!!.pressureDao!!.insertAll(pressure)
+            runBlocking { persistenceLayer.pressureDao!!.insertAll(pressure) }
         }
     }
 
@@ -164,8 +165,8 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
      * @param location The geo location to store.
      * @param measurementIdentifier The identifier of the measurement to store the data to.
      */
-    fun storeLocation(location: ParcelableGeoLocation, measurementIdentifier: Long) {
-        persistenceLayer!!.locationDao!!.insertAll(GeoLocation(location, measurementIdentifier))
+    fun storeLocation(location: ParcelableGeoLocation, measurementIdentifier: Long) = runBlocking {
+        persistenceLayer.locationDao!!.insertAll(GeoLocation(location, measurementIdentifier))
     }
 
     /**

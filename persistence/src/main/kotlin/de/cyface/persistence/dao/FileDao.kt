@@ -37,46 +37,52 @@ import de.cyface.protos.model.File.FileType
 @Dao
 interface FileDao {
     @Insert
-    fun insert(file: File): Long
+    suspend fun insert(file: File): Long
+
+    // This is just a workaround until we succeed to port JpegSafer to Kotlin. We tried this before
+    // but image capturing got flaky afterwards so we reverted it to do the refactoring separately.
+    // It's hard to handle suspend functions from Java, so we just have this non-suspend sibling.
+    @Insert
+    fun insertJava(file: File): Long
 
     @Insert
-    fun insertAll(vararg files: File)
+    suspend fun insertAll(vararg files: File)
 
     @Query("SELECT * FROM ${FileTable.URI_PATH}")
-    fun getAll(): List<File>
+    suspend fun getAll(): List<File>
 
     @Query("SELECT * FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
-    fun loadById(id: Long): File?
+    suspend fun loadById(id: Long): File?
 
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY ${BaseColumns.TIMESTAMP} ASC")
-    fun loadAllByMeasurementId(measurementId: Long): List<File>
+    suspend fun loadAllByMeasurementId(measurementId: Long): List<File>
 
     @Query("SELECT * FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId LIMIT 1")
-    fun loadOneByMeasurementId(measurementId: Long): File?
+    suspend fun loadOneByMeasurementId(measurementId: Long): File?
 
     @Query("SELECT * FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${FileTable.COLUMN_STATUS} = :status ORDER BY ${BaseColumns.TIMESTAMP} ASC")
-    fun loadAllByMeasurementIdAndStatus(measurementId: Long, status: FileStatus): List<File>
+    suspend fun loadAllByMeasurementIdAndStatus(measurementId: Long, status: FileStatus): List<File>
 
     /**
      * Returns the number of files found for a specific [measurementId].
      */
     @Query("SELECT COUNT(*) FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
-    fun countByMeasurementId(measurementId: Long): Int
+    suspend fun countByMeasurementId(measurementId: Long): Int
 
     /**
      * Returns the number of files found for a specific [measurementId] and [type].
      */
     @Query("SELECT COUNT(*) FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${FileTable.COLUMN_TYPE} = :type")
-    fun countByMeasurementIdAndType(measurementId: Long, type: FileType): Int
+    suspend fun countByMeasurementIdAndType(measurementId: Long, type: FileType): Int
 
     @Query("DELETE FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
-    fun deleteItemByMeasurementId(measurementId: Long): Int
+    suspend fun deleteItemByMeasurementId(measurementId: Long): Int
 
     @Query("DELETE FROM ${FileTable.URI_PATH}")
-    fun deleteAll(): Int
+    suspend fun deleteAll(): Int
 
     @Query("UPDATE ${FileTable.URI_PATH} SET ${FileTable.COLUMN_SIZE} = :size WHERE ${BaseColumns.ID} = :id")
     suspend fun updateSize(id: Long, size: Long)
