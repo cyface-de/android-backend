@@ -723,6 +723,6 @@ class SyncAdapter private constructor(
          * The file extension of the measurement file which is transmitted on synchronization.
          */
         @Suppress("SpellCheckingInspection", "RedundantSuppression")
-        private const val COMPRESSED_TRANSFER_FILE_EXTENSION = "ccyf"
+        const val COMPRESSED_TRANSFER_FILE_EXTENSION = "ccyf"
     }
 }

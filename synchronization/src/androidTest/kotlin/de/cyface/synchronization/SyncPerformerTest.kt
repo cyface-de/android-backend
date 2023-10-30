@@ -129,24 +129,28 @@ class SyncPerformerTest {
         MatcherAssert.assertThat(loadedStatus, CoreMatchers.equalTo(MeasurementStatus.FINISHED))
         val compressedTransferTempFile =
             loadSerializedCompressed(persistence, measurementIdentifier)
-        val metaData: RequestMetaData = loadMetaData(persistence, measurement, locationCount)
+        val metaData = loadMetaData(persistence, measurement, locationCount)
         val progressListener = object : UploadProgressListener {
             override fun updatedProgress(percent: Float) {
                 Log.d(TAG, String.format("Upload Progress %f", percent))
             }
         }
+        val fileName =
+            "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.${SyncAdapter.COMPRESSED_TRANSFER_FILE_EXTENSION}"
 
         // Prepare transmission
         val syncResult = SyncResult()
 
         // Act
+
         val result = oocut.sendData(
             MockedUploader(),
             syncResult,
             metaData,
             compressedTransferTempFile,
             progressListener,
-            "testToken"
+            "testToken",
+            fileName
         )
 
         // Assert
@@ -233,13 +237,15 @@ class SyncPerformerTest {
             deviceId, measurementIdentifier.toString(),
             "testOsVersion", "testDeviceType", "testAppVersion",
             distance, locationCount.toLong(), startRecord, endRecord,
-            Modality.BICYCLE.databaseIdentifier, 3
+            Modality.BICYCLE.databaseIdentifier, 3, 0, 0, 0, 0
         )
         val progressListener = object : UploadProgressListener {
             override fun updatedProgress(percent: Float) {
                 Log.d(TAG, String.format("Upload Progress %f", percent))
             }
         }
+        val fileName =
+            "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.${SyncAdapter.COMPRESSED_TRANSFER_FILE_EXTENSION}"
 
         // Mock the actual post request
         val mockedUploader = object : Uploader {
@@ -267,7 +273,8 @@ class SyncPerformerTest {
                 metaData,
                 compressedTransferTempFile,
                 progressListener,
-                "testToken"
+                "testToken",
+                fileName
             )
 
             // Assert:
