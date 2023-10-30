@@ -22,6 +22,7 @@ import com.google.protobuf.ByteString
 import com.google.protobuf.InvalidProtocolBufferException
 import de.cyface.protos.model.Accelerations
 import de.cyface.protos.model.AccelerationsBinary
+import de.cyface.protos.model.File
 import de.cyface.protos.model.LocationRecords
 import de.cyface.protos.model.Measurement
 import de.cyface.protos.model.MeasurementBytes
@@ -29,6 +30,7 @@ import de.cyface.utils.Validate
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.junit.Test
+import java.util.Random
 
 /**
  * Tests that captured data can be serialized to a transferable file and deserialized.
@@ -118,6 +120,79 @@ class ProtoTest {
                 CoreMatchers.equalTo(1621582427000L)
             )
         )
+    }
+
+    /**
+     * Test the serialized size with files attached.
+     */
+    @Test
+    @Throws(InvalidProtocolBufferException::class)
+    fun testWithFileAttachments() {
+        // Arrange
+        val sampleFileBytes = generateRandomBytes(10)
+        val logFileBuilder = File.newBuilder()
+            .setTimestamp(1000L)
+            .setType(File.FileType.CSV)
+            .setBytes(ByteString.copyFrom(sampleFileBytes))
+        val jpgFileBuilder = File.newBuilder()
+            .setTimestamp(1000L)
+            .setType(File.FileType.JPG)
+            .setBytes(ByteString.copyFrom(sampleFileBytes))
+
+        // Act
+        val transmission = MeasurementBytes.newBuilder()
+            .setFormatVersion(3)
+            .setCapturingLog(logFileBuilder)
+            .addImages(jpgFileBuilder)
+            .build()
+
+        // Assert
+        val transmitted = Measurement.parseFrom(transmission.toByteArray())
+        MatcherAssert.assertThat(
+            transmitted.formatVersion,
+            CoreMatchers.`is`(CoreMatchers.equalTo(3))
+        )
+        MatcherAssert.assertThat(
+            transmitted.capturingLog.timestamp, CoreMatchers.`is`(
+                CoreMatchers.equalTo(1000L)
+            )
+        )
+        MatcherAssert.assertThat(
+            transmitted.capturingLog.type, CoreMatchers.`is`(
+                CoreMatchers.equalTo(File.FileType.CSV)
+            )
+        )
+        MatcherAssert.assertThat(
+            transmitted.capturingLog.bytes.toByteArray(), CoreMatchers.`is`(
+                CoreMatchers.equalTo(sampleFileBytes)
+            )
+        )
+        MatcherAssert.assertThat(
+            transmitted.imagesCount, CoreMatchers.`is`(
+                CoreMatchers.equalTo(1)
+            )
+        )
+        MatcherAssert.assertThat(
+            transmitted.getImages(0).timestamp, CoreMatchers.`is`(
+                CoreMatchers.equalTo(1000L)
+            )
+        )
+        MatcherAssert.assertThat(
+            transmitted.getImages(0).type, CoreMatchers.`is`(
+                CoreMatchers.equalTo(File.FileType.JPG)
+            )
+        )
+        MatcherAssert.assertThat(
+            transmitted.getImages(0).bytes.toByteArray(), CoreMatchers.`is`(
+                CoreMatchers.equalTo(sampleFileBytes)
+            )
+        )
+    }
+
+    private fun generateRandomBytes(size: Int): ByteArray {
+        val byteArray = ByteArray(size)
+        Random().nextBytes(byteArray)
+        return byteArray
     }
 
     companion object {
