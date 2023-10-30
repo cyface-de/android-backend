@@ -100,36 +100,32 @@ class SyncPerformerTest {
     }
 
     /**
-     * Tests the basic transmission code without contacting an actual API.
+     * Assembles a test for the basic transmission code without contacting an actual API.
      *
      * Can be used to reproduce bugs in the interaction between an actual API and our client.
      *
      * **Attention:** for this you need to adjust [.TEST_API_URL] and [.TEST_TOKEN].
      */
-    @Test
-    @Throws(
-        CursorIsNullException::class, NoSuchMeasurementException::class
-    )
-    fun testSendData() = runBlocking {
+    private fun performSendDataTest(
+        point3DCount: Int,
+        locationCount: Int,
+        logCount: Int,
+        imageCount: Int,
+        videoCount: Int,
+        filesSize: Long
+    ) = runBlocking {
 
         // Arrange
-        // Adjust data size depending on your test case
-        // noinspection PointlessArithmeticExpression
-        val point3DCount = 600 * 1000
-        // noinspection PointlessArithmeticExpression
-        val locationCount = 3 * 1000
-
-        // Insert data to be synced
         val measurement = SharedTestUtils.insertSampleMeasurementWithData(
             context, MeasurementStatus.FINISHED,
-            persistence, point3DCount, locationCount
+            persistence, point3DCount, locationCount, logCount, imageCount, videoCount
         )
-        val measurementIdentifier = measurement.id
-        val loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier)
+        val measurementId = measurement.id
+        val loadedStatus = persistence.loadMeasurementStatus(measurementId)
         MatcherAssert.assertThat(loadedStatus, CoreMatchers.equalTo(MeasurementStatus.FINISHED))
-        val compressedTransferTempFile =
-            loadSerializedCompressed(persistence, measurementIdentifier)
-        val metaData = loadMetaData(persistence, measurement, locationCount)
+        val compressedTransferTempFile = loadSerializedCompressed(persistence, measurementId)
+        val metaData =
+            loadMetaData(persistence, measurement, locationCount, logCount, imageCount, videoCount, filesSize)
         val progressListener = object : UploadProgressListener {
             override fun updatedProgress(percent: Float) {
                 Log.d(TAG, String.format("Upload Progress %f", percent))
@@ -142,7 +138,6 @@ class SyncPerformerTest {
         val syncResult = SyncResult()
 
         // Act
-
         val result = oocut.sendData(
             MockedUploader(),
             syncResult,
@@ -157,6 +152,32 @@ class SyncPerformerTest {
         MatcherAssert.assertThat(
             result,
             CoreMatchers.`is`(CoreMatchers.equalTo(Result.UPLOAD_SUCCESSFUL))
+        )
+    }
+
+    /**
+     * Tests the basic transmission with a measurement without attached files.
+     */
+    @Test
+    @Throws(CursorIsNullException::class, NoSuchMeasurementException::class)
+    fun testSendData() = runBlocking {
+            performSendDataTest(
+                point3DCount = 600 * 1000,
+                locationCount = 3 * 1000,
+                0, 0, 0, 0
+            )
+        }
+
+    /**
+     * Tests the basic transmission with a measurement with attached files.
+     */
+    @Test
+    @Throws(CursorIsNullException::class, NoSuchMeasurementException::class)
+    fun testSendData_withAttachments() = runBlocking {
+        performSendDataTest(
+            point3DCount = 0,
+            locationCount = 3 * 1000,
+            1, 2, 0, 123L
         )
     }
 
@@ -192,7 +213,7 @@ class SyncPerformerTest {
         val locationCount = 1
         val (measurementIdentifier, _, _, _, distance) = SharedTestUtils.insertSampleMeasurementWithData(
             context, MeasurementStatus.FINISHED,
-            persistence, 1, locationCount
+            persistence, 1, locationCount, 0, 0, 0
         )
         val loadedStatus: MeasurementStatus =
             persistence.loadMeasurementStatus(measurementIdentifier)

@@ -32,16 +32,19 @@ import de.cyface.persistence.Constants
 import de.cyface.persistence.Database
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceLayer
-import de.cyface.persistence.io.DefaultFileIOHandler
-import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.exception.NoSuchMeasurementException
+import de.cyface.persistence.io.DefaultFileIOHandler
+import de.cyface.persistence.io.FileIOHandler
+import de.cyface.persistence.model.FileStatus
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
+import de.cyface.persistence.model.ParcelableFile
 import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.DefaultLocationCleaning
+import de.cyface.protos.model.File.FileType
 import de.cyface.protos.model.Measurement
 import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.model.Point3DType
@@ -50,6 +53,7 @@ import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import java.io.File
+import kotlin.io.path.Path
 
 /**
  * This class (and the module test-utils) exist to be able to share test code between modules.
@@ -226,6 +230,7 @@ object SharedTestUtils {
         when (type) {
             Point3DType.ACCELERATION -> measurementBytes.accelerationsBinary =
                 ByteString.copyFrom(bytes)
+
             Point3DType.ROTATION -> measurementBytes.rotationsBinary = ByteString.copyFrom(bytes)
             Point3DType.DIRECTION -> measurementBytes.directionsBinary = ByteString.copyFrom(bytes)
             else -> throw IllegalArgumentException("Unknown type: $type")
@@ -341,13 +346,20 @@ object SharedTestUtils {
         status: MeasurementStatus,
         persistence: DefaultPersistenceLayer<*>,
         point3DCount: Int,
-        locationCount: Int
+        locationCount: Int,
+        logCount: Int,
+        imageCount: Int,
+        videoCount: Int
     ): de.cyface.persistence.model.Measurement {
-        Validate.isTrue(point3DCount > 0)
-        Validate.isTrue(locationCount > 0)
+        require(point3DCount >= 0)
+        require(locationCount >= 0)
+        require(logCount >= 0)
+        require(imageCount >= 0)
+        require(videoCount >= 0)
         val geoLocations: MutableList<ParcelableGeoLocation> = ArrayList()
         val measurement = insertMeasurementEntry(persistence, Modality.UNKNOWN)
-        val measurementIdentifier = measurement.id
+        val measurementId = measurement.id
+        val database = Database.build(context)
         for (i in 0 until locationCount) {
             // We add some salt to make sure the compression of the data is realistic
             // This is required as the testOnPerformSyncWithLargeData test requires large data
@@ -360,13 +372,13 @@ object SharedTestUtils {
                     )
                 )
         }
-        insertGeoLocations(Database.build(context), measurement.id, geoLocations)
+        insertGeoLocations(database, measurement.id, geoLocations)
 
-        // Insert file base data
+        // Insert sensor data
         val accelerationsFile =
-            Point3DFile(context, measurementIdentifier, Point3DType.ACCELERATION)
-        val rotationsFile = Point3DFile(context, measurementIdentifier, Point3DType.ROTATION)
-        val directionsFile = Point3DFile(context, measurementIdentifier, Point3DType.DIRECTION)
+            Point3DFile(context, measurementId, Point3DType.ACCELERATION)
+        val rotationsFile = Point3DFile(context, measurementId, Point3DType.ROTATION)
+        val directionsFile = Point3DFile(context, measurementId, Point3DType.DIRECTION)
         val aPoints = ArrayList<Point3DImpl?>()
         val rPoints = ArrayList<Point3DImpl?>()
         val dPoints = ArrayList<Point3DImpl?>()
@@ -414,9 +426,9 @@ object SharedTestUtils {
         if (status === MeasurementStatus.FINISHED || status === MeasurementStatus.SYNCED || status === MeasurementStatus.SKIPPED) {
             persistence.storePersistenceFileFormatVersion(
                 DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION,
-                measurementIdentifier
+                measurementId
             )
-            persistence.setStatus(measurementIdentifier, MeasurementStatus.FINISHED, false)
+            persistence.setStatus(measurementId, MeasurementStatus.FINISHED, false)
         }
         if (status === MeasurementStatus.SYNCED) {
             persistence.markFinishedAs(MeasurementStatus.SYNCED, measurement.id)
@@ -424,10 +436,19 @@ object SharedTestUtils {
             persistence.markFinishedAs(MeasurementStatus.SKIPPED, measurement.id)
         }
 
+        // Insert attachments
+        val logFiles = files(logCount, FileType.CSV, null, measurementId)
+        val location = geoLocations.get(0)
+        val imageFiles = files(imageCount, FileType.JPG, location, measurementId)
+        val videoFiles = files(videoCount, FileType.MP4, location, measurementId)
+        insertFiles(database, measurement.id, logFiles)
+        insertFiles(database, measurement.id, imageFiles)
+        insertFiles(database, measurement.id, videoFiles)
+
         // Check the measurement entry
-        val loadedMeasurement = persistence.loadMeasurement(measurementIdentifier)
+        val loadedMeasurement = persistence.loadMeasurement(measurementId)
         assertThat(loadedMeasurement, CoreMatchers.notNullValue())
-        assertThat(persistence.loadMeasurementStatus(measurementIdentifier), equalTo(status))
+        assertThat(persistence.loadMeasurementStatus(measurementId), equalTo(status))
         assertThat(
             loadedMeasurement!!.fileFormatVersion,
             equalTo(DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
@@ -435,9 +456,23 @@ object SharedTestUtils {
 
         // Check the Tracks
         // noinspection unchecked
-        val loadedTracks = persistence.loadTracks(measurementIdentifier)
+        val loadedTracks = persistence.loadTracks(measurementId)
         assertThat(loadedTracks[0].geoLocations.size, equalTo(locationCount))
         return measurement
+    }
+
+    private fun files(count: Int, type: FileType, location: ParcelableGeoLocation?, measurementId: Long): List<ParcelableFile> {
+        val files: MutableList<de.cyface.persistence.model.File> = ArrayList()
+        for (j in 0 until count) {
+            files.add(
+                de.cyface.persistence.model.File(
+                    1000L + j, FileStatus.SAVED, type, 1, 1234L,
+                    Path("./some/test/file$j.${type.name.lowercase()}"),
+                    location?.lat, location?.lon, 999L, measurementId
+                )
+            )
+        }
+        return files
     }
 
     /**
@@ -520,5 +555,26 @@ object SharedTestUtils {
             nextInsertIndex += subArray.length;
             Log.v(TAG, "Inserted " + nextInsertIndex);
         }*/
+    }
+
+    /**
+     * Inserts test [ParcelableFile]s into the database content provider accessed by the test.
+     *
+     * This increases the performance of large tests and avoids "failed binder transaction - parcel size ..." error.
+     *
+     * @param database The [Database] to access the data
+     * @param measurementId The identifier of the test [Measurement].
+     * @param files The entries to add.
+     */
+    private suspend fun insertFiles(
+        database: Database,
+        measurementId: Long,
+        files: List<ParcelableFile>
+    ) {
+        val entries = ArrayList<de.cyface.persistence.model.File>()
+        for (entry in files) {
+            entries.add(de.cyface.persistence.model.File(entry, measurementId))
+        }
+        database.fileDao().insertAll(*entries.toTypedArray())
     }
 }

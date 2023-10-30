@@ -55,14 +55,11 @@ import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
-import de.cyface.synchronization.MockAuth
-import de.cyface.synchronization.MockedUploader
-import de.cyface.synchronization.TestUtils
 
 /**
  * Tests the correct internal workings of the `CyfaceSyncAdapter` with the persistence layer.
  *
- * This test does not run against an actual API, but uses [MockedAuthenticator] and [MockedUploader].
+ * This test does not run against an actual API, but uses [MockedUploader].
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
@@ -123,9 +120,12 @@ class SyncAdapterTest {
     @Throws(
         NoSuchMeasurementException::class, CursorIsNullException::class
     )
-    fun testOnPerformSync() {
+    fun testOnPerformSync() = runBlocking {
         val point3DCount = 1 // 100 Hz * 8 h = 2_880_000
         val locationCount = 1 // 1 Hz * 8 h = 28_800
+        val logCount = 1
+        val imageCount = 2
+        val videoCount = 0
 
         // Arrange
         // Insert data to be synced
@@ -135,7 +135,8 @@ class SyncAdapterTest {
         persistence.restoreOrCreateDeviceId() // is usually called by the DataCapturingService
         val (measurementIdentifier) = insertSampleMeasurementWithData(
             context!!,
-            MeasurementStatus.FINISHED, persistence, point3DCount, locationCount
+            MeasurementStatus.FINISHED, persistence, point3DCount, locationCount,
+            logCount, imageCount, videoCount
         )
         val loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier)
         MatcherAssert.assertThat(
@@ -182,10 +183,13 @@ class SyncAdapterTest {
     @Throws(
         NoSuchMeasurementException::class, CursorIsNullException::class
     )
-    fun testOnPerformSyncWithLargeMeasurement() {
+    fun testOnPerformSyncWithLargeMeasurement() = runBlocking {
         // 3_000_000 is the minimum which reproduced MOV-515 on N5X emulator
         val point3DCount = 2880000 // 100 Hz * 8 h
         val locationCount = 28800 // 1 Hz * 8 h
+        val logCount = 1
+        val imageCount = 2
+        val videoCount = 0
 
         // Arrange
         // Insert data to be synced
@@ -195,7 +199,8 @@ class SyncAdapterTest {
         persistence.restoreOrCreateDeviceId() // is usually called by the DataCapturingService
         val (measurementIdentifier) = insertSampleMeasurementWithData(
             context!!,
-            MeasurementStatus.FINISHED, persistence, point3DCount, locationCount
+            MeasurementStatus.FINISHED, persistence, point3DCount,
+            locationCount, logCount, imageCount, videoCount
         )
         val loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier)
         MatcherAssert.assertThat(

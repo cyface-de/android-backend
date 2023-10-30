@@ -103,6 +103,17 @@ data class File(
         measurementId
     )
 
+    /**
+     * Creates a new instance of this class which was not yet persisted and has [id] set to `0`.
+     *
+     * @param file The cached [ParcelableFile] to create the [File] from.
+     * @param measurementId The device-unique id of the measurement this data point belongs to.
+     */
+    constructor(file: ParcelableFile, measurementId: Long) : this(
+        file.timestamp, file.status, file.type, file.fileFormatVersion, file.size, file.path,
+        file.lat, file.lon, file.locationTimestamp, measurementId
+    )
+
     init {
         require(timestamp >= 0L) { "Illegal argument: timestamp was less than 0L!" }
     }

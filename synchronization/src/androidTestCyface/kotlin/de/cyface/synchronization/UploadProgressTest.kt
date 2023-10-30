@@ -55,15 +55,12 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import de.cyface.synchronization.MockAuth
-import de.cyface.synchronization.MockedUploader
-import de.cyface.synchronization.TestUtils
 import java.util.LinkedList
 
 /**
  * Tests if the upload progress is broadcasted as expected.
  *
- * This test does not run against an actual API, but uses [MockedAuthenticator] and [MockedUploader].
+ * This test does not run against an actual API, but uses [MockedUploader].
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -119,7 +116,7 @@ class UploadProgressTest {
     @Throws(
         NoSuchMeasurementException::class
     )
-    fun testUploadProgressHappyPath() {
+    fun testUploadProgressHappyPath() = runBlocking {
         val receiver = TestReceiver()
         val filter = IntentFilter()
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED)
