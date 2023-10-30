@@ -336,7 +336,7 @@ object SharedTestUtils {
      */
     @JvmStatic
     @Throws(NoSuchMeasurementException::class)
-    fun insertSampleMeasurementWithData(
+    suspend fun insertSampleMeasurementWithData(
         context: Context,
         status: MeasurementStatus,
         persistence: DefaultPersistenceLayer<*>,
@@ -476,7 +476,7 @@ object SharedTestUtils {
      */
     // Used by the cyface flavour tests
     @JvmStatic
-    fun insertGeoLocation(
+    suspend fun insertGeoLocation(
         dao: LocationDao, measurementIdentifier: Long,
         timestamp: Long, lat: Double, lon: Double, altitude: Double, speed: Double,
         accuracy: Double, verticalAccuracy: Double
@@ -498,7 +498,7 @@ object SharedTestUtils {
      * @param measurementIdentifier The identifier of the test [Measurement].
      * @param geoLocations Test fake `GeoLocation`s to add.
      */
-    private fun insertGeoLocations(
+    private suspend fun insertGeoLocations(
         database: Database,
         measurementIdentifier: Long, geoLocations: List<ParcelableGeoLocation>
     ) {

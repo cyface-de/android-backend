@@ -23,6 +23,7 @@ import de.cyface.persistence.Database
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Measurement
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.After
@@ -57,7 +58,7 @@ class LocationDaoTest {
     }
 
     @Test
-    fun testInsert() {
+    fun testInsert() = runBlocking {
         // Arrange
         // Act
         createLocation(measurementId!!)
@@ -75,7 +76,7 @@ class LocationDaoTest {
     }
 
     @Test
-    fun testInsertAll() {
+    fun testInsertAll() = runBlocking {
         // Arrange
         val location1 = TestUtils.locationFixture(measurementId!!)
         val location2 = TestUtils.locationFixture(measurementId!!)
@@ -88,7 +89,7 @@ class LocationDaoTest {
     }
 
     @Test
-    fun testGetAll() {
+    fun testGetAll() = runBlocking {
         // Arrange
         val location1 = createLocation(measurementId!!)
         val location2 = createLocation(measurementId!!)
@@ -102,7 +103,7 @@ class LocationDaoTest {
     }
 
     @Test
-    fun testLoadAllByMeasurementId() {
+    fun testLoadAllByMeasurementId() = runBlocking {
         // Arrange
         val location1 = createLocation(measurementId!!)
         val location2 = createLocation(measurementId!!)
@@ -118,7 +119,7 @@ class LocationDaoTest {
     }
 
     @Test
-    fun testLoadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt() {
+    fun testLoadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt() = runBlocking {
         // Arrange
         val goodMeasurementId = measurementId!!
         val badMeasurementId = createMeasurement().id
@@ -147,7 +148,7 @@ class LocationDaoTest {
     }
 
     @Test
-    fun testDeleteItemByMeasurementId() {
+    fun testDeleteItemByMeasurementId() = runBlocking {
         // Arrange
         createLocation(measurementId!!)
         val otherMeasurementId = createMeasurement().id
@@ -164,7 +165,7 @@ class LocationDaoTest {
     }
 
     @Test
-    fun testDeleteAll() {
+    fun testDeleteAll() = runBlocking {
         // Arrange
         for (i in 0..1) {
             createLocation(measurementId!!)
@@ -187,10 +188,10 @@ class LocationDaoTest {
         measurementId: Long,
         speed: Double = 1.01,
         accuracy: Double = 5.0
-    ): GeoLocation {
+    ): GeoLocation = runBlocking {
         val location = TestUtils.locationFixture(measurementId, speed, accuracy)
         location.id = locationDao.insert(location)
-        return location
+        return@runBlocking location
     }
 
     /**
@@ -198,9 +199,9 @@ class LocationDaoTest {
      *
      * @return The created object.
      */
-    private fun createMeasurement(): Measurement {
+    private fun createMeasurement(): Measurement = runBlocking {
         val measurement = TestUtils.measurementFixture()
         measurement.id = measurementDao.insert(measurement)
-        return measurement
+        return@runBlocking measurement
     }
 }

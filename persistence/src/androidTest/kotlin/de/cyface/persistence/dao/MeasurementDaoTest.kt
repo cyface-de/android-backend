@@ -22,6 +22,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.cyface.persistence.Database
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.After
@@ -59,7 +60,7 @@ class MeasurementDaoTest {
     }
 
     @Test
-    fun testInsert() {
+    fun testInsert() = runBlocking {
         // Arrange
         // Act
         createMeasurement(MeasurementStatus.OPEN, true)
@@ -72,7 +73,7 @@ class MeasurementDaoTest {
     }
 
     @Test
-    fun testGetAll() {
+    fun testGetAll() = runBlocking {
         // Arrange
         val measurement1 = createMeasurement()
         val measurement2 = createMeasurement()
@@ -86,7 +87,7 @@ class MeasurementDaoTest {
     }
 
     @Test
-    fun testLoadById() {
+    fun testLoadById() = runBlocking {
         // Arrange
         val measurement = createMeasurement()
         // Act
@@ -97,7 +98,7 @@ class MeasurementDaoTest {
     }
 
     @Test
-    fun testLoadAllByStatus() {
+    fun testLoadAllByStatus() = runBlocking {
         // Arrange
         val openMeasurement = createMeasurement(MeasurementStatus.OPEN)
         createMeasurement(MeasurementStatus.FINISHED)
@@ -111,7 +112,7 @@ class MeasurementDaoTest {
     }
 
     @Test
-    fun testUpdateFileFormatVersion() {
+    fun testUpdateFileFormatVersion() = runBlocking {
         // Arrange
         val measurement = createMeasurement()
 
@@ -125,7 +126,7 @@ class MeasurementDaoTest {
     }
 
     @Test
-    fun testUpdate_withStatus() {
+    fun testUpdate_withStatus() = runBlocking {
         // Arrange
         val measurement = createMeasurement(MeasurementStatus.OPEN)
 
@@ -139,7 +140,7 @@ class MeasurementDaoTest {
     }
 
     @Test
-    fun testUpdateDistance() {
+    fun testUpdateDistance() = runBlocking {
         // Arrange
         val measurement = createMeasurement()
 
@@ -153,7 +154,7 @@ class MeasurementDaoTest {
     }
 
     @Test
-    fun testDeleteItemById() {
+    fun testDeleteItemById() = runBlocking {
         // Arrange
         val measurement = createMeasurement(MeasurementStatus.OPEN, true)
         val keep = createMeasurement()
@@ -172,7 +173,7 @@ class MeasurementDaoTest {
     }
 
     @Test
-    fun testDeleteAll() {
+    fun testDeleteAll() = runBlocking {
         // Arrange
         for (i in 0..1) {
             createMeasurement(MeasurementStatus.OPEN, true)
@@ -199,7 +200,7 @@ class MeasurementDaoTest {
     private fun createMeasurement(
         status: MeasurementStatus = MeasurementStatus.OPEN,
         withData: Boolean = false
-    ): Measurement {
+    ): Measurement = runBlocking {
         val measurement = TestUtils.measurementFixture(status)
         measurement.id = measurementDao.insert(measurement)
         if (withData) {
@@ -210,6 +211,6 @@ class MeasurementDaoTest {
             locationDao.insertAll(locationFixture)
             pressureDao.insertAll(pressureFixture)
         }
-        return measurement
+        return@runBlocking measurement
     }
 }

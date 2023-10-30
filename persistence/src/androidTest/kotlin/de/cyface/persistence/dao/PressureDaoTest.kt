@@ -23,6 +23,7 @@ import de.cyface.persistence.Database
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.Pressure
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.After
@@ -57,7 +58,7 @@ class PressureDaoTest {
     }
 
     @Test
-    fun testInsert() {
+    fun testInsert() = runBlocking {
         // Arrange
         // Act
         createPressure(measurementId!!)
@@ -75,7 +76,7 @@ class PressureDaoTest {
     }
 
     @Test
-    fun testInsertAll() {
+    fun testInsertAll() = runBlocking {
         // Arrange
         val pressure1 = TestUtils.pressureFixtures(measurementId!!)
         val pressure2 = TestUtils.pressureFixtures(measurementId!!)
@@ -88,7 +89,7 @@ class PressureDaoTest {
     }
 
     @Test
-    fun testGetAll() {
+    fun testGetAll() = runBlocking {
         // Arrange
         val location1 = createPressure(measurementId!!)
         val location2 = createPressure(measurementId!!)
@@ -102,7 +103,7 @@ class PressureDaoTest {
     }
 
     @Test
-    fun testLoadAllByMeasurementId() {
+    fun testLoadAllByMeasurementId() = runBlocking {
         // Arrange
         val location1 = createPressure(measurementId!!)
         val location2 = createPressure(measurementId!!)
@@ -118,7 +119,7 @@ class PressureDaoTest {
     }
 
     @Test
-    fun testDeleteItemByMeasurementId() {
+    fun testDeleteItemByMeasurementId() = runBlocking {
         // Arrange
         createPressure(measurementId!!)
         val otherMeasurementId = createMeasurement().id
@@ -135,7 +136,7 @@ class PressureDaoTest {
     }
 
     @Test
-    fun testDeleteAll() {
+    fun testDeleteAll() = runBlocking {
         // Arrange
         for (i in 0..1) {
             createPressure(measurementId!!)
@@ -154,10 +155,10 @@ class PressureDaoTest {
      *
      * @return The created object.
      */
-    private fun createPressure(measurementId: Long): Pressure {
+    private fun createPressure(measurementId: Long): Pressure = runBlocking {
         val pressure = TestUtils.pressureFixtures(measurementId)
         pressure.id = pressureDao.insert(pressure)
-        return pressure
+        return@runBlocking pressure
     }
 
     /**
@@ -165,9 +166,9 @@ class PressureDaoTest {
      *
      * @return The created object.
      */
-    private fun createMeasurement(): Measurement {
+    private fun createMeasurement(): Measurement = runBlocking {
         val measurement = TestUtils.measurementFixture()
         measurement.id = measurementDao.insert(measurement)
-        return measurement
+        return@runBlocking measurement
     }
 }

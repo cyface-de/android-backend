@@ -24,11 +24,14 @@ import de.cyface.persistence.Database
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
+import de.cyface.persistence.model.File
+import de.cyface.persistence.model.FileStatus
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.model.Pressure
+import kotlin.io.path.Path
 
 /**
  * Utility methods used in different [de.cyface.persistence.dao] `androidTest`s.
@@ -74,6 +77,11 @@ class TestUtils {
 
         fun eventFixture(measurementId: Long, type: EventType = EventType.LIFECYCLE_START): Event {
             return Event(1000L, type, null, measurementId)
+        }
+
+        fun fileFixtures(measurementId: Long = 1L): File {
+            return File(1000L, FileStatus.SAVED, de.cyface.protos.model.File.FileType.CSV, 1,
+                1234L, Path("./some/test/file.ext"), null, null, 999L, measurementId)
         }
     }
 }

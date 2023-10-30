@@ -20,6 +20,7 @@ package de.cyface.persistence.dao
 
 import de.cyface.persistence.Database
 import de.cyface.persistence.model.Identifier
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.After
@@ -50,7 +51,7 @@ class IdentifierDaoTest {
     }
 
     @Test
-    fun testInsert() {
+    fun testInsert() = runBlocking{
         // Arrange
         // Act
         createIdentifier()
@@ -60,7 +61,7 @@ class IdentifierDaoTest {
     }
 
     @Test
-    fun testGetAll() {
+    fun testGetAll() = runBlocking {
         // Arrange
         val identifier1 = createIdentifier()
         val identifier2 = createIdentifier()
@@ -78,11 +79,11 @@ class IdentifierDaoTest {
      *
      * @return The created object.
      */
-    private fun createIdentifier(): Identifier {
+    private fun createIdentifier(): Identifier = runBlocking {
         val identifier = fixture()
         val id = identifierDao.insert(identifier)
         identifier.id = id
-        return identifier
+        return@runBlocking identifier
     }
 
     private fun fixture(): Identifier {

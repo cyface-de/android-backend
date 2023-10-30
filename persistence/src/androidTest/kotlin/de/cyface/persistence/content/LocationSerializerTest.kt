@@ -97,7 +97,7 @@ class LocationSerializerTest {
         testReadFrom(3600 * 10)
     }
 
-    private fun testReadFrom(numberOfTestEntries: Int) {
+    private fun testReadFrom(numberOfTestEntries: Int) = runBlocking {
         Validate.isTrue(numberOfTestEntries >= 2, "not supported")
 
         // Arrange
