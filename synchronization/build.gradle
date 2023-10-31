@@ -120,6 +120,11 @@ android {
         // To resolve the conflict warning after adding google-api-client dependency
         exclude 'META-INF/DEPENDENCIES'
     }
+
+    lintOptions {
+        // To ignore false-positive lint errors
+        baseline file("lint-baseline.xml")
+    }
 }
 
 dependencies {

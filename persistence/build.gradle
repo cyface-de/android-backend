@@ -78,6 +78,11 @@ android {
         androidTest.assets.srcDirs += files("$projectDir/schemas".toString())
     }
 
+    lintOptions {
+        // To ignore false-positive lint errors
+        baseline file("lint-baseline.xml")
+    }
+
     // Uncomment to show more lint warnings
     /*tasks.withType(JavaCompile) {
         options.compilerArgs << '-Xlint:unchecked'
