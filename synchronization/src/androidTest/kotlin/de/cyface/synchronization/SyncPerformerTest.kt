@@ -148,19 +148,21 @@ class SyncPerformerTest {
         }
         val fileName =
             "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.${SyncAdapter.COMPRESSED_TRANSFER_FILE_EXTENSION}"
+        val uploader = MockedUploader()
 
         // Prepare transmission
         val syncResult = SyncResult()
 
         // Act
         val result = oocut.sendData(
-            MockedUploader(),
+            uploader,
             syncResult,
             metaData,
             compressedTransferTempFile,
             progressListener,
             "testToken",
-            fileName
+            fileName,
+            uploader.endpoint()
         )
 
         // Assert
@@ -288,13 +290,18 @@ class SyncPerformerTest {
         // Mock the actual post request
         val mockedUploader = object : Uploader {
             override fun endpoint(): URL {
-                return URL("https://mocked.cyface.de/api/v123/measurement")
+                return URL("https://mocked.cyface.de/api/v123/measurements")
+            }
+
+            override fun filesEndpoint(measurementId: Long): URL {
+                return URL("https://mocked.cyface.de/api/v123/measurements/$measurementId/files")
             }
 
             override fun upload(
                 jwtToken: String,
                 metaData: RequestMetaData,
                 file: File,
+                endpoint: URL,
                 progressListener: UploadProgressListener
             ): Result {
                 throw UploadFailed(ConflictException("Test ConflictException"))
@@ -312,7 +319,8 @@ class SyncPerformerTest {
                 compressedTransferTempFile,
                 progressListener,
                 "testToken",
-                fileName
+                fileName,
+                mockedUploader.endpoint()
             )
 
             // Assert:

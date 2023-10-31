@@ -378,7 +378,8 @@ class SyncAdapter private constructor(
                     compressedTransferTempFile!!,
                     progressListener,
                     accessToken!!,
-                    fileName
+                    fileName,
+                    uploader.endpoint()
                 )
                 if (result == Result.UPLOAD_FAILED) {
                     resultDeferred.complete(false)
@@ -454,7 +455,8 @@ class SyncAdapter private constructor(
                     transferFile!!,
                     progressListener,
                     accessToken!!,
-                    fileName
+                    fileName,
+                    uploader.filesEndpoint(metaData.measurementIdentifier.toLong())
                 )
                 if (result == Result.UPLOAD_FAILED) {
                     resultDeferred.complete(false)
