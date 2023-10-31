@@ -35,7 +35,7 @@ import kotlinx.coroutines.runBlocking
  * beginning of the track.
  *
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.1.2
  * @since 4.1.0
  */
 class DefaultLocationCleaning : LocationCleaningStrategy {

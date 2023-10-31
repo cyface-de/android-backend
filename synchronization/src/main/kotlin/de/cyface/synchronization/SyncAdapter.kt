@@ -448,7 +448,7 @@ class SyncAdapter private constructor(
             } else {
                 val fileName =
                     "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}_$fileId.${TRANSFER_FILE_EXTENSION}"
-                val result = syncPerformer.sendData( // FIXME: Needs to go to another endpoint
+                val result = syncPerformer.sendData(
                     uploader,
                     syncResult,
                     metaData,

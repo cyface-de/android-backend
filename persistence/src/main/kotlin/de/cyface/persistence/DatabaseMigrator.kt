@@ -51,7 +51,7 @@ import java.nio.ByteBuffer
  * provide a Migration object to the builder*!
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.1.0
  * @since 7.5.0
  * @property context The `Context` required to import data from a secondary data source.
  */

@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.Flow
  * decides which data source to load the data from.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 7.5.0
  * @property dao The object to access data from the local persistence layer.
  */

@@ -34,7 +34,7 @@ import org.junit.runner.RunWith
  * Tests the CRUD operations of the [MeasurementDao].
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 7.5.0
  */
 @RunWith(AndroidJUnit4::class)

@@ -76,7 +76,7 @@ import java.nio.file.Path
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.1.0
  * @since 7.7.0
  */
 @RunWith(AndroidJUnit4::class)

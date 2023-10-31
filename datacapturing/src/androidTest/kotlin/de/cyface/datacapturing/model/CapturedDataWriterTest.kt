@@ -63,7 +63,7 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.6.4
+ * @version 5.6.5
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4::class)

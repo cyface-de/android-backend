@@ -68,7 +68,7 @@ import java.nio.file.Paths
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.4.6
+ * @version 2.5.0
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4::class) // To notice errors with the short running testOnPerformSync before the large

@@ -37,7 +37,7 @@ import kotlin.io.path.Path
  * Utility methods used in different [de.cyface.persistence.dao] `androidTest`s.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 7.5.0
  */
 class TestUtils {

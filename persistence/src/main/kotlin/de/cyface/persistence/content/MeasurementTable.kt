@@ -26,7 +26,7 @@ import de.cyface.persistence.model.GeoLocation
  * stored on this device.
  *
  * @author Armin Schnabel
- * @version 5.0.0
+ * @version 5.0.1
  * @since 1.0.0
  */
 class MeasurementTable : AbstractCyfaceTable(URI_PATH) {

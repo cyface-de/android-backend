@@ -35,7 +35,7 @@ import kotlin.math.log
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.4.0
+ * @version 2.4.2
  * @since 2.1.0
  */
 object TestUtils {

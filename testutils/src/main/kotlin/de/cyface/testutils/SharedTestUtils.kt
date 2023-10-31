@@ -64,7 +64,7 @@ import java.util.UUID
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 9.0.0
  * @since 3.0.0
  */
 object SharedTestUtils {

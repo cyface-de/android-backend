@@ -30,7 +30,7 @@ import java.io.File
  * The file format to persist [Point3D]s such as accelerations, rotations and directions.
  *
  * @author Armin Schnabel
- * @version 6.0.0
+ * @version 6.0.1
  * @since 3.0.0
  */
 class Point3DFile {

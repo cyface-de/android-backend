@@ -44,7 +44,7 @@ import org.junit.runner.RunWith
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.5.7
+ * @version 1.5.8
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4::class)

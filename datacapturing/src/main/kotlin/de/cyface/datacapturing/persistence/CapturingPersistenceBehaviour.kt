@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit
  * [Measurement]s.
  *
  * @author Armin Schnabel
- * @version 2.1.1
+ * @version 2.1.2
  * @since 3.0.0
  */
 class CapturingPersistenceBehaviour : PersistenceBehaviour {

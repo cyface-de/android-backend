@@ -70,7 +70,7 @@ import java.util.zip.Inflater
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 4.0.1
  * @since 2.0.0
  */
 class MeasurementSerializerTest {

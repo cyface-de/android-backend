@@ -34,7 +34,7 @@ import org.junit.Test
  * Tests the CRUD operations of the [EventDao].
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 7.5.0
  */
 class EventDaoTest {

@@ -32,7 +32,7 @@ import java.util.UUID
  * Tests the CRUD operations of the [IdentifierDao].
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 7.5.0
  */
 class IdentifierDaoTest {

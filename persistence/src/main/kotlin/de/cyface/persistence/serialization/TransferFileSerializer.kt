@@ -45,7 +45,7 @@ import java.io.IOException
  * Serializes [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] files.
  *
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.1.0
  * @since 5.0.0
  */
 object TransferFileSerializer {

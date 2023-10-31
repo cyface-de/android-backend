@@ -28,7 +28,7 @@ import de.cyface.persistence.model.Identifier
  * Data access object which provides the API to interact with the [Identifier] database table.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 2.0.0
  * @since 7.5.0
  */
 @Dao

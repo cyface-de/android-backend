@@ -43,7 +43,7 @@ import java.io.File
  * Interface for [DefaultPersistenceLayer] created to be able to mock [DefaultPersistenceLayer] in `DataCapturingLocalTest`.
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.2.0
  * @since 7.5.0
  * @property context The [Context] required to locate the app's internal storage directory.
  * @property fileIOHandler The [FileIOHandler] used to interact with files.

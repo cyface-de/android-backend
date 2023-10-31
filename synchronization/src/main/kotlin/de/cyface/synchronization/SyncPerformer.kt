@@ -57,7 +57,7 @@ import java.net.URL
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 8.1.0
  * @since 2.0.0
  * @property context The Android `Context` to use for setting the correct server certification information.
  * @property fromBackground `true` if the error was caused without user interaction, e.g. to avoid

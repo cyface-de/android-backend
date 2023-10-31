@@ -64,7 +64,7 @@ import java.util.LinkedList
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.4.7
+ * @version 1.4.8
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4::class)
