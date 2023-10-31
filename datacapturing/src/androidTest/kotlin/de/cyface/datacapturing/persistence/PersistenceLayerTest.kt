@@ -100,7 +100,7 @@ class PersistenceLayerTest {
         assertThat(oocut!!.hasMeasurement(MeasurementStatus.OPEN), equalTo(false))
         oocut!!.newMeasurement(Modality.UNKNOWN)
         assertThat(oocut!!.hasMeasurement(MeasurementStatus.OPEN), equalTo(true))
-        assertThat(oocut!!.loadMeasurements(MeasurementStatus.FINISHED)?.size, equalTo(1))
+        assertThat(oocut!!.loadMeasurements(MeasurementStatus.FINISHED).size, equalTo(1))
     }
 
     /**
@@ -110,7 +110,7 @@ class PersistenceLayerTest {
      */
     @Test
     fun testLoadFinishedMeasurements_noMeasurements() {
-        assertThat(oocut!!.loadMeasurements(MeasurementStatus.FINISHED)?.isEmpty(), equalTo(true))
+        assertThat(oocut!!.loadMeasurements(MeasurementStatus.FINISHED).isEmpty(), equalTo(true))
     }
 
     /**
@@ -134,11 +134,11 @@ class PersistenceLayerTest {
         capturingBehaviour!!.updateRecentMeasurement(MeasurementStatus.FINISHED)
         val finishedMeasurements = oocut!!.loadMeasurements(MeasurementStatus.FINISHED)
         assertThat(
-            finishedMeasurements!!.size,
+            finishedMeasurements.size,
             CoreMatchers.`is`(equalTo(1))
         )
         assertThat(
-            finishedMeasurements[0]!!.id,
+            finishedMeasurements[0].id,
             CoreMatchers.`is`(equalTo(measurement.id))
         )
     }
@@ -158,11 +158,11 @@ class PersistenceLayerTest {
         // Check that measurement was marked as synced
         val syncedMeasurements = oocut!!.loadMeasurements(MeasurementStatus.SYNCED)
         assertThat(
-            syncedMeasurements!!.size,
+            syncedMeasurements.size,
             CoreMatchers.`is`(equalTo(1))
         )
         assertThat(
-            syncedMeasurements[0]!!.id, CoreMatchers.`is`(
+            syncedMeasurements[0].id, CoreMatchers.`is`(
                 equalTo(
                     id
                 )
@@ -194,7 +194,7 @@ class PersistenceLayerTest {
      */
     @Test
     @Throws(NoSuchMeasurementException::class)
-    fun testGetSyncableMeasurement() {
+    fun testGetSyncableMeasurement() = runBlocking {
 
         // Create a synchronized measurement
         insertSampleMeasurementWithData(context!!, MeasurementStatus.SYNCED, oocut!!, 1, 1)
@@ -210,9 +210,9 @@ class PersistenceLayerTest {
 
         // Check that syncable measurements = finishedMeasurement
         val loadedMeasurements = oocut!!.loadMeasurements(MeasurementStatus.FINISHED)
-        assertThat(loadedMeasurements!!.size, CoreMatchers.`is`(1))
+        assertThat(loadedMeasurements.size, CoreMatchers.`is`(1))
         assertThat(
-            loadedMeasurements[0]!!.id, CoreMatchers.`is`(
+            loadedMeasurements[0].id, CoreMatchers.`is`(
                 equalTo(
                     id
                 )

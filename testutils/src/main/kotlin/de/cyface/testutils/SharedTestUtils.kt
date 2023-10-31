@@ -351,10 +351,10 @@ object SharedTestUtils {
         persistence: DefaultPersistenceLayer<*>,
         point3DCount: Int,
         locationCount: Int,
-        logCount: Int,
-        imageCount: Int,
-        videoCount: Int,
-        sampleFiles: List<Path>
+        logCount: Int = 0,
+        imageCount: Int = 0,
+        videoCount: Int = 0,
+        sampleFiles: List<Path> = emptyList()
     ): de.cyface.persistence.model.Measurement {
         require(point3DCount >= 0)
         require(locationCount >= 0)

@@ -28,9 +28,9 @@ import de.cyface.datacapturing.persistence.WritingDataCompletedCallback
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceBehaviour
 import de.cyface.persistence.PersistenceLayer
+import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.io.DefaultFileIOHandler
 import de.cyface.persistence.io.FileIOHandler
-import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.EventType
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.MeasurementStatus
@@ -164,7 +164,7 @@ class CapturedDataWriterTest {
      */
     @Test
     @Throws(NoSuchFileException::class, InvalidProtocolBufferException::class)
-    fun testStoreData() {
+    fun testStoreData() = runBlocking {
         // Manually trigger data capturing (new measurement with sensor data and a location)
         val (id) = oocut!!.newMeasurement(Modality.UNKNOWN)
         val lock: Lock = ReentrantLock()
@@ -186,6 +186,7 @@ class CapturedDataWriterTest {
         )
         lock.lock()
         try {
+            @Suppress("BlockingMethodInNonBlockingContext")
             condition.await(2, TimeUnit.SECONDS)
         } catch (e: InterruptedException) {
             throw IllegalStateException(e)
@@ -339,7 +340,7 @@ class CapturedDataWriterTest {
      * Tests whether deleting a measurement actually remove that measurement together with all corresponding data.
      */
     @Test
-    fun testDeleteMeasurement() {
+    fun testDeleteMeasurement() = runBlocking {
 
         // Arrange
         val measurement = oocut!!.newMeasurement(Modality.UNKNOWN)
@@ -358,6 +359,7 @@ class CapturedDataWriterTest {
         capturingBehaviour!!.storeData(testData(), measurementId, callback)
         lock.lock()
         try {
+            @Suppress("BlockingMethodInNonBlockingContext")
             condition.await(2, TimeUnit.SECONDS)
         } catch (e: InterruptedException) {
             throw IllegalStateException(e)
