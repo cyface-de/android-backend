@@ -66,6 +66,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.net.URL
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Tests the data transmission code.
@@ -84,6 +86,7 @@ class SyncPerformerTest {
     private lateinit var persistence: DefaultPersistenceLayer<*>
     private lateinit var context: Context
     private lateinit var oocut: SyncPerformer
+    private val tempFiles = mutableListOf<Path>()
 
     @Before
     fun setUp() = runBlocking {
@@ -97,6 +100,16 @@ class SyncPerformerTest {
     @After
     fun tearDown() {
         runBlocking { SharedTestUtils.clearPersistenceLayer(context, persistence) }
+        // Cleanup temp files
+        tempFiles.forEach { file ->
+            try {
+                Files.deleteIfExists(file)
+            } catch (e: Exception) {
+                println("Could not delete file: $file")
+                e.printStackTrace()
+            }
+        }
+        tempFiles.clear()
     }
 
     /**
@@ -108,17 +121,19 @@ class SyncPerformerTest {
      */
     private fun performSendDataTest(
         point3DCount: Int,
-        locationCount: Int,
+        @Suppress("SameParameterValue") locationCount: Int,
         logCount: Int,
         imageCount: Int,
-        videoCount: Int,
+        @Suppress("SameParameterValue") videoCount: Int,
         filesSize: Long
     ) = runBlocking {
 
         // Arrange
+        val sampleFiles = SharedTestUtils.randomFiles(logCount + imageCount + videoCount)
+        tempFiles.addAll(sampleFiles) // Add to the auto-cleanup list for `tearDown`
         val measurement = SharedTestUtils.insertSampleMeasurementWithData(
             context, MeasurementStatus.FINISHED,
-            persistence, point3DCount, locationCount, logCount, imageCount, videoCount
+            persistence, point3DCount, locationCount, logCount, imageCount, videoCount, sampleFiles
         )
         val measurementId = measurement.id
         val loadedStatus = persistence.loadMeasurementStatus(measurementId)
@@ -211,9 +226,11 @@ class SyncPerformerTest {
         // Arrange
         // Insert data to be synced
         val locationCount = 1
+        val sampleFiles = SharedTestUtils.randomFiles(0)
+        tempFiles.addAll(sampleFiles) // Add to the auto-cleanup list for `tearDown`
         val (measurementIdentifier, _, _, _, distance) = SharedTestUtils.insertSampleMeasurementWithData(
             context, MeasurementStatus.FINISHED,
-            persistence, 1, locationCount, 0, 0, 0
+            persistence, 1, locationCount, 0, 0, 0, sampleFiles
         )
         val loadedStatus: MeasurementStatus =
             persistence.loadMeasurementStatus(measurementIdentifier)

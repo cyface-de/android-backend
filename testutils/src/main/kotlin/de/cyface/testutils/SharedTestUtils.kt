@@ -49,11 +49,15 @@ import de.cyface.protos.model.Measurement
 import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.model.Point3DType
 import de.cyface.utils.Validate
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import java.io.File
-import kotlin.io.path.Path
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.UUID
 
 /**
  * This class (and the module test-utils) exist to be able to share test code between modules.
@@ -349,13 +353,18 @@ object SharedTestUtils {
         locationCount: Int,
         logCount: Int,
         imageCount: Int,
-        videoCount: Int
+        videoCount: Int,
+        sampleFiles: List<Path>
     ): de.cyface.persistence.model.Measurement {
         require(point3DCount >= 0)
         require(locationCount >= 0)
         require(logCount >= 0)
         require(imageCount >= 0)
         require(videoCount >= 0)
+        require(sampleFiles.size == logCount + imageCount + videoCount) {
+            "Expected $logCount + $imageCount + $videoCount files but found ${sampleFiles.size}"
+        }
+
         val geoLocations: MutableList<ParcelableGeoLocation> = ArrayList()
         val measurement = insertMeasurementEntry(persistence, Modality.UNKNOWN)
         val measurementId = measurement.id
@@ -437,10 +446,16 @@ object SharedTestUtils {
         }
 
         // Insert attachments
-        val logFiles = files(logCount, FileType.CSV, null, measurementId)
-        val location = geoLocations.get(0)
-        val imageFiles = files(imageCount, FileType.JPG, location, measurementId)
-        val videoFiles = files(videoCount, FileType.MP4, location, measurementId)
+        val logStartIndex = 0
+        val imageStartIndex = logStartIndex + logCount
+        val videoStartIndex = imageStartIndex + imageCount
+        val logFilesPaths = getFiles(logCount, logStartIndex, sampleFiles)
+        val imageFilesPaths = getFiles(imageCount, imageStartIndex, sampleFiles)
+        val videoFilesPaths = getFiles(videoCount, videoStartIndex, sampleFiles)
+        val logFiles = files(logCount, FileType.CSV, null, logFilesPaths, measurementId)
+        val location = geoLocations[0]
+        val imageFiles = files(imageCount, FileType.JPG, location, imageFilesPaths, measurementId)
+        val videoFiles = files(videoCount, FileType.MP4, location, videoFilesPaths, measurementId)
         insertFiles(database, measurement.id, logFiles)
         insertFiles(database, measurement.id, imageFiles)
         insertFiles(database, measurement.id, videoFiles)
@@ -461,13 +476,22 @@ object SharedTestUtils {
         return measurement
     }
 
-    private fun files(count: Int, type: FileType, location: ParcelableGeoLocation?, measurementId: Long): List<ParcelableFile> {
+    private fun <T> getFiles(count: Int, startingIndex: Int, files: List<T>): List<T> {
+        val endIndex = startingIndex + count
+        return if (endIndex <= files.size) {
+            files.subList(startingIndex, endIndex)
+        } else {
+            throw IllegalArgumentException("Expected $count but found ${files.size}")
+        }
+    }
+
+    private fun files(count: Int, type: FileType, location: ParcelableGeoLocation?, sampleFiles: List<Path>, measurementId: Long): List<ParcelableFile> {
+        require(sampleFiles.size == count) {"Expected $count files but found ${sampleFiles.size}"}
         val files: MutableList<de.cyface.persistence.model.File> = ArrayList()
         for (j in 0 until count) {
             files.add(
                 de.cyface.persistence.model.File(
-                    1000L + j, FileStatus.SAVED, type, 1, 1234L,
-                    Path("./some/test/file$j.${type.name.lowercase()}"),
+                    1000L + j, FileStatus.SAVED, type, 1, 1234L, sampleFiles[j],
                     location?.lat, location?.lon, 999L, measurementId
                 )
             )
@@ -576,5 +600,11 @@ object SharedTestUtils {
             entries.add(de.cyface.persistence.model.File(entry, measurementId))
         }
         database.fileDao().insertAll(*entries.toTypedArray())
+    }
+
+    suspend fun randomFiles(count: Int): List<Path> = withContext(Dispatchers.IO) {
+        List(count) {
+            Files.createTempFile(UUID.randomUUID().toString(), ".tmp")
+        }
     }
 }
