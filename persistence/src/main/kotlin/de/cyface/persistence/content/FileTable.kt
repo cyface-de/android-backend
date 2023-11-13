@@ -95,7 +95,7 @@ class FileTable : AbstractCyfaceTable(URI_PATH) {
         /**
          * Column name for the column storing the Unix timestamp in milliseconds of the last known location.
          *
-         * It allows to identify when the last known location is from too long. Additionally, it's the
+         * It allows to identify when the last known location was recorded too long ago. Additionally, it's the
          * link to the location data, e.g. to get additional data like the accuracy.
          */
         const val COLUMN_LOCATION_TIMESTAMP = "location_timestamp"
