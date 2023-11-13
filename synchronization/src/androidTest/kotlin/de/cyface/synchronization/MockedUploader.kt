@@ -30,21 +30,41 @@ import java.net.URL
  * An [Uploader] that does not actually connect to the server, for testing.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 2.0.0
  * @since 7.7.0
  */
 internal class MockedUploader : Uploader {
-    override fun endpoint(): URL {
+
+    override fun measurementsEndpoint(): URL {
         return try {
-            URL("https://mocked.cyface.de/api/v123/measurement")
+            URL("https://mocked.cyface.de/api/v123/measurements")
         } catch (e: MalformedURLException) {
             throw IllegalStateException(e)
         }
     }
 
-    override fun upload(
+    override fun attachmentsEndpoint(measurementId: Long): URL {
+        return try {
+            URL("https://mocked.cyface.de/api/v123/measurements/ID/attachments")
+        } catch (e: MalformedURLException) {
+            throw IllegalStateException(e)
+        }
+    }
+
+    override fun uploadMeasurement(
         jwtToken: String,
         metaData: RequestMetaData,
+        file: File,
+        progressListener: UploadProgressListener
+    ): Result {
+        progressListener.updatedProgress(1.0f) // 100%
+        return Result.UPLOAD_SUCCESSFUL
+    }
+
+    override fun uploadAttachment(
+        jwtToken: String,
+        metaData: RequestMetaData,
+        measurementId: Long,
         file: File,
         progressListener: UploadProgressListener
     ): Result {

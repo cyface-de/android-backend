@@ -162,7 +162,7 @@ class SyncPerformerTest {
             progressListener,
             "testToken",
             fileName,
-            uploader.endpoint()
+            uploader.measurementsEndpoint()
         )
 
         // Assert
@@ -289,24 +289,32 @@ class SyncPerformerTest {
 
         // Mock the actual post request
         val mockedUploader = object : Uploader {
-            override fun endpoint(): URL {
+            override fun measurementsEndpoint(): URL {
                 return URL("https://mocked.cyface.de/api/v123/measurements")
             }
 
-            override fun filesEndpoint(measurementId: Long): URL {
-                return URL("https://mocked.cyface.de/api/v123/measurements/$measurementId/files")
+            override fun attachmentsEndpoint(measurementId: Long): URL {
+                return URL("https://mocked.cyface.de/api/v123/measurements/$measurementId/attachments")
             }
 
-            override fun upload(
+            override fun uploadMeasurement(
                 jwtToken: String,
                 metaData: RequestMetaData,
                 file: File,
-                endpoint: URL,
                 progressListener: UploadProgressListener
             ): Result {
                 throw UploadFailed(ConflictException("Test ConflictException"))
             }
 
+            override fun uploadAttachment(
+                jwtToken: String,
+                metaData: RequestMetaData,
+                measurementId: Long,
+                file: File,
+                progressListener: UploadProgressListener
+            ): Result {
+                throw UploadFailed(ConflictException("Test ConflictException"))
+            }
         }
 
         // Act
@@ -320,7 +328,7 @@ class SyncPerformerTest {
                 progressListener,
                 "testToken",
                 fileName,
-                mockedUploader.endpoint()
+                mockedUploader.measurementsEndpoint()
             )
 
             // Assert:

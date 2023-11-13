@@ -379,7 +379,7 @@ class SyncAdapter private constructor(
                     progressListener,
                     accessToken!!,
                     fileName,
-                    uploader.endpoint()
+                    uploader.measurementsEndpoint()
                 )
                 if (result == Result.UPLOAD_FAILED) {
                     resultDeferred.complete(false)
@@ -456,7 +456,7 @@ class SyncAdapter private constructor(
                     progressListener,
                     accessToken!!,
                     fileName,
-                    uploader.filesEndpoint(metaData.measurementIdentifier.toLong())
+                    uploader.attachmentsEndpoint(metaData.measurementIdentifier.toLong())
                 )
                 if (result == Result.UPLOAD_FAILED) {
                     resultDeferred.complete(false)
