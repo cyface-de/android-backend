@@ -26,7 +26,7 @@ import de.cyface.protos.model.File.FileType
 import java.nio.file.Path
 
 /**
- * An `@Entity` which represents a persisted [ParcelableFile], usually captured by a camera.
+ * An `@Entity` which represents a persisted [ParcelableAttachment], usually captured by a camera.
  *
  * An instance of this class represents one row in a database table containing the file reference.
  *
@@ -39,7 +39,7 @@ import java.nio.file.Path
  * This foreign key points to [Measurement.id] and is indexed to avoid full table scan on parent update.
  */
 @Entity(
-    // Keep the table schema in sync with `ContentProvider`'s [FileTable]
+    // Keep the table schema in sync with [de.cyface.persistence.content.AttachmentTable]
     foreignKeys = [ForeignKey(
         entity = Measurement::class,
         parentColumns = arrayOf("_id"),
@@ -47,11 +47,11 @@ import java.nio.file.Path
         onDelete = ForeignKey.CASCADE
     )]
 )
-data class File(
+data class Attachment(
     @ColumnInfo(name = "_id") // The CursorAdapter requires a column with the name `_id`
     @PrimaryKey(autoGenerate = true) var id: Long = 0,
     override val timestamp: Long,
-    override val status: FileStatus,
+    override val status: AttachmentStatus,
     override val type: FileType,
     override val fileFormatVersion: Short,
     override val size: Long,
@@ -60,13 +60,13 @@ data class File(
     override val lon: Double?,
     override val locationTimestamp: Long?,
     @ColumnInfo(index = true) val measurementId: Long
-) : ParcelableFile(timestamp, status, type, fileFormatVersion, size, path, lat, lon, locationTimestamp) {
+) : ParcelableAttachment(timestamp, status, type, fileFormatVersion, size, path, lat, lon, locationTimestamp) {
 
     /**
      * Creates a new instance of this class which was not yet persisted and has [id] set to `0`.
      *
      * @param timestamp The timestamp at which this data point was captured in milliseconds since 1.1.1970.
-     * @param status The status of the file.
+     * @param status The status of the [Attachment].
      * @param type The type of the file, e.g. JPG (compressed image).
      * @param fileFormatVersion The file format version of this data point, e.g. 1.
      * @param size The size of the file represented by this data point in bytes.
@@ -80,7 +80,7 @@ data class File(
      */
     constructor(
         timestamp: Long,
-        status: FileStatus,
+        status: AttachmentStatus,
         type: FileType,
         fileFormatVersion: Short,
         size: Long,
@@ -106,12 +106,13 @@ data class File(
     /**
      * Creates a new instance of this class which was not yet persisted and has [id] set to `0`.
      *
-     * @param file The cached [ParcelableFile] to create the [File] from.
+     * @param attachment The cached [ParcelableAttachment] to create the [Attachment] from.
      * @param measurementId The device-unique id of the measurement this data point belongs to.
      */
-    constructor(file: ParcelableFile, measurementId: Long) : this(
-        file.timestamp, file.status, file.type, file.fileFormatVersion, file.size, file.path,
-        file.lat, file.lon, file.locationTimestamp, measurementId
+    constructor(attachment: ParcelableAttachment, measurementId: Long) : this(
+        attachment.timestamp, attachment.status, attachment.type, attachment.fileFormatVersion,
+        attachment.size, attachment.path, attachment.lat, attachment.lon,
+        attachment.locationTimestamp, measurementId
     )
 
     init {
@@ -123,7 +124,7 @@ data class File(
         if (javaClass != other?.javaClass) return false
         if (!super.equals(other)) return false
 
-        other as File
+        other as Attachment
 
         if (id != other.id) return false
         if (timestamp != other.timestamp) return false

@@ -35,7 +35,7 @@ import de.cyface.model.RequestMetaData
 import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.exception.NoSuchMeasurementException
-import de.cyface.persistence.model.FileStatus
+import de.cyface.persistence.model.AttachmentStatus
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.ParcelableGeoLocation
@@ -276,8 +276,8 @@ class SyncAdapter private constructor(
             // The status in the database could have changed due to upload, reload it
             val currentStatus = persistence.measurementRepository!!.loadById(measurement.id)!!.status
             if (currentStatus === MeasurementStatus.SYNCABLE_ATTACHMENTS) {
-                val syncableFiles = persistence.fileDao!!.loadAllByMeasurementIdAndStatus(measurement.id, FileStatus.SAVED)
-                val totalFiles = persistence.fileDao!!.countByMeasurementId(measurement.id)
+                val syncableFiles = persistence.attachmentDao!!.loadAllByMeasurementIdAndStatus(measurement.id, AttachmentStatus.SAVED)
+                val totalFiles = persistence.attachmentDao!!.countByMeasurementId(measurement.id)
                 val syncedFiles = totalFiles - syncableFiles.size
 
                 for (fileIndex in syncableFiles.indices) {
@@ -337,7 +337,7 @@ class SyncAdapter private constructor(
         return compressedTransferTempFile
     }
 
-    private fun serializeFile(file: de.cyface.persistence.model.File, persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>): File? {
+    private fun serializeFile(file: de.cyface.persistence.model.Attachment, persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>): File? {
         var transferTempFile: File?
         runBlocking {
             transferTempFile = MeasurementSerializer().writeSerializedFile(file, persistence)
@@ -465,13 +465,13 @@ class SyncAdapter private constructor(
                     try {
                         when (result) {
                             Result.UPLOAD_SKIPPED -> {
-                                persistence.markSavedAs(FileStatus.SKIPPED, fileId)
-                                Log.d(TAG, "File marked as ${FileStatus.SKIPPED.name.lowercase()}")
+                                persistence.markSavedAs(AttachmentStatus.SKIPPED, fileId)
+                                Log.d(TAG, "File marked as ${AttachmentStatus.SKIPPED.name.lowercase()}")
                             }
 
                             Result.UPLOAD_SUCCESSFUL -> {
-                                persistence.markSavedAs(FileStatus.SYNCED, fileId)
-                                Log.d(TAG, "File marked as ${FileStatus.SYNCED.name.lowercase()}")
+                                persistence.markSavedAs(AttachmentStatus.SYNCED, fileId)
+                                Log.d(TAG, "File marked as ${AttachmentStatus.SYNCED.name.lowercase()}")
                             }
 
                             else -> {
@@ -499,7 +499,7 @@ class SyncAdapter private constructor(
         Validate.isTrue(format == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
     }
 
-    private fun validateFileFormat(file: de.cyface.persistence.model.File) {
+    private fun validateFileFormat(file: de.cyface.persistence.model.Attachment) {
         val format = file.fileFormatVersion
         when (file.type) {
             FileType.CSV -> {
@@ -617,13 +617,13 @@ class SyncAdapter private constructor(
 
         return runBlocking {
             // Attachments
-            val logCount = persistence.fileDao!!.countByMeasurementIdAndType(measurement.id, FileType.CSV)
-            val imageCount = persistence.fileDao!!.countByMeasurementIdAndType(measurement.id, FileType.JPG)
-            val allFiles = persistence.fileDao!!.countByMeasurementId(measurement.id)
+            val logCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.CSV)
+            val imageCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.JPG)
+            val allFiles = persistence.attachmentDao!!.countByMeasurementId(measurement.id)
             val unsupportedFiles = allFiles - logCount - imageCount
             require(unsupportedFiles == 0) { "Number of unsupported files: $unsupportedFiles" }
             val filesSize = if (allFiles > 0) {
-                val sampleFile = persistence.fileDao!!.loadOneByMeasurementId(measurement.id)
+                val sampleFile = persistence.attachmentDao!!.loadOneByMeasurementId(measurement.id)
                 val folderPath = File(sampleFile!!.path.parent.toUri())
                 getFolderSize(folderPath)
             } else 0

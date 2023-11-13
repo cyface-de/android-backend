@@ -29,20 +29,20 @@ import java.nio.file.Paths
  * This class represents a file [DataPoint], usually captured by a camera.
  *
  * An instance of this class represents a data point captured and cached but not yet persisted. Such a
- * [File] requires the measurement id to be set.
+ * [Attachment] requires the measurement id to be set.
  *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 7.10.0
  */
-open class ParcelableFile : DataPoint {
+open class ParcelableAttachment : DataPoint {
     /**
-     * The status of the file.
+     * The status of the [Attachment].
      *
-     * The status allows us to persist which files of a [MeasurementTable] entry are already
+     * The status allows us to persist which [Attachment]s of a [MeasurementTable] entry are already
      * `synced` with the server.
      */
-    open val status: FileStatus
+    open val status: AttachmentStatus
 
     /**
      * The type of the file, e.g. JPG (compressed image).
@@ -106,7 +106,7 @@ open class ParcelableFile : DataPoint {
      * Creates a new completely initialized instance of this class.
      *
      * @param timestamp The timestamp at which this data point was captured in milliseconds since 1.1.1970.
-     * @param status The status of the file.
+     * @param status The status of the [Attachment].
      * @param type The type of the file, e.g. JPG (compressed image).
      * @param fileFormatVersion The file format version of this data point, e.g. 1.
      * @param size The size of the file represented by this data point in bytes.
@@ -119,7 +119,7 @@ open class ParcelableFile : DataPoint {
      */
     constructor(
         timestamp: Long,
-        status: FileStatus,
+        status: AttachmentStatus,
         type: FileType,
         fileFormatVersion: Short,
         size: Long,
@@ -163,7 +163,7 @@ open class ParcelableFile : DataPoint {
      * @param in A `Parcel` that is a serialized version of a data point.
      */
     protected constructor(`in`: Parcel) : super(`in`) {
-        status = FileStatus.valueOf(`in`.readString()!!)
+        status = AttachmentStatus.valueOf(`in`.readString()!!)
         type = FileType.valueOf(`in`.readString()!!)
         fileFormatVersion = `in`.readInt().toShort()
         size = `in`.readLong()
@@ -194,7 +194,7 @@ open class ParcelableFile : DataPoint {
         if (javaClass != other?.javaClass) return false
         if (!super.equals(other)) return false
 
-        other as ParcelableFile
+        other as ParcelableAttachment
 
         if (status != other.status) return false
         if (type != other.type) return false
@@ -219,12 +219,12 @@ open class ParcelableFile : DataPoint {
          * The `Parcelable` creator as required by the Android Parcelable specification.
          */
         @JvmField
-        val CREATOR: Creator<ParcelableFile?> = object : Creator<ParcelableFile?> {
-            override fun createFromParcel(`in`: Parcel): ParcelableFile {
-                return ParcelableFile(`in`)
+        val CREATOR: Creator<ParcelableAttachment?> = object : Creator<ParcelableAttachment?> {
+            override fun createFromParcel(`in`: Parcel): ParcelableAttachment {
+                return ParcelableAttachment(`in`)
             }
 
-            override fun newArray(size: Int): Array<ParcelableFile?> {
+            override fun newArray(size: Int): Array<ParcelableAttachment?> {
                 return arrayOfNulls(size)
             }
         }

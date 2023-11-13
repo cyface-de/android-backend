@@ -26,7 +26,7 @@ import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.content.AbstractCyfaceTable.Companion.DATABASE_QUERY_LIMIT
-import de.cyface.persistence.model.File
+import de.cyface.persistence.model.Attachment
 import de.cyface.persistence.model.Measurement
 import de.cyface.protos.model.Event
 import de.cyface.protos.model.File.FileType
@@ -232,17 +232,17 @@ object TransferFileSerializer {
     }
 
     /**
-     * Loads and serializes a [File] from the persistence layer.
+     * Loads and serializes a [Attachment] from the persistence layer.
      *
-     * @param file The reference of the entry to load
+     * @param attachment The reference of the entry to load
      */
     @Throws(CursorIsNullException::class)
-    private fun loadFile(
-        file: File
+    private fun loadAttachment(
+        attachment: Attachment
     ): de.cyface.protos.model.File {
-        val serializer = FileSerializer()
+        val serializer = AttachmentSerializer()
         try {
-            serializer.readFrom(file)
+            serializer.readFrom(attachment)
         } catch (e: RemoteException) {
             throw java.lang.IllegalStateException(e)
         }
@@ -250,7 +250,7 @@ object TransferFileSerializer {
     }
 
     /**
-     * Implements the core algorithm of loading data of a [File] from the [PersistenceLayer]
+     * Implements the core algorithm of loading data of a [Attachment] from the [PersistenceLayer]
      * and serializing it into an array of bytes, ready to be transferred.
      *
      * We use the {@param loader} to access the measurement data. FIXME?
@@ -263,26 +263,26 @@ object TransferFileSerializer {
      * @param bufferedOutputStream The `OutputStream` to which the serialized data should be written. Injecting
      * this allows us to compress the serialized data without the need to write it into a temporary file.
      * We require a [BufferedOutputStream] for performance reasons.
-     * @param reference The [de.cyface.persistence.model.File] to load
+     * @param reference The [de.cyface.persistence.model.Attachment] to load
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @JvmStatic
     @Throws(CursorIsNullException::class)
-    suspend fun loadSerializedFile(
+    suspend fun loadSerializedAttachment(
         bufferedOutputStream: BufferedOutputStream,
-        reference: File,
+        reference: Attachment,
     ) {
-        val file = loadFile(reference)
+        val attachment = loadAttachment(reference)
 
         val builder = de.cyface.protos.model.Measurement.newBuilder()
             .setFormatVersion(MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION.toInt())
         when (reference.type) {
             FileType.CSV -> {
-                builder.capturingLog = file
+                builder.capturingLog = attachment
             }
 
             FileType.JPG -> {
-                builder.addAllImages(mutableListOf(file))
+                builder.addAllImages(mutableListOf(attachment))
             }
 
             else -> {
@@ -291,7 +291,7 @@ object TransferFileSerializer {
         }
 
         // Currently loading one image per transfer file into memory (~ 2-5 MB / image).
-        // - To add all high-res image data or video data in the future we cannot use the pre-compiled
+        // - To load add all high-res image data or video data in the future we cannot use the pre-compiled
         // builder but have to stream the data without loading it into memory to avoid an OOM exception.
         val transferFileHeader = DataSerializable.transferFileHeader()
         val measurementBytes = builder.build().toByteArray()
@@ -307,7 +307,7 @@ object TransferFileSerializer {
         }
         Log.d(
             TAG, String.format(
-                "Serialized file: %s",
+                "Serialized attachment: %s",
                 DataSerializable.humanReadableSize(
                     (transferFileHeader.size + measurementBytes.size).toLong(),
                     true

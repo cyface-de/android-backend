@@ -20,7 +20,7 @@ package de.cyface.persistence.dao
 
 import android.database.sqlite.SQLiteConstraintException
 import de.cyface.persistence.Database
-import de.cyface.persistence.model.File
+import de.cyface.persistence.model.Attachment
 import de.cyface.persistence.model.Measurement
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
@@ -30,22 +30,22 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Tests the CRUD operations of the [FileDao].
+ * Tests the CRUD operations of the [AttachmentDao].
  *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 7.10.0
  */
-class FileDaoTest {
+class AttachmentDaoTest {
     private lateinit var database: Database
     private lateinit var measurementDao: MeasurementDao
-    private lateinit var dao: FileDao
+    private lateinit var dao: AttachmentDao
     private var measurementId: Long? = null
 
     @Before
     fun setupDatabase() {
         database = TestUtils.createDatabase()
-        dao = database.fileDao()
+        dao = database.attachmentDao()
         measurementDao = database.measurementDao()
         // Insert a default measurement as each pressure needs a measurement in the database
         measurementId = createMeasurement().id
@@ -77,8 +77,8 @@ class FileDaoTest {
     @Test
     fun testInsertAll() = runBlocking {
         // Arrange
-        val entry1 = TestUtils.fileFixtures(measurementId!!)
-        val entry2 = TestUtils.fileFixtures(measurementId!!)
+        val entry1 = TestUtils.attachmentFixtures(measurementId!!)
+        val entry2 = TestUtils.attachmentFixtures(measurementId!!)
 
         // Act
         dao.insertAll(entry1, entry2)
@@ -154,8 +154,8 @@ class FileDaoTest {
      *
      * @return The created object.
      */
-    private suspend fun createEntry(measurementId: Long): File {
-        val entry = TestUtils.fileFixtures(measurementId)
+    private suspend fun createEntry(measurementId: Long): Attachment {
+        val entry = TestUtils.attachmentFixtures(measurementId)
         entry.id = dao.insert(entry)
         return entry
     }

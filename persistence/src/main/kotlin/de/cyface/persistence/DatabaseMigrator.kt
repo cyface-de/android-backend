@@ -93,18 +93,18 @@ class DatabaseMigrator(val context: Context) {
 
     companion object {
         /**
-         * Adds the `File` table.
+         * Adds the [de.cyface.persistence.model.Attachment] table.
          */
         val MIGRATION_18_19 = object : Migration(18, 19) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL("CREATE TABLE IF NOT EXISTS `File` (" +
+                database.execSQL("CREATE TABLE IF NOT EXISTS `Attachment` (" +
                         "`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, " +
                         "`status` TEXT NOT NULL, `type` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, " +
                         "`size` INTEGER NOT NULL, `path` TEXT NOT NULL, " +
                         "`lat` REAL, `lon` REAL, `locationTimestamp` INTEGER, `measurementId` INTEGER NOT NULL, " +
                         "FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) " +
                         "ON UPDATE NO ACTION ON DELETE CASCADE )")
-                database.execSQL("CREATE INDEX IF NOT EXISTS `index_File_measurementId` ON `File` (`measurementId`)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_Attachment_measurementId` ON `Attachment` (`measurementId`)")
             }
         }
 

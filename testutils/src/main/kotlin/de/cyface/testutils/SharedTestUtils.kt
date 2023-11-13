@@ -36,11 +36,11 @@ import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.io.DefaultFileIOHandler
 import de.cyface.persistence.io.FileIOHandler
-import de.cyface.persistence.model.FileStatus
+import de.cyface.persistence.model.AttachmentStatus
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
-import de.cyface.persistence.model.ParcelableFile
+import de.cyface.persistence.model.ParcelableAttachment
 import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.DefaultLocationCleaning
@@ -485,13 +485,13 @@ object SharedTestUtils {
         }
     }
 
-    private fun files(count: Int, type: FileType, location: ParcelableGeoLocation?, sampleFiles: List<Path>, measurementId: Long): List<ParcelableFile> {
+    private fun files(count: Int, type: FileType, location: ParcelableGeoLocation?, sampleFiles: List<Path>, measurementId: Long): List<ParcelableAttachment> {
         require(sampleFiles.size == count) {"Expected $count files but found ${sampleFiles.size}"}
-        val files: MutableList<de.cyface.persistence.model.File> = ArrayList()
+        val files: MutableList<de.cyface.persistence.model.Attachment> = ArrayList()
         for (j in 0 until count) {
             files.add(
-                de.cyface.persistence.model.File(
-                    1000L + j, FileStatus.SAVED, type, 1, 1234L, sampleFiles[j],
+                de.cyface.persistence.model.Attachment(
+                    1000L + j, AttachmentStatus.SAVED, type, 1, 1234L, sampleFiles[j],
                     location?.lat, location?.lon, 999L, measurementId
                 )
             )
@@ -582,7 +582,7 @@ object SharedTestUtils {
     }
 
     /**
-     * Inserts test [ParcelableFile]s into the database content provider accessed by the test.
+     * Inserts test [ParcelableAttachment]s into the database content provider accessed by the test.
      *
      * This increases the performance of large tests and avoids "failed binder transaction - parcel size ..." error.
      *
@@ -593,13 +593,13 @@ object SharedTestUtils {
     private suspend fun insertFiles(
         database: Database,
         measurementId: Long,
-        files: List<ParcelableFile>
+        files: List<ParcelableAttachment>
     ) {
-        val entries = ArrayList<de.cyface.persistence.model.File>()
+        val entries = ArrayList<de.cyface.persistence.model.Attachment>()
         for (entry in files) {
-            entries.add(de.cyface.persistence.model.File(entry, measurementId))
+            entries.add(de.cyface.persistence.model.Attachment(entry, measurementId))
         }
-        database.fileDao().insertAll(*entries.toTypedArray())
+        database.attachmentDao().insertAll(*entries.toTypedArray())
     }
 
     suspend fun randomFiles(count: Int): List<Path> = withContext(Dispatchers.IO) {

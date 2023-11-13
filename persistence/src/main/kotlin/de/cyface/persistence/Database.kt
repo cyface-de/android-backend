@@ -23,13 +23,13 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import de.cyface.persistence.dao.EventDao
-import de.cyface.persistence.dao.FileDao
+import de.cyface.persistence.dao.AttachmentDao
 import de.cyface.persistence.dao.IdentifierDao
 import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.dao.MeasurementDao
 import de.cyface.persistence.dao.PressureDao
 import de.cyface.persistence.model.Event
-import de.cyface.persistence.model.File
+import de.cyface.persistence.model.Attachment
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Identifier
 import de.cyface.persistence.model.Measurement
@@ -60,7 +60,7 @@ import de.cyface.persistence.model.Pressure
         Event::class,
         Pressure::class,
         GeoLocation::class,
-        File::class
+        Attachment::class
     ],
     // version 18 imported data from `v6.1` database into `measures.17` and migrated `measures` to Room
     version = 19
@@ -95,9 +95,9 @@ abstract class Database : RoomDatabase() {
     abstract fun locationDao(): LocationDao
 
     /**
-     * @return Data access object which provides the API to interact with the [File] database table.
+     * @return Data access object which provides the API to interact with the [Attachment] database table.
      */
-    abstract fun fileDao(): FileDao
+    abstract fun attachmentDao(): AttachmentDao
 
     companion object {
         /**

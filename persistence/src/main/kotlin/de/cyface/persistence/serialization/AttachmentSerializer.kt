@@ -19,57 +19,56 @@
 package de.cyface.persistence.serialization
 
 import com.google.protobuf.ByteString
-import de.cyface.persistence.DefaultPersistenceLayer
-import de.cyface.persistence.model.File
+import de.cyface.persistence.model.Attachment
 import de.cyface.protos.model.File.FileType
 import java.io.IOException
 import java.nio.file.Files
 
 /**
- * Serializes a [File] in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION].
+ * Serializes a [Attachment] in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION].
  *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 7.10.0
  */
-class FileSerializer {
+class AttachmentSerializer {
     /**
      * The serialized data.
      */
-    private lateinit var file: de.cyface.protos.model.File
+    private lateinit var serialized: de.cyface.protos.model.File
 
     /**
-     * Loads the binary of a [File] and parses the [File] info with the binary data.
+     * Loads the binary of a [Attachment] and parses the [Attachment] info with the binary data.
      *
-     * @param file the [File] to load and parse the data for
+     * @param attachment the [Attachment] to load and parse the data for
      */
-    fun readFrom(file: File) {
+    fun readFrom(attachment: Attachment) {
         val builder = de.cyface.protos.model.File.newBuilder()
-        require(file.type == FileType.CSV || file.type == FileType.JPG) { "Unsupported type: ${file.type}" }
+        require(attachment.type == FileType.CSV || attachment.type == FileType.JPG) { "Unsupported type: ${attachment.type}" }
 
         // Ensure we only inject bytes from the correct file format version
-        // The current version of the file format used to persist File data. It's stored in each File
-        // database entry and allows to have stored and process files with different file format versions
+        // The current version of the file format used to persist attachment data. It's stored in each attachment
+        // database entry and allows to have stored and process attachments with different file format versions
         // at the same time.
         // Check fileFormatVersion for the specific type (right now both types only support 1)
-        require(file.fileFormatVersion == 1.toShort()) { "Unsupported format version (${file.fileFormatVersion}) for type ${file.type}" }
+        require(attachment.fileFormatVersion == 1.toShort()) { "Unsupported format version (${attachment.fileFormatVersion}) for type ${attachment.type}" }
 
-        builder.timestamp = file.timestamp
-        builder.type = file.type
+        builder.timestamp = attachment.timestamp
+        builder.type = attachment.type
         try {
-            val bytes = Files.readAllBytes(file.path)
+            val bytes = Files.readAllBytes(attachment.path)
             builder.bytes = ByteString.copyFrom(bytes)
         } catch (e: IOException) {
-            throw IllegalStateException("Could not read file (id ${file.id} at ${file.path}", e)
+            throw IllegalStateException("Could not read attachment (id ${attachment.id} at ${attachment.path}", e)
         }
 
-        this.file = builder.build()
+        this.serialized = builder.build()
     }
 
     /**
      * @return the data in the serialized format.
      */
     fun result(): de.cyface.protos.model.File {
-        return file
+        return serialized
     }
 }

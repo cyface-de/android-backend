@@ -24,8 +24,8 @@ import de.cyface.persistence.Database
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
-import de.cyface.persistence.model.File
-import de.cyface.persistence.model.FileStatus
+import de.cyface.persistence.model.Attachment
+import de.cyface.persistence.model.AttachmentStatus
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
@@ -79,8 +79,8 @@ class TestUtils {
             return Event(1000L, type, null, measurementId)
         }
 
-        fun fileFixtures(measurementId: Long = 1L): File {
-            return File(1000L, FileStatus.SAVED, de.cyface.protos.model.File.FileType.CSV, 1,
+        fun attachmentFixtures(measurementId: Long = 1L): Attachment {
+            return Attachment(1000L, AttachmentStatus.SAVED, de.cyface.protos.model.File.FileType.CSV, 1,
                 1234L, Path("./some/test/file.ext"), null, null, 999L, measurementId)
         }
     }

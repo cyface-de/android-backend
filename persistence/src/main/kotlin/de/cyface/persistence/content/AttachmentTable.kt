@@ -21,19 +21,19 @@ package de.cyface.persistence.content
 import android.net.Uri
 
 /**
- * Table for storing [de.cyface.persistence.model.File]s. The data in this table is intended for
+ * Table for storing [de.cyface.persistence.model.Attachment]s. The data in this table is intended for
  * storage prior to processing it by either transfer to a server or export to some external file or device.
  *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 7.10.0
  */
-class FileTable : AbstractCyfaceTable(URI_PATH) {
+class AttachmentTable : AbstractCyfaceTable(URI_PATH) {
     companion object {
         /**
-         * The path segment in the table URI identifying the [FileTable].
+         * The path segment in the table URI identifying the [AttachmentTable].
          */
-        const val URI_PATH = "File"
+        const val URI_PATH = "Attachment"
 
         /**
          * Column name for the status of the file.

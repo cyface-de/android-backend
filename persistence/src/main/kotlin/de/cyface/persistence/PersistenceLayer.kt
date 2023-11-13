@@ -19,7 +19,7 @@
 package de.cyface.persistence
 
 import android.content.Context
-import de.cyface.persistence.dao.FileDao
+import de.cyface.persistence.dao.AttachmentDao
 import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.dao.IdentifierDao
 import de.cyface.persistence.dao.LocationDao
@@ -53,7 +53,7 @@ import java.io.File
  * @property eventRepository The source to load the [Event] data from.
  * @property locationDao The source to load the [GeoLocation] data from.
  * @property pressureDao The source to load the [Pressure] data from.
- * @property fileDao The source to load the [File] data from.
+ * @property attachmentDao The source to load the [de.cyface.persistence.model.Attachment] data from.
  */
 interface PersistenceLayer<B : PersistenceBehaviour?> {
     val context: Context?
@@ -63,7 +63,7 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
     val eventRepository: EventRepository?
     val locationDao: LocationDao?
     val pressureDao: PressureDao?
-    val fileDao: FileDao?
+    val attachmentDao: AttachmentDao?
 
     /**
      * Creates a new, [MeasurementStatus.OPEN] [Measurement] for the provided [Modality].

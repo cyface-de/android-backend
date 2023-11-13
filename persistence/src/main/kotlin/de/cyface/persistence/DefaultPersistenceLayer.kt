@@ -22,7 +22,7 @@ import android.content.Context
 import android.hardware.SensorManager
 import android.util.Log
 import de.cyface.persistence.Constants.TAG
-import de.cyface.persistence.dao.FileDao
+import de.cyface.persistence.dao.AttachmentDao
 import de.cyface.persistence.io.DefaultFileIOHandler
 import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.dao.IdentifierDao
@@ -32,8 +32,8 @@ import de.cyface.persistence.exception.NoDeviceIdException
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
-import de.cyface.persistence.model.File
-import de.cyface.persistence.model.FileStatus
+import de.cyface.persistence.model.Attachment
+import de.cyface.persistence.model.AttachmentStatus
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Identifier
 import de.cyface.persistence.model.Measurement
@@ -92,7 +92,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
 
     override val pressureDao: PressureDao?
 
-    override val fileDao: FileDao?
+    override val attachmentDao: AttachmentDao?
 
     /**
      * A `SupervisorJob` is used so that the failure of one async task started by this supervisor
@@ -119,7 +119,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         eventRepository = null
         locationDao = null
         pressureDao = null
-        fileDao = null
+        attachmentDao = null
         fileIOHandler = DefaultFileIOHandler()
     }
 
@@ -148,7 +148,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         this.eventRepository = EventRepository(database.eventDao())
         this.locationDao = database.locationDao()
         this.pressureDao = database.pressureDao()
-        this.fileDao = database.fileDao()
+        this.attachmentDao = database.attachmentDao()
         this.persistenceBehaviour = persistenceBehaviour
         this.fileIOHandler = fileIOHandler
         val accelerationsFolder =
@@ -166,7 +166,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     /**
      * Ensures that the specified exists.
      *
-     * @param folder The [File] pointer to the folder which is created if it does not yet exist
+     * @param folder The [Attachment] pointer to the folder which is created if it does not yet exist
      */
     private fun checkOrCreateFolder(folder: java.io.File) {
         if (!folder.exists()) {
@@ -342,17 +342,16 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         // Also delete syncable attachments binaries when the measurement is skipped or deprecated
         if (newStatus == MeasurementStatus.SKIPPED || newStatus == MeasurementStatus.DEPRECATED) {
             runBlocking {
-                val files = fileDao!!.loadAllByMeasurementIdAndStatus(measurementId, FileStatus.SAVED)
-                files.forEach {
-                    // TODO: Test this with large measurements (multiple hours) to ensure this does
-                    // not block the persistence. In case we want to do this in a non-blocking way
-                    // we need to ensure sync can handle this
-                    @Suppress("KotlinConstantConditions")
-                    val newFileStatus = if (newStatus == MeasurementStatus.SKIPPED) FileStatus.SKIPPED
-                    else if (newStatus == MeasurementStatus.DEPRECATED) FileStatus.DEPRECATED
-                    else throw IllegalArgumentException("Unexpected status: $newStatus")
-                    markSavedAs(newFileStatus, it)
-                    Log.d(TAG, "Cleaned up file (id ${it.id}): $newFileStatus")
+                val attachments = attachmentDao!!.loadAllByMeasurementIdAndStatus(measurementId, AttachmentStatus.SAVED)
+                attachments.forEach {
+                    // When re-writing this in a non-blocking way, ensure sync can handle this
+                    val newAttachmentStatus = when (newStatus) {
+                        MeasurementStatus.SKIPPED -> AttachmentStatus.SKIPPED
+                        MeasurementStatus.DEPRECATED -> AttachmentStatus.DEPRECATED
+                        else -> throw IllegalArgumentException("Unexpected status: $newStatus")
+                    }
+                    markSavedAs(newAttachmentStatus, it)
+                    Log.d(TAG, "Cleaned up attachment (id ${it.id}): $newAttachmentStatus")
                 }
                 cleanupEmptyFolder(measurementId)
             }
@@ -379,8 +378,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     }
 
     private fun cleanupEmptyFolder(measurementId: Long) = runBlocking {
-        val file = fileDao!!.loadOneByMeasurementId(measurementId)
-        file?.let {
+        val attachment = attachmentDao!!.loadOneByMeasurementId(measurementId)
+        attachment?.let {
             val parentDir = it.path.toFile().parentFile
             if (parentDir!!.isDirectory && parentDir.list()?.isEmpty() == true) {
                 if (!parentDir.delete()) {
@@ -395,42 +394,42 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     }
 
     /**
-     * Marks a [FileStatus.SAVED] [de.cyface.persistence.model.File] as [FileStatus.SYNCED],
-     * [FileStatus.SKIPPED] or [FileStatus.DEPRECATED] and deletes the binary file data.
+     * Marks a [AttachmentStatus.SAVED] [de.cyface.persistence.model.Attachment] as [AttachmentStatus.SYNCED],
+     * [AttachmentStatus.SKIPPED] or [AttachmentStatus.DEPRECATED] and deletes the binary attachment data.
      *
      * **ATTENTION:** This method should not be called from outside the SDK.
      *
-     * @param fileId The id of the [File] to remove.
+     * @param attachmentId The id of the [Attachment] to remove.
      */
-    fun markSavedAs(newStatus: FileStatus, fileId: Long) {
+    fun markSavedAs(newStatus: AttachmentStatus, attachmentId: Long) {
 
         // The status in the database could be different from the one in the object so load it again
         runBlocking {
-            val file = fileDao!!.loadById(fileId)!!
-            markSavedAs(newStatus, file)
+            val attachment = attachmentDao!!.loadById(attachmentId)!!
+            markSavedAs(newStatus, attachment)
         }
     }
 
     /**
-     * Marks a [FileStatus.SAVED] [de.cyface.persistence.model.File] as [FileStatus.SYNCED],
-     * [FileStatus.SKIPPED] or [FileStatus.DEPRECATED] and deletes the binary file data.
+     * Marks a [AttachmentStatus.SAVED] [de.cyface.persistence.model.Attachment] as [AttachmentStatus.SYNCED],
+     * [AttachmentStatus.SKIPPED] or [AttachmentStatus.DEPRECATED] and deletes the binary attachment data.
      *
      * **ATTENTION:** This method should not be called from outside the SDK.
      *
-     * @param file The [File] to remove.
+     * @param attachment The [Attachment] to remove.
      */
-    private fun markSavedAs(newStatus: FileStatus, file: File) {
+    private fun markSavedAs(newStatus: AttachmentStatus, attachment: Attachment) {
 
         // The status in the database could be different from the one in the object so load it again
-        Validate.isTrue(file.status === FileStatus.SAVED, "Unexpected status: ${file.status}")
-        Validate.isTrue(newStatus == FileStatus.SYNCED || newStatus == FileStatus.SKIPPED || newStatus == FileStatus.DEPRECATED, "Unexpected status change from ${file.status} to $newStatus")
+        Validate.isTrue(attachment.status === AttachmentStatus.SAVED, "Unexpected status: ${attachment.status}")
+        Validate.isTrue(newStatus == AttachmentStatus.SYNCED || newStatus == AttachmentStatus.SKIPPED || newStatus == AttachmentStatus.DEPRECATED, "Unexpected status change from ${attachment.status} to $newStatus")
         runBlocking {
-            fileDao!!.updateStatus(file.id, newStatus)
+            attachmentDao!!.updateStatus(attachment.id, newStatus)
         }
 
         // Deleting first as a second upload approach would be handled by the API
-        val binaryFile = file.path.toFile()
-        Validate.isTrue(binaryFile.delete())
+        val file = attachment.path.toFile()
+        Validate.isTrue(file.delete())
     }
 
     override fun restoreOrCreateDeviceId(): String {

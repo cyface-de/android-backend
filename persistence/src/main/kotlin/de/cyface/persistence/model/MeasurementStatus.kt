@@ -48,7 +48,7 @@ enum class MeasurementStatus(val databaseIdentifier: String) {
      * Currently, this state is reached after the measurement binary was successfully uploaded,
      * but the measurement's attachments (log, image or video files) are not fully synced yet.
      *
-     * Check the state in the [File] table entries to see which attachments are not synced yet.
+     * Check the state in the [Attachment] table entries to see which attachments are not synced yet.
      * After all attachments are uploaded the measurement is set to [.SYNCED].
      */
     SYNCABLE_ATTACHMENTS("SYNCABLE_ATTACHMENTS"),

@@ -19,31 +19,31 @@
 package de.cyface.persistence.model
 
 /**
- * Status which defines whether a [File] is just [.SAVED] or already [.SYNCED] or [.SKIPPED].
+ * Status which defines whether a [Attachment] is just [.SAVED] or already [.SYNCED] or [.SKIPPED].
  *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 7.10.0
  * @property databaseIdentifier The [String] which represents the enumeration value in the database.
  */
-enum class FileStatus(val databaseIdentifier: String) {
+enum class AttachmentStatus(val databaseIdentifier: String) {
     /**
-     * This state defines that a [File] has been stored and was not yet [.SYNCED].
+     * This state defines that a [Attachment] has been stored and was not yet [.SYNCED].
      */
     SAVED("SAVED"),
 
     /**
-     * This state defines that a [File] has been synchronized.
+     * This state defines that a [Attachment] has been synchronized.
      */
     SYNCED("SYNCED"),
 
     /**
-     * This state defines that a [File] was rejected by the API and won't be uploaded.
+     * This state defines that a [Attachment] was rejected by the API and won't be uploaded.
      */
     SKIPPED("SKIPPED"),
 
     /**
-     * This state defines that a [File] is no longer supported (to be synced).
+     * This state defines that a [Attachment] is no longer supported (to be synced).
      */
     DEPRECATED("DEPRECATED");
 }

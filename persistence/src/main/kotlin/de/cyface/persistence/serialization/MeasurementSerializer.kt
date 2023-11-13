@@ -98,20 +98,20 @@ class MeasurementSerializer {
     }
 
     /**
-     * Loads the [de.cyface.persistence.model.File] with the provided identifier from the persistence
+     * Loads the [de.cyface.persistence.model.Attachment] with the provided identifier from the persistence
      * layer serialized in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] format and writes
      * it to a temp file, ready to be transferred.
      *
      * **ATTENTION**: The caller needs to delete the file which is referenced by the returned `FileInputStream`
      * when no longer needed or on program crash!
      *
-     * @param file The [de.cyface.persistence.model.File] to load
+     * @param file The [de.cyface.persistence.model.Attachment] to load
      * @param persistenceLayer The [PersistenceLayer] to load the data from
      * @return A [File] pointing to a temporary file containing the serialized data for transfer.
      */
     @Throws(CursorIsNullException::class)
     suspend fun writeSerializedFile(
-        file: de.cyface.persistence.model.File,
+        file: de.cyface.persistence.model.Attachment,
         persistenceLayer: PersistenceLayer<*>
     ): File? {
 
@@ -181,27 +181,27 @@ class MeasurementSerializer {
     }
 
     /**
-     * Writes the [de.cyface.persistence.model.File] with the provided identifier from the persistence
+     * Writes the [de.cyface.persistence.model.Attachment] with the provided identifier from the persistence
      * layer serialized in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] format, ready to be
      * transferred.
      *
      * No compression is used as we're mostly transferring JPG files right now which are pre-compressed.
      *
      * @param fileOutputStream the `FileInputStream` to write the compressed data to
-     * @param file The [de.cyface.persistence.model.File] to load
+     * @param file The [de.cyface.persistence.model.Attachment] to load
      * @throws IOException When flushing or closing the [OutputStream] fails
      */
     @Throws(IOException::class)
     private suspend fun loadSerializedFile(
         fileOutputStream: OutputStream,
-        file: de.cyface.persistence.model.File
+        file: de.cyface.persistence.model.Attachment
     ) {
         // These streams don't throw anything and, thus, it should be enough to close the outermost stream at the end
 
         // Wrapping the streams with Buffered streams for performance reasons
         BufferedOutputStream(fileOutputStream).use { outputStream ->
             // Injecting the outputStream into which the serialized data is written to
-            TransferFileSerializer.loadSerializedFile(outputStream, file)
+            TransferFileSerializer.loadSerializedAttachment(outputStream, file)
             outputStream.flush()
         }
     }
