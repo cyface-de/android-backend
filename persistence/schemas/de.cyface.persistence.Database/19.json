@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 19,
-    "identityHash": "150b3be3f34c7ca7d73037489f8f07af",
+    "identityHash": "9f403a2dbbdc8be8d9e3fc37f201d9b9",
     "entities": [
       {
         "tableName": "Identifier",
@@ -297,7 +297,7 @@
         ]
       },
       {
-        "tableName": "File",
+        "tableName": "Attachment",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `status` TEXT NOT NULL, `type` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, `size` INTEGER NOT NULL, `path` TEXT NOT NULL, `lat` REAL, `lon` REAL, `locationTimestamp` INTEGER, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
@@ -375,13 +375,13 @@
         },
         "indices": [
           {
-            "name": "index_File_measurementId",
+            "name": "index_Attachment_measurementId",
             "unique": false,
             "columnNames": [
               "measurementId"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_File_measurementId` ON `${TABLE_NAME}` (`measurementId`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_Attachment_measurementId` ON `${TABLE_NAME}` (`measurementId`)"
           }
         ],
         "foreignKeys": [
@@ -402,7 +402,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '150b3be3f34c7ca7d73037489f8f07af')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9f403a2dbbdc8be8d9e3fc37f201d9b9')"
     ]
   }
 }

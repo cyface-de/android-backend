@@ -242,9 +242,9 @@ class SyncAdapter private constructor(
 
             validateMeasurementFormat(measurement)
             val metaData = loadMetaData(measurement, persistence, deviceId, context)
-            val fileCount = metaData.logCount + metaData.imageCount + metaData.videoCount
+            val attachmentCount = metaData.logCount + metaData.imageCount + metaData.videoCount
 
-            Log.d(TAG, "Preparing to upload Measurement (id ${measurement.id}) with $fileCount attachments.")
+            Log.d(TAG, "Preparing to upload Measurement (id ${measurement.id}) with $attachmentCount attachments.")
 
             // Upload measurement binary first
             if (measurement.status === MeasurementStatus.FINISHED) {
@@ -255,7 +255,7 @@ class SyncAdapter private constructor(
                     if (isSyncRequestAborted(account, authority)) return
 
                     val indexWithinMeasurement = 0 // the core file is index 0
-                    val progressListener = DefaultUploadProgressListener(measurementCount, index, measurement.id, fileCount, indexWithinMeasurement, progressListeners)
+                    val progressListener = DefaultUploadProgressListener(measurementCount, index, measurement.id, attachmentCount, indexWithinMeasurement, progressListeners)
                     error = !syncMeasurement(
                         measurement,
                         metaData,
@@ -276,33 +276,33 @@ class SyncAdapter private constructor(
             // The status in the database could have changed due to upload, reload it
             val currentStatus = persistence.measurementRepository!!.loadById(measurement.id)!!.status
             if (currentStatus === MeasurementStatus.SYNCABLE_ATTACHMENTS) {
-                val syncableFiles = persistence.attachmentDao!!.loadAllByMeasurementIdAndStatus(measurement.id, AttachmentStatus.SAVED)
-                val totalFiles = persistence.attachmentDao!!.countByMeasurementId(measurement.id)
-                val syncedFiles = totalFiles - syncableFiles.size
+                val syncableAttachments = persistence.attachmentDao!!.loadAllByMeasurementIdAndStatus(measurement.id, AttachmentStatus.SAVED)
+                val totalAttachments = persistence.attachmentDao!!.countByMeasurementId(measurement.id)
+                val syncedAttachments = totalAttachments - syncableAttachments.size
 
-                for (fileIndex in syncableFiles.indices) {
-                    val file = syncableFiles[fileIndex]
+                for (attachmentIndex in syncableAttachments.indices) {
+                    val attachment = syncableAttachments[attachmentIndex]
 
-                    Log.d(TAG, "Preparing to upload File (id ${file.id}).")
-                    validateFileFormat(file)
+                    Log.d(TAG, "Preparing to upload attachment (id ${attachment.id}).")
+                    validateFileFormat(attachment)
 
                     var transferTempFile: File? = null
                     try {
-                        transferTempFile = serializeFile(file, persistence)
+                        transferTempFile = serializeAttachment(attachment, persistence)
 
                         if (isSyncRequestAborted(account, authority)) return
 
-                        val indexWithinMeasurement = 1 + syncedFiles + fileIndex // ccyf is index 0
+                        val indexWithinMeasurement = 1 + syncedAttachments + attachmentIndex // ccyf is index 0
                         val progressListener = DefaultUploadProgressListener(
                             measurementCount,
                             index,
                             measurement.id,
-                            fileCount,
+                            attachmentCount,
                             indexWithinMeasurement,
                             progressListeners
                         )
                         error = !syncAttachment(
-                            file.id,
+                            attachment.id,
                             metaData,
                             syncPerformer,
                             transferTempFile,
@@ -337,10 +337,10 @@ class SyncAdapter private constructor(
         return compressedTransferTempFile
     }
 
-    private fun serializeFile(file: de.cyface.persistence.model.Attachment, persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>): File? {
+    private fun serializeAttachment(attachment: de.cyface.persistence.model.Attachment, persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>): File? {
         var transferTempFile: File?
         runBlocking {
-            transferTempFile = MeasurementSerializer().writeSerializedFile(file, persistence)
+            transferTempFile = MeasurementSerializer().writeSerializedAttachment(attachment, persistence)
         }
         return transferTempFile
     }
@@ -379,7 +379,7 @@ class SyncAdapter private constructor(
                     progressListener,
                     accessToken!!,
                     fileName,
-                    uploader.measurementsEndpoint()
+                    UploadType.MEASUREMENT
                 )
                 if (result == Result.UPLOAD_FAILED) {
                     resultDeferred.complete(false)
@@ -423,7 +423,7 @@ class SyncAdapter private constructor(
     }
 
     private suspend fun syncAttachment(
-        fileId: Long,
+        attachmentId: Long,
         metaData: RequestMetaData,
         syncPerformer: SyncPerformer,
         transferFile: File?,
@@ -447,7 +447,7 @@ class SyncAdapter private constructor(
                 resultDeferred.complete(false)
             } else {
                 val fileName =
-                    "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}_$fileId.${TRANSFER_FILE_EXTENSION}"
+                    "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}_$attachmentId.${TRANSFER_FILE_EXTENSION}"
                 val result = syncPerformer.sendData(
                     uploader,
                     syncResult,
@@ -456,22 +456,22 @@ class SyncAdapter private constructor(
                     progressListener,
                     accessToken!!,
                     fileName,
-                    uploader.attachmentsEndpoint(metaData.measurementIdentifier.toLong())
+                    UploadType.ATTACHMENT
                 )
                 if (result == Result.UPLOAD_FAILED) {
                     resultDeferred.complete(false)
                 } else {
-                    // Update sync status of file
+                    // Update sync status of attachment
                     try {
                         when (result) {
                             Result.UPLOAD_SKIPPED -> {
-                                persistence.markSavedAs(AttachmentStatus.SKIPPED, fileId)
-                                Log.d(TAG, "File marked as ${AttachmentStatus.SKIPPED.name.lowercase()}")
+                                persistence.markSavedAs(AttachmentStatus.SKIPPED, attachmentId)
+                                Log.d(TAG, "Attachment marked as ${AttachmentStatus.SKIPPED.name.lowercase()}")
                             }
 
                             Result.UPLOAD_SUCCESSFUL -> {
-                                persistence.markSavedAs(AttachmentStatus.SYNCED, fileId)
-                                Log.d(TAG, "File marked as ${AttachmentStatus.SYNCED.name.lowercase()}")
+                                persistence.markSavedAs(AttachmentStatus.SYNCED, attachmentId)
+                                Log.d(TAG, "Attachment marked as ${AttachmentStatus.SYNCED.name.lowercase()}")
                             }
 
                             else -> {
@@ -499,9 +499,9 @@ class SyncAdapter private constructor(
         Validate.isTrue(format == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
     }
 
-    private fun validateFileFormat(file: de.cyface.persistence.model.Attachment) {
-        val format = file.fileFormatVersion
-        when (file.type) {
+    private fun validateFileFormat(attachment: de.cyface.persistence.model.Attachment) {
+        val format = attachment.fileFormatVersion
+        when (attachment.type) {
             FileType.CSV -> {
                 Validate.isTrue(format == 1.toShort())
             }
@@ -509,7 +509,7 @@ class SyncAdapter private constructor(
                 Validate.isTrue(format == 1.toShort())
             }
             else -> {
-                throw IllegalArgumentException("Unsupported format ($format) and type (${file.type} ")
+                throw IllegalArgumentException("Unsupported format ($format) and type (${attachment.type} ")
             }
         }
     }
@@ -619,12 +619,12 @@ class SyncAdapter private constructor(
             // Attachments
             val logCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.CSV)
             val imageCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.JPG)
-            val allFiles = persistence.attachmentDao!!.countByMeasurementId(measurement.id)
-            val unsupportedFiles = allFiles - logCount - imageCount
-            require(unsupportedFiles == 0) { "Number of unsupported files: $unsupportedFiles" }
-            val filesSize = if (allFiles > 0) {
-                val sampleFile = persistence.attachmentDao!!.loadOneByMeasurementId(measurement.id)
-                val folderPath = File(sampleFile!!.path.parent.toUri())
+            val allAttachments = persistence.attachmentDao!!.countByMeasurementId(measurement.id)
+            val unsupportedAttachments = allAttachments - logCount - imageCount
+            require(unsupportedAttachments == 0) { "Number of unsupported attachments: $unsupportedAttachments" }
+            val filesSize = if (allAttachments > 0) {
+                val attachment = persistence.attachmentDao!!.loadOneByMeasurementId(measurement.id)
+                val folderPath = File(attachment!!.path.parent.toUri())
                 getFolderSize(folderPath)
             } else 0
 

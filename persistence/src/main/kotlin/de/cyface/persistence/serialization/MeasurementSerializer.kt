@@ -105,13 +105,13 @@ class MeasurementSerializer {
      * **ATTENTION**: The caller needs to delete the file which is referenced by the returned `FileInputStream`
      * when no longer needed or on program crash!
      *
-     * @param file The [de.cyface.persistence.model.Attachment] to load
+     * @param attachment The [de.cyface.persistence.model.Attachment] to load
      * @param persistenceLayer The [PersistenceLayer] to load the data from
      * @return A [File] pointing to a temporary file containing the serialized data for transfer.
      */
     @Throws(CursorIsNullException::class)
-    suspend fun writeSerializedFile(
-        file: de.cyface.persistence.model.Attachment,
+    suspend fun writeSerializedAttachment(
+        attachment: de.cyface.persistence.model.Attachment,
         persistenceLayer: PersistenceLayer<*>
     ): File? {
 
@@ -125,9 +125,9 @@ class MeasurementSerializer {
                 }
             withContext(Dispatchers.IO) {
                 FileOutputStream(tempFile).use { fileOutputStream ->
-                    loadSerializedFile(
+                    loadSerializedAttachment(
                         fileOutputStream,
-                        file
+                        attachment
                     )
                 }
             }
@@ -188,20 +188,20 @@ class MeasurementSerializer {
      * No compression is used as we're mostly transferring JPG files right now which are pre-compressed.
      *
      * @param fileOutputStream the `FileInputStream` to write the compressed data to
-     * @param file The [de.cyface.persistence.model.Attachment] to load
+     * @param attachment The [de.cyface.persistence.model.Attachment] to load
      * @throws IOException When flushing or closing the [OutputStream] fails
      */
     @Throws(IOException::class)
-    private suspend fun loadSerializedFile(
+    private suspend fun loadSerializedAttachment(
         fileOutputStream: OutputStream,
-        file: de.cyface.persistence.model.Attachment
+        attachment: de.cyface.persistence.model.Attachment
     ) {
         // These streams don't throw anything and, thus, it should be enough to close the outermost stream at the end
 
         // Wrapping the streams with Buffered streams for performance reasons
         BufferedOutputStream(fileOutputStream).use { outputStream ->
             // Injecting the outputStream into which the serialized data is written to
-            TransferFileSerializer.loadSerializedAttachment(outputStream, file)
+            TransferFileSerializer.loadSerializedAttachment(outputStream, attachment)
             outputStream.flush()
         }
     }

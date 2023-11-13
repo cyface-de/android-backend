@@ -49,11 +49,10 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.net.MalformedURLException
-import java.net.URL
 
 /**
- * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
- * measurements.
+ * Performs the actual synchronisation with a provided server, by uploading meta data and files
+ * containing measurements and attachments.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -77,11 +76,11 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
      * @param uploader The uploader to use for transmission
      * @param syncResult The [SyncResult] used to store sync error information.
      * @param metaData The [RequestMetaData] required for the Multipart request.
-     * @param file The compressed transfer file containing the `Measurement` data to transmit
+     * @param file The compressed transfer file containing the data to transmit
      * @param progressListener The [UploadProgressListener] to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
-     * @param fileName Id of the attachment to upload or `null` if this is not an attachment.
-     * @param endpoint The endpoint to upload the file to.
+     * @param fileName How the transfer file should be named when uploading.
+     * @param uploadType The [UploadType] of the file to upload.
      * @return True of the transmission was successful.
      */
     fun sendData(
@@ -92,17 +91,39 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
         progressListener: UploadProgressListener,
         jwtAuthToken: String,
         fileName: String,
-        endpoint: URL
+        uploadType: UploadType
     ): Result {
         val size = DataSerializable.humanReadableSize(file.length(), true)
         Log.d(TAG, "Transferring attachment or compressed measurement ($size})")
 
         return runBlocking {
             val deferredResult = CoroutineScope(Dispatchers.IO).async {
+                val measurementId = metaData.measurementIdentifier.toLong()
+                val endpoint =
+                    if (uploadType == UploadType.MEASUREMENT) uploader.measurementsEndpoint()
+                    else uploader.attachmentsEndpoint(measurementId)
                 val result = try {
                     Log.i(TAG, "Uploading $fileName to $endpoint")
 
-                    uploader.upload(jwtAuthToken, metaData, file, endpoint, progressListener)
+                    @Suppress("REDUNDANT_ELSE_IN_WHEN")
+                    when (uploadType) {
+                        UploadType.MEASUREMENT -> uploader.uploadMeasurement(
+                            jwtAuthToken,
+                            metaData,
+                            file,
+                            progressListener
+                        )
+
+                        UploadType.ATTACHMENT -> uploader.uploadAttachment(
+                            jwtAuthToken,
+                            metaData,
+                            measurementId,
+                            file,
+                            progressListener
+                        )
+
+                        else -> throw IllegalArgumentException("Unsupported upload type: $uploadType")
+                    }
                 } catch (e: UploadFailed) {
                     return@async handleUploadFailed(e, syncResult)
                 } catch (e: MalformedURLException) {
