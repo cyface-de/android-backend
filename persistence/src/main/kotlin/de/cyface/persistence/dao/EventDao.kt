@@ -33,25 +33,25 @@ import kotlinx.coroutines.flow.Flow
  * [de.cyface.persistence.model.GeoLocation] database table.
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 2.0.0
  * @since 7.5.0
  */
 @Dao
 interface EventDao {
     @Insert
-    fun insert(event: Event): Long
+    suspend fun insert(event: Event): Long
 
     @Query("SELECT * FROM ${EventTable.URI_PATH}")
-    fun getAll(): List<Event>
+    suspend fun getAll(): List<Event>
 
     @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
-    fun loadById(id: Long): Event?
+    suspend fun loadById(id: Long): Event?
 
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY timestamp ASC")
-    fun loadAllByMeasurementId(measurementId: Long): List<Event>?
+    suspend fun loadAllByMeasurementId(measurementId: Long): List<Event>?
 
     /**
      * Loads and observes all [Event]s of a specified measurement.
@@ -77,20 +77,20 @@ interface EventDao {
      * Returns the number of events found for a specific [measurementId].
      */
     @Query("SELECT COUNT(*) FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
-    fun countByMeasurementId(measurementId: Long): Int
+    suspend fun countByMeasurementId(measurementId: Long): Int
 
     /**
      * Ordered by timestamp is required.
      */
     @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${EventTable.COLUMN_TYPE} = :type ORDER BY ${BaseColumns.TIMESTAMP} ASC")
-    fun loadAllByMeasurementIdAndType(measurementId: Long, type: EventType): List<Event>?
+    suspend fun loadAllByMeasurementIdAndType(measurementId: Long, type: EventType): List<Event>?
 
     @Query("DELETE FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
-    fun deleteItemByMeasurementId(measurementId: Long): Int
+    suspend fun deleteItemByMeasurementId(measurementId: Long): Int
 
     @Query("DELETE FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
-    fun deleteItemById(id: Long): Int
+    suspend fun deleteItemById(id: Long): Int
 
     @Query("DELETE FROM ${EventTable.URI_PATH}")
-    fun deleteAll(): Int
+    suspend fun deleteAll(): Int
 }

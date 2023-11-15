@@ -20,8 +20,8 @@ package de.cyface.persistence.serialization
 
 import android.content.Context
 import de.cyface.model.Point3D
-import de.cyface.persistence.dao.DefaultFileDao
-import de.cyface.persistence.dao.FileDao
+import de.cyface.persistence.io.DefaultFileIOHandler
+import de.cyface.persistence.io.FileIOHandler
 import de.cyface.serializer.Point3DSerializer
 import de.cyface.serializer.model.Point3DType
 import java.io.File
@@ -30,7 +30,7 @@ import java.io.File
  * The file format to persist [Point3D]s such as accelerations, rotations and directions.
  *
  * @author Armin Schnabel
- * @version 6.0.0
+ * @version 6.0.1
  * @since 3.0.0
  */
 class Point3DFile {
@@ -40,9 +40,9 @@ class Point3DFile {
     val file: File
 
     /**
-     * The [FileDao] used to interact with files.
+     * The [FileIOHandler] used to interact with files.
      */
-    private var fileDao: FileDao? = null
+    private var fileIOHandler: FileIOHandler? = null
 
     /**
      * The sensor data type of the [Point3D] data.
@@ -58,8 +58,8 @@ class Point3DFile {
      */
     constructor(context: Context, measurementId: Long, type: Point3DType) {
         this.type = type
-        fileDao = DefaultFileDao()
-        file = (fileDao as DefaultFileDao).createFile(
+        fileIOHandler = DefaultFileIOHandler()
+        file = (fileIOHandler as DefaultFileIOHandler).createFile(
             context,
             measurementId,
             folderName(type),
@@ -85,7 +85,7 @@ class Point3DFile {
      */
     fun append(dataPoints: List<Point3D?>?) {
         val data = serialize(dataPoints)
-        fileDao!!.write(file, data, true)
+        fileIOHandler!!.write(file, data, true)
     }
 
     /**
@@ -139,7 +139,7 @@ class Point3DFile {
          * Loads an existing [Point3DFile] for a specified [de.cyface.persistence.model.Measurement] if it exists.
          *
          * @param context The [Context] required to access the underlying persistence layer.
-         * @param fileDao The [FileDao] used to access the file;
+         * @param fileIOHandler The [FileIOHandler] used to access the file;
          * @param measurementId the identifier of the measurement for which the file is to be found
          * @param type The sensor data type of the [Point3D] data.
          * @return the [Point3DFile] link to the file
@@ -148,10 +148,10 @@ class Point3DFile {
         @JvmStatic
         @Throws(NoSuchFileException::class)
         fun loadFile(
-            context: Context, fileDao: FileDao,
+            context: Context, fileIOHandler: FileIOHandler,
             measurementId: Long, type: Point3DType
         ): Point3DFile {
-            val file = fileDao.getFilePath(
+            val file = fileIOHandler.getFilePath(
                 context,
                 measurementId,
                 folderName(type),

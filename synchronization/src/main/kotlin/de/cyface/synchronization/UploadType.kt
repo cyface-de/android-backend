@@ -16,26 +16,23 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence.dao
-
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.Query
-import de.cyface.persistence.content.IdentifierTable
-import de.cyface.persistence.model.Identifier
+package de.cyface.synchronization
 
 /**
- * Data access object which provides the API to interact with the [Identifier] database table.
+ * The type of the file to upload, e.g. to determine which upload method to use.
  *
  * @author Armin Schnabel
- * @version 2.0.0
- * @since 7.5.0
+ * @version 1.0.0
+ * @since 7.10.0
  */
-@Dao
-interface IdentifierDao {
-    @Insert
-    suspend fun insert(identifier: Identifier): Long
+enum class UploadType {
+    /**
+     * The "measurement file" which wraps the core measurement data like locations & sensor data.
+     */
+    MEASUREMENT,
 
-    @Query("SELECT * FROM ${IdentifierTable.URI_PATH}")
-    suspend fun getAll(): List<Identifier>
+    /**
+     * Additional files attached to the measurement like camera captured data or log files.
+     */
+    ATTACHMENT
 }

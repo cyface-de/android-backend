@@ -26,14 +26,17 @@ import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.content.AbstractCyfaceTable.Companion.DATABASE_QUERY_LIMIT
+import de.cyface.persistence.model.Attachment
 import de.cyface.persistence.model.Measurement
 import de.cyface.protos.model.Event
+import de.cyface.protos.model.File.FileType
 import de.cyface.protos.model.LocationRecords
 import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.DataSerializable
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.BufferedOutputStream
 import java.io.IOException
@@ -42,7 +45,7 @@ import java.io.IOException
  * Serializes [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] files.
  *
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.1.0
  * @since 5.0.0
  */
 object TransferFileSerializer {
@@ -82,19 +85,19 @@ object TransferFileSerializer {
             .setLocationRecords(locationRecords)
 
         // Get already serialized Point3DFiles
-        val accelerationFile = persistence.fileDao.getFilePath(
+        val accelerationFile = persistence.fileIOHandler.getFilePath(
             persistence.context!!,
             measurementIdentifier,
             Point3DFile.ACCELERATIONS_FOLDER_NAME,
             Point3DFile.ACCELERATIONS_FILE_EXTENSION
         )
-        val rotationFile = persistence.fileDao.getFilePath(
+        val rotationFile = persistence.fileIOHandler.getFilePath(
             persistence.context!!,
             measurementIdentifier,
             Point3DFile.ROTATIONS_FOLDER_NAME,
             Point3DFile.ROTATION_FILE_EXTENSION
         )
-        val directionFile = persistence.fileDao.getFilePath(
+        val directionFile = persistence.fileIOHandler.getFilePath(
             persistence.context!!,
             measurementIdentifier,
             Point3DFile.DIRECTIONS_FOLDER_NAME,
@@ -111,7 +114,7 @@ object TransferFileSerializer {
                     DataSerializable.humanReadableSize(accelerationFile.length(), true)
                 )
             )
-            val bytes = persistence.fileDao.loadBytes(accelerationFile)
+            val bytes = persistence.fileIOHandler.loadBytes(accelerationFile)
             builder.accelerationsBinary = ByteString.copyFrom(bytes)
         }
         if (rotationFile.exists()) {
@@ -121,7 +124,7 @@ object TransferFileSerializer {
                     DataSerializable.humanReadableSize(rotationFile.length(), true)
                 )
             )
-            val bytes = persistence.fileDao.loadBytes(rotationFile)
+            val bytes = persistence.fileIOHandler.loadBytes(rotationFile)
             builder.rotationsBinary = ByteString.copyFrom(bytes)
         }
         if (directionFile.exists()) {
@@ -131,7 +134,7 @@ object TransferFileSerializer {
                     DataSerializable.humanReadableSize(directionFile.length(), true)
                 )
             )
-            val bytes = persistence.fileDao.loadBytes(directionFile)
+            val bytes = persistence.fileIOHandler.loadBytes(directionFile)
             builder.directionsBinary = ByteString.copyFrom(bytes)
         }
 
@@ -141,7 +144,7 @@ object TransferFileSerializer {
         val transferFileHeader = DataSerializable.transferFileHeader()
         val measurementBytes = builder.build().toByteArray()
         try {
-            // The stream must be closed by the called in a finally catch
+            // The stream must be closed by the caller in a finally catch
             withContext(Dispatchers.IO) {
                 bufferedOutputStream.write(transferFileHeader)
                 bufferedOutputStream.write(measurementBytes)
@@ -203,7 +206,7 @@ object TransferFileSerializer {
     private fun loadLocations(
         measurementId: Long,
         persistence: PersistenceLayer<*>
-    ): LocationRecords {
+    ): LocationRecords = runBlocking {
         val serializer = LocationSerializer()
         var cursor: Cursor? = null
         try {
@@ -225,6 +228,91 @@ object TransferFileSerializer {
         } finally {
             cursor?.close()
         }
+        return@runBlocking serializer.result()
+    }
+
+    /**
+     * Loads and serializes a [Attachment] from the persistence layer.
+     *
+     * @param attachment The reference of the entry to load
+     */
+    @Throws(CursorIsNullException::class)
+    private fun loadAttachment(
+        attachment: Attachment
+    ): de.cyface.protos.model.File {
+        val serializer = AttachmentSerializer()
+        try {
+            serializer.readFrom(attachment)
+        } catch (e: RemoteException) {
+            throw java.lang.IllegalStateException(e)
+        }
         return serializer.result()
+    }
+
+    /**
+     * Implements the core algorithm of loading data of a [Attachment] from the [PersistenceLayer]
+     * and serializing it into an array of bytes, ready to be transferred.
+     *
+     * We use the {@param loader} to access the measurement data. FIXME?
+     *
+     * We assemble the data using a buffer to avoid OOM exceptions.
+     *
+     * **ATTENTION:** The caller must make sure the {@param bufferedOutputStream} is closed when no longer needed
+     * or the app crashes.
+     *
+     * @param bufferedOutputStream The `OutputStream` to which the serialized data should be written. Injecting
+     * this allows us to compress the serialized data without the need to write it into a temporary file.
+     * We require a [BufferedOutputStream] for performance reasons.
+     * @param reference The [de.cyface.persistence.model.Attachment] to load
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @JvmStatic
+    @Throws(CursorIsNullException::class)
+    suspend fun loadSerializedAttachment(
+        bufferedOutputStream: BufferedOutputStream,
+        reference: Attachment,
+    ) {
+        val attachment = loadAttachment(reference)
+
+        val builder = de.cyface.protos.model.Measurement.newBuilder()
+            .setFormatVersion(MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION.toInt())
+        when (reference.type) {
+            FileType.CSV -> {
+                builder.capturingLog = attachment
+            }
+
+            FileType.JPG -> {
+                builder.addAllImages(mutableListOf(attachment))
+            }
+
+            else -> {
+                throw IllegalArgumentException("Unsupported type: ${reference.type}")
+            }
+        }
+
+        // Currently loading one image per transfer file into memory (~ 2-5 MB / image).
+        // - To load add all high-res image data or video data in the future we cannot use the pre-compiled
+        // builder but have to stream the data without loading it into memory to avoid an OOM exception.
+        val transferFileHeader = DataSerializable.transferFileHeader()
+        val measurementBytes = builder.build().toByteArray()
+        try {
+            // The stream must be closed by the caller in a finally catch
+            withContext(Dispatchers.IO) {
+                bufferedOutputStream.write(transferFileHeader)
+                bufferedOutputStream.write(measurementBytes)
+                bufferedOutputStream.flush()
+            }
+        } catch (e: IOException) {
+            throw IllegalStateException(e)
+        }
+        Log.d(
+            TAG, String.format(
+                "Serialized attachment: %s",
+                DataSerializable.humanReadableSize(
+                    (transferFileHeader.size + measurementBytes.size).toLong(),
+                    true
+                )
+            )
+        )
     }
 }

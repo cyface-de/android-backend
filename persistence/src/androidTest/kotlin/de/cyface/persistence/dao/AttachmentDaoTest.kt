@@ -20,8 +20,7 @@ package de.cyface.persistence.dao
 
 import android.database.sqlite.SQLiteConstraintException
 import de.cyface.persistence.Database
-import de.cyface.persistence.model.Event
-import de.cyface.persistence.model.GeoLocation
+import de.cyface.persistence.model.Attachment
 import de.cyface.persistence.model.Measurement
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
@@ -31,24 +30,24 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Tests the CRUD operations of the [LocationDao].
+ * Tests the CRUD operations of the [AttachmentDao].
  *
  * @author Armin Schnabel
- * @version 1.0.1
- * @since 7.5.0
+ * @version 1.0.0
+ * @since 7.10.0
  */
-class LocationDaoTest {
+class AttachmentDaoTest {
     private lateinit var database: Database
     private lateinit var measurementDao: MeasurementDao
-    private lateinit var locationDao: LocationDao
+    private lateinit var dao: AttachmentDao
     private var measurementId: Long? = null
 
     @Before
     fun setupDatabase() {
         database = TestUtils.createDatabase()
-        locationDao = database.locationDao()
+        dao = database.attachmentDao()
         measurementDao = database.measurementDao()
-        // Insert a default measurement as each location needs a measurement in the database
+        // Insert a default measurement as each pressure needs a measurement in the database
         measurementId = createMeasurement().id
     }
 
@@ -61,41 +60,41 @@ class LocationDaoTest {
     fun testInsert() = runBlocking {
         // Arrange
         // Act
-        createLocation(measurementId!!)
+        createEntry(measurementId!!)
 
         // Assert
-        assertThat(locationDao.getAll().size, equalTo(1))
+        assertThat(dao.getAll().size, equalTo(1))
     }
 
     @Test(expected = SQLiteConstraintException::class)
-    fun testInsert_withoutMeasurement() {
+    fun testInsert_withoutMeasurement(): Unit = runBlocking {
         // Arrange
         // Act
-        createLocation(745674356783483465L)
+        createEntry(745674356783483465L)
         // Assert
     }
 
     @Test
     fun testInsertAll() = runBlocking {
         // Arrange
-        val location1 = TestUtils.locationFixture(measurementId!!)
-        val location2 = TestUtils.locationFixture(measurementId!!)
+        val entry1 = TestUtils.attachmentFixtures(measurementId!!)
+        val entry2 = TestUtils.attachmentFixtures(measurementId!!)
 
         // Act
-        locationDao.insertAll(location1, location2)
+        dao.insertAll(entry1, entry2)
 
         // Assert
-        assertThat(locationDao.getAll().size, equalTo(2))
+        assertThat(dao.getAll().size, equalTo(2))
     }
 
     @Test
     fun testGetAll() = runBlocking {
         // Arrange
-        val location1 = createLocation(measurementId!!)
-        val location2 = createLocation(measurementId!!)
+        val location1 = createEntry(measurementId!!)
+        val location2 = createEntry(measurementId!!)
 
         // Act
-        val locations = locationDao.getAll()
+        val locations = dao.getAll()
 
         // Assert
         assertThat(locations.size, equalTo(2))
@@ -105,13 +104,13 @@ class LocationDaoTest {
     @Test
     fun testLoadAllByMeasurementId() = runBlocking {
         // Arrange
-        val location1 = createLocation(measurementId!!)
-        val location2 = createLocation(measurementId!!)
+        val location1 = createEntry(measurementId!!)
+        val location2 = createEntry(measurementId!!)
         val otherMeasurementId = createMeasurement().id
-        createLocation(otherMeasurementId)
+        createEntry(otherMeasurementId)
 
         // Act
-        val locations = locationDao.loadAllByMeasurementId(measurementId!!)
+        val locations = dao.loadAllByMeasurementId(measurementId!!)
 
         // Assert
         assertThat(locations.size, equalTo(2))
@@ -119,46 +118,17 @@ class LocationDaoTest {
     }
 
     @Test
-    fun testLoadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt() = runBlocking {
-        // Arrange
-        val goodMeasurementId = measurementId!!
-        val badMeasurementId = createMeasurement().id
-        val goodSpeed = 1.01
-        val lowSpeed = 1.0
-        val highSpeed = 100.0
-        val goodAccuracy = 5.0
-        val badAccuracy = 20.0
-        val location = createLocation(goodMeasurementId, goodSpeed, goodAccuracy)
-        createLocation(badMeasurementId, goodSpeed, goodAccuracy)
-        createLocation(goodMeasurementId, lowSpeed, goodAccuracy)
-        createLocation(goodMeasurementId, highSpeed, goodAccuracy)
-        createLocation(goodMeasurementId, goodSpeed, badAccuracy)
-
-        // Act
-        val locations = locationDao.loadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt(
-            measurementId!!,
-            1.0,
-            20.0,
-            100.0
-        )
-
-        // Assert
-        assertThat(locations.size, equalTo(1))
-        assertThat(locations, equalTo(listOf(location)))
-    }
-
-    @Test
     fun testDeleteItemByMeasurementId() = runBlocking {
         // Arrange
-        createLocation(measurementId!!)
+        createEntry(measurementId!!)
         val otherMeasurementId = createMeasurement().id
-        val keep = createLocation(otherMeasurementId)
+        val keep = createEntry(otherMeasurementId)
 
         // Act
-        val deleted = locationDao.deleteItemByMeasurementId(measurementId!!)
+        val deleted = dao.deleteItemByMeasurementId(measurementId!!)
 
         // Assert
-        val kept = locationDao.getAll()
+        val kept = dao.getAll()
         assertThat(deleted, equalTo(1))
         assertThat(kept.size, equalTo(1))
         assertThat(kept, equalTo(listOf(keep)))
@@ -168,30 +138,26 @@ class LocationDaoTest {
     fun testDeleteAll() = runBlocking {
         // Arrange
         for (i in 0..1) {
-            createLocation(measurementId!!)
+            createEntry(measurementId!!)
         }
 
         // Act
-        val deleted = locationDao.deleteAll()
+        val deleted = dao.deleteAll()
 
         // Assert
         assertThat(deleted, equalTo(2))
-        assertThat(locationDao.getAll().size, equalTo(0))
+        assertThat(dao.getAll().size, equalTo(0))
     }
 
     /**
-     * Creates an [Event] in the test database.
+     * Creates an entry in the test database.
      *
      * @return The created object.
      */
-    private fun createLocation(
-        measurementId: Long,
-        speed: Double = 1.01,
-        accuracy: Double = 5.0
-    ): GeoLocation = runBlocking {
-        val location = TestUtils.locationFixture(measurementId, speed, accuracy)
-        location.id = locationDao.insert(location)
-        return@runBlocking location
+    private suspend fun createEntry(measurementId: Long): Attachment {
+        val entry = TestUtils.attachmentFixtures(measurementId)
+        entry.id = dao.insert(entry)
+        return entry
     }
 
     /**

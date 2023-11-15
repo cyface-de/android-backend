@@ -19,9 +19,11 @@
 package de.cyface.persistence.model
 
 /**
- * Status which defines whether a [Measurement] is still capturing data([.OPEN]), [.PAUSED],
- * [.FINISHED], [or ][.SKIPPED]
+ * Status which defines whether a [Measurement] is still capturing data, paused, finished or what
+ * the uploading state is.
  *
+ * @author Armin Schnabel
+ * @version 1.0.0
  * @property databaseIdentifier The [String] which represents the enumeration value in the database.
  */
 enum class MeasurementStatus(val databaseIdentifier: String) {
@@ -41,6 +43,17 @@ enum class MeasurementStatus(val databaseIdentifier: String) {
     FINISHED("FINISHED"),
 
     /**
+     * This state defines that a [Measurement] is partially uploaded.
+     *
+     * Currently, this state is reached after the measurement binary was successfully uploaded,
+     * but the measurement's attachments (log, image or video files) are not fully synced yet.
+     *
+     * Check the state in the [Attachment] table entries to see which attachments are not synced yet.
+     * After all attachments are uploaded the measurement is set to [.SYNCED].
+     */
+    SYNCABLE_ATTACHMENTS("SYNCABLE_ATTACHMENTS"),
+
+    /**
      * This state defines that a [Measurement] has been synchronized.
      */
     SYNCED("SYNCED"),
@@ -54,5 +67,4 @@ enum class MeasurementStatus(val databaseIdentifier: String) {
      * This state defines that a [Measurement] is no longer supported (to be synced/resumed).
      */
     DEPRECATED("DEPRECATED");
-
 }

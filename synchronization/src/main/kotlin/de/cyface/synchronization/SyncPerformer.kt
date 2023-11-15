@@ -51,12 +51,12 @@ import java.io.File
 import java.net.MalformedURLException
 
 /**
- * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
- * measurements.
+ * Performs the actual synchronisation with a provided server, by uploading meta data and files
+ * containing measurements and attachments.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 8.1.0
  * @since 2.0.0
  * @property context The Android `Context` to use for setting the correct server certification information.
  * @property fromBackground `true` if the error was caused without user interaction, e.g. to avoid
@@ -76,9 +76,11 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
      * @param uploader The uploader to use for transmission
      * @param syncResult The [SyncResult] used to store sync error information.
      * @param metaData The [RequestMetaData] required for the Multipart request.
-     * @param file The compressed transfer file containing the `Measurement` data to transmit
+     * @param file The compressed transfer file containing the data to transmit
      * @param progressListener The [UploadProgressListener] to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
+     * @param fileName How the transfer file should be named when uploading.
+     * @param uploadType The [UploadType] of the file to upload.
      * @return True of the transmission was successful.
      */
     fun sendData(
@@ -87,19 +89,41 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
         metaData: RequestMetaData,
         file: File,
         progressListener: UploadProgressListener,
-        jwtAuthToken: String
+        jwtAuthToken: String,
+        fileName: String,
+        uploadType: UploadType
     ): Result {
         val size = DataSerializable.humanReadableSize(file.length(), true)
-        Log.d(TAG, "Transferring compressed measurement ($size})")
+        Log.d(TAG, "Transferring attachment or compressed measurement ($size})")
 
         return runBlocking {
             val deferredResult = CoroutineScope(Dispatchers.IO).async {
+                val measurementId = metaData.measurementIdentifier.toLong()
+                val endpoint =
+                    if (uploadType == UploadType.MEASUREMENT) uploader.measurementsEndpoint()
+                    else uploader.attachmentsEndpoint(measurementId)
                 val result = try {
-                    val fileName =
-                        "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.$TRANSFER_FILE_EXTENSION"
-                    Log.i(TAG, "Uploading $fileName to ${uploader.endpoint()}")
+                    Log.i(TAG, "Uploading $fileName to $endpoint")
 
-                    uploader.upload(jwtAuthToken, metaData, file, progressListener)
+                    @Suppress("REDUNDANT_ELSE_IN_WHEN")
+                    when (uploadType) {
+                        UploadType.MEASUREMENT -> uploader.uploadMeasurement(
+                            jwtAuthToken,
+                            metaData,
+                            file,
+                            progressListener
+                        )
+
+                        UploadType.ATTACHMENT -> uploader.uploadAttachment(
+                            jwtAuthToken,
+                            metaData,
+                            measurementId,
+                            file,
+                            progressListener
+                        )
+
+                        else -> throw IllegalArgumentException("Unsupported upload type: $uploadType")
+                    }
                 } catch (e: UploadFailed) {
                     return@async handleUploadFailed(e, syncResult)
                 } catch (e: MalformedURLException) {
@@ -311,11 +335,5 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
          * A String to filter log output from [SyncPerformer] logs.
          */
         const val TAG = "de.cyface.sync.perf"
-
-        /**
-         * The file extension of the measurement file which is transmitted on synchronization.
-         */
-        @Suppress("SpellCheckingInspection")
-        private const val TRANSFER_FILE_EXTENSION = "ccyf"
     }
 }

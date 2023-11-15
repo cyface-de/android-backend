@@ -66,6 +66,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.net.URL
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Tests the data transmission code.
@@ -74,7 +76,7 @@ import java.net.URL
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.1.0
  * @since 7.7.0
  */
 @RunWith(AndroidJUnit4::class)
@@ -84,6 +86,7 @@ class SyncPerformerTest {
     private lateinit var persistence: DefaultPersistenceLayer<*>
     private lateinit var context: Context
     private lateinit var oocut: SyncPerformer
+    private val tempFiles = mutableListOf<Path>()
 
     @Before
     fun setUp() = runBlocking {
@@ -97,62 +100,101 @@ class SyncPerformerTest {
     @After
     fun tearDown() {
         runBlocking { SharedTestUtils.clearPersistenceLayer(context, persistence) }
+        // Cleanup temp files
+        tempFiles.forEach { file ->
+            try {
+                Files.deleteIfExists(file)
+            } catch (e: Exception) {
+                println("Could not delete file: $file")
+                e.printStackTrace()
+            }
+        }
+        tempFiles.clear()
     }
 
     /**
-     * Tests the basic transmission code without contacting an actual API.
+     * Assembles a test for the basic transmission code without contacting an actual API.
      *
      * Can be used to reproduce bugs in the interaction between an actual API and our client.
      *
      * **Attention:** for this you need to adjust [.TEST_API_URL] and [.TEST_TOKEN].
      */
-    @Test
-    @Throws(
-        CursorIsNullException::class, NoSuchMeasurementException::class
-    )
-    fun testSendData() = runBlocking {
+    private fun performSendDataTest(
+        point3DCount: Int,
+        @Suppress("SameParameterValue") locationCount: Int,
+        logCount: Int,
+        imageCount: Int,
+        @Suppress("SameParameterValue") videoCount: Int,
+        filesSize: Long
+    ) = runBlocking {
 
         // Arrange
-        // Adjust data size depending on your test case
-        // noinspection PointlessArithmeticExpression
-        val point3DCount = 600 * 1000
-        // noinspection PointlessArithmeticExpression
-        val locationCount = 3 * 1000
-
-        // Insert data to be synced
+        val sampleFiles = SharedTestUtils.randomFiles(logCount + imageCount + videoCount)
+        tempFiles.addAll(sampleFiles) // Add to the auto-cleanup list for `tearDown`
         val measurement = SharedTestUtils.insertSampleMeasurementWithData(
             context, MeasurementStatus.FINISHED,
-            persistence, point3DCount, locationCount
+            persistence, point3DCount, locationCount, logCount, imageCount, videoCount, sampleFiles
         )
-        val measurementIdentifier = measurement.id
-        val loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier)
+        val measurementId = measurement.id
+        val loadedStatus = persistence.loadMeasurementStatus(measurementId)
         MatcherAssert.assertThat(loadedStatus, CoreMatchers.equalTo(MeasurementStatus.FINISHED))
-        val compressedTransferTempFile =
-            loadSerializedCompressed(persistence, measurementIdentifier)
-        val metaData: RequestMetaData = loadMetaData(persistence, measurement, locationCount)
+        val compressedTransferTempFile = loadSerializedCompressed(persistence, measurementId)
+        val metaData =
+            loadMetaData(persistence, measurement, locationCount, logCount, imageCount, videoCount, filesSize)
         val progressListener = object : UploadProgressListener {
             override fun updatedProgress(percent: Float) {
                 Log.d(TAG, String.format("Upload Progress %f", percent))
             }
         }
+        val fileName =
+            "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.${SyncAdapter.COMPRESSED_TRANSFER_FILE_EXTENSION}"
+        val uploader = MockedUploader()
 
         // Prepare transmission
         val syncResult = SyncResult()
 
         // Act
         val result = oocut.sendData(
-            MockedUploader(),
+            uploader,
             syncResult,
             metaData,
             compressedTransferTempFile,
             progressListener,
-            "testToken"
+            "testToken",
+            fileName,
+            uploader.measurementsEndpoint()
         )
 
         // Assert
         MatcherAssert.assertThat(
             result,
             CoreMatchers.`is`(CoreMatchers.equalTo(Result.UPLOAD_SUCCESSFUL))
+        )
+    }
+
+    /**
+     * Tests the basic transmission with a measurement without attached files.
+     */
+    @Test
+    @Throws(CursorIsNullException::class, NoSuchMeasurementException::class)
+    fun testSendData() = runBlocking {
+            performSendDataTest(
+                point3DCount = 600 * 1000,
+                locationCount = 3 * 1000,
+                0, 0, 0, 0
+            )
+        }
+
+    /**
+     * Tests the basic transmission with a measurement with attached files.
+     */
+    @Test
+    @Throws(CursorIsNullException::class, NoSuchMeasurementException::class)
+    fun testSendData_withAttachments() = runBlocking {
+        performSendDataTest(
+            point3DCount = 0,
+            locationCount = 3 * 1000,
+            1, 2, 0, 123L
         )
     }
 
@@ -186,9 +228,11 @@ class SyncPerformerTest {
         // Arrange
         // Insert data to be synced
         val locationCount = 1
+        val sampleFiles = SharedTestUtils.randomFiles(0)
+        tempFiles.addAll(sampleFiles) // Add to the auto-cleanup list for `tearDown`
         val (measurementIdentifier, _, _, _, distance) = SharedTestUtils.insertSampleMeasurementWithData(
             context, MeasurementStatus.FINISHED,
-            persistence, 1, locationCount
+            persistence, 1, locationCount, 0, 0, 0, sampleFiles
         )
         val loadedStatus: MeasurementStatus =
             persistence.loadMeasurementStatus(measurementIdentifier)
@@ -233,21 +277,27 @@ class SyncPerformerTest {
             deviceId, measurementIdentifier.toString(),
             "testOsVersion", "testDeviceType", "testAppVersion",
             distance, locationCount.toLong(), startRecord, endRecord,
-            Modality.BICYCLE.databaseIdentifier, 3
+            Modality.BICYCLE.databaseIdentifier, 3, 0, 0, 0, 0
         )
         val progressListener = object : UploadProgressListener {
             override fun updatedProgress(percent: Float) {
                 Log.d(TAG, String.format("Upload Progress %f", percent))
             }
         }
+        val fileName =
+            "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.${SyncAdapter.COMPRESSED_TRANSFER_FILE_EXTENSION}"
 
         // Mock the actual post request
         val mockedUploader = object : Uploader {
-            override fun endpoint(): URL {
-                return URL("https://mocked.cyface.de/api/v123/measurement")
+            override fun measurementsEndpoint(): URL {
+                return URL("https://mocked.cyface.de/api/v123/measurements")
             }
 
-            override fun upload(
+            override fun attachmentsEndpoint(measurementId: Long): URL {
+                return URL("https://mocked.cyface.de/api/v123/measurements/$measurementId/attachments")
+            }
+
+            override fun uploadMeasurement(
                 jwtToken: String,
                 metaData: RequestMetaData,
                 file: File,
@@ -256,6 +306,15 @@ class SyncPerformerTest {
                 throw UploadFailed(ConflictException("Test ConflictException"))
             }
 
+            override fun uploadAttachment(
+                jwtToken: String,
+                metaData: RequestMetaData,
+                measurementId: Long,
+                file: File,
+                progressListener: UploadProgressListener
+            ): Result {
+                throw UploadFailed(ConflictException("Test ConflictException"))
+            }
         }
 
         // Act
@@ -267,7 +326,9 @@ class SyncPerformerTest {
                 metaData,
                 compressedTransferTempFile,
                 progressListener,
-                "testToken"
+                "testToken",
+                fileName,
+                mockedUploader.measurementsEndpoint()
             )
 
             // Assert:

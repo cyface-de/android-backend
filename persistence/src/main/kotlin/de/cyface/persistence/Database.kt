@@ -21,15 +21,19 @@ package de.cyface.persistence
 import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import de.cyface.persistence.dao.EventDao
+import de.cyface.persistence.dao.AttachmentDao
 import de.cyface.persistence.dao.IdentifierDao
 import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.dao.MeasurementDao
 import de.cyface.persistence.dao.PressureDao
 import de.cyface.persistence.model.Event
+import de.cyface.persistence.model.Attachment
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Identifier
 import de.cyface.persistence.model.Measurement
+import de.cyface.persistence.model.PathTypeConverter
 import de.cyface.persistence.model.Pressure
 
 /**
@@ -46,7 +50,7 @@ import de.cyface.persistence.model.Pressure
  * For this, see: https://developer.android.com/training/data-storage/room/async-queries
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 7.5.0
  */
 @androidx.room.Database(
@@ -55,12 +59,14 @@ import de.cyface.persistence.model.Pressure
         Measurement::class,
         Event::class,
         Pressure::class,
-        GeoLocation::class
+        GeoLocation::class,
+        Attachment::class
     ],
     // version 18 imported data from `v6.1` database into `measures.17` and migrated `measures` to Room
-    version = 18
+    version = 19
     //autoMigrations = [] // test this feature on the next version change
 )
+@TypeConverters(PathTypeConverter::class)
 abstract class Database : RoomDatabase() {
     /**
      * @return Data access object which provides the API to interact with the [Identifier] database table.
@@ -87,6 +93,11 @@ abstract class Database : RoomDatabase() {
      * table.
      */
     abstract fun locationDao(): LocationDao
+
+    /**
+     * @return Data access object which provides the API to interact with the [Attachment] database table.
+     */
+    abstract fun attachmentDao(): AttachmentDao
 
     companion object {
         /**
@@ -120,7 +131,8 @@ abstract class Database : RoomDatabase() {
                     DatabaseMigrator.MIGRATION_14_15,
                     DatabaseMigrator.MIGRATION_15_16,
                     DatabaseMigrator.MIGRATION_16_17,
-                    migrator.MIGRATION_17_18
+                    migrator.MIGRATION_17_18,
+                    DatabaseMigrator.MIGRATION_18_19
                 )
                 .build()
         }

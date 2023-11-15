@@ -26,16 +26,16 @@ import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.serialization.MeasurementSerializer
 import de.cyface.serializer.DataSerializable
-import de.cyface.synchronization.Constants
 import de.cyface.utils.CursorIsNullException
 import java.io.File
+import kotlin.math.log
 
 /**
  * Contains utility methods and constants required by the tests within the synchronization project.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.4.0
+ * @version 2.4.2
  * @since 2.1.0
  */
 object TestUtils {
@@ -80,7 +80,11 @@ object TestUtils {
     fun loadMetaData(
         persistence: DefaultPersistenceLayer<*>,
         measurement: Measurement,
-        @Suppress("SameParameterValue") locationCount: Int
+        @Suppress("SameParameterValue") locationCount: Int,
+        logCount: Int,
+        imageCount: Int,
+        videoCount: Int,
+        filesSize: Long
     ): RequestMetaData {
         // Load meta data
         val tracks = persistence.loadTracks(measurement.id)
@@ -101,7 +105,7 @@ object TestUtils {
             deviceId, id.measurementIdentifier.toString(),
             "testOsVersion", "testDeviceType", "testAppVersion",
             measurement.distance, locationCount.toLong(), startRecord, endRecord,
-            Modality.BICYCLE.databaseIdentifier, 3
+            Modality.BICYCLE.databaseIdentifier, 3, logCount, imageCount, videoCount, filesSize
         )
     }
 

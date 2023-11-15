@@ -51,7 +51,7 @@ import java.nio.ByteBuffer
  * provide a Migration object to the builder*!
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.1.0
  * @since 7.5.0
  * @property context The `Context` required to import data from a secondary data source.
  */
@@ -92,6 +92,22 @@ class DatabaseMigrator(val context: Context) {
     val MIGRATION_9_10: Migration = migrationFrom9To10()
 
     companion object {
+        /**
+         * Adds the [de.cyface.persistence.model.Attachment] table.
+         */
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE IF NOT EXISTS `Attachment` (" +
+                        "`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, " +
+                        "`status` TEXT NOT NULL, `type` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, " +
+                        "`size` INTEGER NOT NULL, `path` TEXT NOT NULL, " +
+                        "`lat` REAL, `lon` REAL, `locationTimestamp` INTEGER, `measurementId` INTEGER NOT NULL, " +
+                        "FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE )")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_Attachment_measurementId` ON `Attachment` (`measurementId`)")
+            }
+        }
+
         //val MIGRATION_17_18 is provided from outside the companion object constructor!
 
         /**

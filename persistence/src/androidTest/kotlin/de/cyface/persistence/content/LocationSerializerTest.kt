@@ -48,7 +48,7 @@ import java.lang.Double.min
  * It's the only class which (still) uses the Cursor database interface for locations.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 3.2.0
  */
 @RunWith(AndroidJUnit4::class)
@@ -97,7 +97,7 @@ class LocationSerializerTest {
         testReadFrom(3600 * 10)
     }
 
-    private fun testReadFrom(numberOfTestEntries: Int) {
+    private fun testReadFrom(numberOfTestEntries: Int) = runBlocking {
         Validate.isTrue(numberOfTestEntries >= 2, "not supported")
 
         // Arrange

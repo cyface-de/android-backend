@@ -16,26 +16,27 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence.dao
+package de.cyface.persistence.model
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.Query
-import de.cyface.persistence.content.IdentifierTable
-import de.cyface.persistence.model.Identifier
+import androidx.room.TypeConverter
+import java.nio.file.Path
+import java.nio.file.Paths
 
 /**
- * Data access object which provides the API to interact with the [Identifier] database table.
+ * Converter which tells Android's Room Persistence Library how to treat `java.nio.file.Path`.
  *
  * @author Armin Schnabel
- * @version 2.0.0
- * @since 7.5.0
+ * @version 1.0.0
+ * @since 7.10.0
  */
-@Dao
-interface IdentifierDao {
-    @Insert
-    suspend fun insert(identifier: Identifier): Long
+object PathTypeConverter {
+    @TypeConverter
+    fun fromPath(path: Path?): String {
+        return path?.toString() ?: throw IllegalArgumentException("Path cannot be null!")
+    }
 
-    @Query("SELECT * FROM ${IdentifierTable.URI_PATH}")
-    suspend fun getAll(): List<Identifier>
+    @TypeConverter
+    fun toPath(pathString: String?): Path {
+        return Paths.get(pathString ?: throw IllegalArgumentException("Path string cannot be null!"))
+    }
 }

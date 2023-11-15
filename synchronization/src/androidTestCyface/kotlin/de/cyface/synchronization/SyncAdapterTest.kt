@@ -20,13 +20,14 @@ package de.cyface.synchronization
 
 import android.accounts.Account
 import android.accounts.AccountManager
-import android.content.ContentProviderClient
 import android.content.ContentResolver
 import android.content.Context
 import android.content.SyncResult
 import android.database.Cursor
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
@@ -42,6 +43,7 @@ import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.testutils.SharedTestUtils.cleanupOldAccounts
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData
+import de.cyface.testutils.SharedTestUtils.randomFiles
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
@@ -55,18 +57,18 @@ import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
-import de.cyface.synchronization.MockAuth
-import de.cyface.synchronization.MockedUploader
-import de.cyface.synchronization.TestUtils
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 /**
  * Tests the correct internal workings of the `CyfaceSyncAdapter` with the persistence layer.
  *
- * This test does not run against an actual API, but uses [MockedAuthenticator] and [MockedUploader].
+ * This test does not run against an actual API, but uses [MockedUploader].
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.4.6
+ * @version 2.5.0
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4::class) // To notice errors with the short running testOnPerformSync before the large
@@ -80,6 +82,7 @@ class SyncAdapterTest {
     private var account: Account? = null
     private var oocut: SyncAdapter? = null
     private var accountManager: AccountManager? = null
+    private val tempFiles = mutableListOf<Path>()
 
     @Before
     fun setUp() = runBlocking {
@@ -105,27 +108,47 @@ class SyncAdapterTest {
         if (oldAccounts.isNotEmpty()) {
             for (oldAccount in oldAccounts) {
                 ContentResolver.removePeriodicSync(oldAccount, TestUtils.AUTHORITY, Bundle.EMPTY)
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
-                    accountManager!!.removeAccount(oldAccount, null, null)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                    Validate.isTrue(accountManager?.removeAccountExplicitly(oldAccount) == true)
                 } else {
-                    Validate.isTrue(accountManager!!.removeAccountExplicitly(oldAccount))
+                    val handler = Handler(Looper.getMainLooper())
+                    accountManager?.removeAccount(oldAccount, null, { future ->
+                        try {
+                            val bundle = future.result
+                            val accountRemoved =
+                                bundle.getBoolean(AccountManager.KEY_BOOLEAN_RESULT)
+                            if (!accountRemoved) {
+                                throw IllegalStateException("Unable to remove account")
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }, handler)
                 }
             }
         }
         contentResolver = null
         context = null
+        // Cleanup temp files
+        tempFiles.forEach { file ->
+            try {
+                Files.deleteIfExists(file)
+            } catch (e: Exception) {
+                println("Could not delete file: $file")
+                e.printStackTrace()
+            }
+        }
+        tempFiles.clear()
     }
 
-    /**
-     * Tests whether measurements are correctly marked as synced.
-     */
-    @Test
-    @Throws(
-        NoSuchMeasurementException::class, CursorIsNullException::class
-    )
-    fun testOnPerformSync() {
-        val point3DCount = 1 // 100 Hz * 8 h = 2_880_000
-        val locationCount = 1 // 1 Hz * 8 h = 28_800
+    private suspend fun performOnPerformSync(
+        point3DCount: Int,
+        locationCount: Int,
+        logCount: Int,
+        imageCount: Int,
+        videoCount: Int,
+        sampleFiles: List<Path>
+    ): MeasurementStatus {
 
         // Arrange
         // Insert data to be synced
@@ -135,13 +158,16 @@ class SyncAdapterTest {
         persistence.restoreOrCreateDeviceId() // is usually called by the DataCapturingService
         val (measurementIdentifier) = insertSampleMeasurementWithData(
             context!!,
-            MeasurementStatus.FINISHED, persistence, point3DCount, locationCount
+            MeasurementStatus.FINISHED, persistence, point3DCount, locationCount,
+            logCount, imageCount, videoCount, sampleFiles
         )
         val loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier)
         MatcherAssert.assertThat(
             loadedStatus,
             CoreMatchers.`is`(CoreMatchers.equalTo(MeasurementStatus.FINISHED))
         )
+
+        // Act
         contentResolver!!
             .acquireContentProviderClient(LocationTable.getUri(TestUtils.AUTHORITY)).use { client ->
                 val result = SyncResult()
@@ -151,20 +177,81 @@ class SyncAdapterTest {
                 oocut!!.onPerformSync(account!!, testBundle, TestUtils.AUTHORITY, client!!, result)
             }
 
-        // Assert: synced data is marked as synced
-        val newStatus = persistence.loadMeasurementStatus(measurementIdentifier)
-        MatcherAssert.assertThat(
-            newStatus,
-            CoreMatchers.`is`(CoreMatchers.equalTo(MeasurementStatus.SYNCED))
-        )
-
+        // Assert
         // GeoLocation
         val loadedMeasurement = persistence.loadMeasurement(measurementIdentifier)
         MatcherAssert.assertThat(loadedMeasurement, IsNull.notNullValue())
         val tracks = persistence.loadTracks(
             loadedMeasurement!!.id
         )
-        MatcherAssert.assertThat(tracks[0].geoLocations.size, CoreMatchers.`is`(1))
+        MatcherAssert.assertThat(tracks[0].geoLocations.size, CoreMatchers.`is`(locationCount))
+
+        return persistence.loadMeasurementStatus(measurementIdentifier)
+    }
+
+    /**
+     * Tests whether measurements are correctly marked as synced.
+     */
+    @Test
+    @Throws(NoSuchMeasurementException::class, CursorIsNullException::class)
+    fun testOnPerformSync(): Unit = runBlocking {
+        // Arrange
+        val point3DCount = 1 // 100 Hz * 8 h = 2_880_000
+        val locationCount = 1 // 1 Hz * 8 h = 28_800
+        val logCount = 1
+        val imageCount = 2
+        val videoCount = 0
+        val sampleFiles = randomFiles(logCount + imageCount + videoCount)
+        tempFiles.addAll(sampleFiles) // Add to the auto-cleanup list for `tearDown`
+
+        // Act
+        val newStatus = performOnPerformSync(
+            point3DCount,
+            locationCount,
+            logCount,
+            imageCount,
+            videoCount,
+            sampleFiles
+        )
+
+        // Assert: synced data is marked as synced
+        MatcherAssert.assertThat(
+            newStatus,
+            CoreMatchers.`is`(CoreMatchers.equalTo(MeasurementStatus.SYNCED))
+        )
+    }
+
+    /**
+     * Tests whether measurements are correctly marked as synced.
+     */
+    @Test
+    @Throws(NoSuchMeasurementException::class, CursorIsNullException::class)
+    fun testOnPerformSync_withNonExistingAttachment() = runBlocking {
+        // Arrange
+        val point3DCount = 1 // 100 Hz * 8 h = 2_880_000
+        val locationCount = 1 // 1 Hz * 8 h = 28_800
+        val logCount = 1
+        val imageCount = 2
+        val videoCount = 0
+        val fakePath = Paths.get("./fake.tmp")
+        val totalCount = logCount + imageCount + videoCount
+        val fakeFiles = List(totalCount) { fakePath }
+
+        // Act
+        val newStatus = performOnPerformSync(
+            point3DCount,
+            locationCount,
+            logCount,
+            imageCount,
+            videoCount,
+            fakeFiles
+        )
+
+        // Assert: measurement is not marked as SYNCED as the attachments upload failed
+        MatcherAssert.assertThat(
+            newStatus,
+            CoreMatchers.`is`(CoreMatchers.equalTo(MeasurementStatus.SYNCABLE_ATTACHMENTS))
+        )
     }
 
     /**
@@ -177,68 +264,35 @@ class SyncAdapterTest {
      * (!) This bug is only triggered when you replace MockedHttpConnection with HttpConnection
      */
     @Test
-    @LargeTest // ~ 8-10 minutes
+    @LargeTest // ~ 8-10 minutes on emulator/CI? 45 seconds on Pixel 6
     @Ignore("Because this is a very large test which does not need to be executed each time")
-    @Throws(
-        NoSuchMeasurementException::class, CursorIsNullException::class
-    )
-    fun testOnPerformSyncWithLargeMeasurement() {
+    @Throws(NoSuchMeasurementException::class, CursorIsNullException::class)
+    fun testOnPerformSyncWithLargeMeasurement(): Unit = runBlocking {
+        // Arrange
         // 3_000_000 is the minimum which reproduced MOV-515 on N5X emulator
         val point3DCount = 2880000 // 100 Hz * 8 h
         val locationCount = 28800 // 1 Hz * 8 h
+        val logCount = 1
+        val imageCount = 2
+        val videoCount = 0
+        val sampleFiles = randomFiles(logCount + imageCount + videoCount)
+        tempFiles.addAll(sampleFiles) // Add to the auto-cleanup list for `tearDown`
 
-        // Arrange
-        // Insert data to be synced
-        val persistence = DefaultPersistenceLayer<DefaultPersistenceBehaviour?>(
-            context!!, DefaultPersistenceBehaviour()
+        // Act
+        val newStatus = performOnPerformSync(
+            point3DCount,
+            locationCount,
+            logCount,
+            imageCount,
+            videoCount,
+            sampleFiles
         )
-        persistence.restoreOrCreateDeviceId() // is usually called by the DataCapturingService
-        val (measurementIdentifier) = insertSampleMeasurementWithData(
-            context!!,
-            MeasurementStatus.FINISHED, persistence, point3DCount, locationCount
-        )
-        val loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier)
-        MatcherAssert.assertThat(
-            loadedStatus,
-            CoreMatchers.`is`(CoreMatchers.equalTo(MeasurementStatus.FINISHED))
-        )
 
-        // Mock - nothing to do
-
-        // Act: sync
-        var client: ContentProviderClient? = null
-        try {
-            client =
-                contentResolver!!.acquireContentProviderClient(LocationTable.getUri(TestUtils.AUTHORITY))
-            val result = SyncResult()
-            Validate.notNull(client)
-            val testBundle = Bundle()
-            testBundle.putString(SyncAdapter.MOCK_IS_CONNECTED_TO_RETURN_TRUE, "")
-            oocut!!.onPerformSync(account!!, testBundle, TestUtils.AUTHORITY, client!!, result)
-        } finally {
-            if (client != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    client.close()
-                } else {
-                    client.release()
-                }
-            }
-        }
-
-        // Assert: synced data is marked as synced
-        val newStatus = persistence.loadMeasurementStatus(measurementIdentifier)
+        // Assert
         MatcherAssert.assertThat(
             newStatus,
             CoreMatchers.`is`(CoreMatchers.equalTo(MeasurementStatus.SYNCED))
         )
-
-        // GeoLocation
-        val loadedMeasurement = persistence.loadMeasurement(measurementIdentifier)
-        MatcherAssert.assertThat(loadedMeasurement, IsNull.notNullValue())
-        val tracks = persistence.loadTracks(
-            loadedMeasurement!!.id
-        )
-        MatcherAssert.assertThat(tracks[0].geoLocations.size, CoreMatchers.`is`(locationCount))
     }
 
     /**

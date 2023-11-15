@@ -22,8 +22,9 @@ import android.content.Context
 import android.hardware.SensorManager
 import android.util.Log
 import de.cyface.persistence.Constants.TAG
-import de.cyface.persistence.dao.DefaultFileDao
-import de.cyface.persistence.dao.FileDao
+import de.cyface.persistence.dao.AttachmentDao
+import de.cyface.persistence.io.DefaultFileIOHandler
+import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.dao.IdentifierDao
 import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.dao.PressureDao
@@ -31,6 +32,8 @@ import de.cyface.persistence.exception.NoDeviceIdException
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
+import de.cyface.persistence.model.Attachment
+import de.cyface.persistence.model.AttachmentStatus
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Identifier
 import de.cyface.persistence.model.Measurement
@@ -52,7 +55,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.max
@@ -63,7 +65,7 @@ import kotlin.math.max
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 19.0.0
+ * @version 19.1.0
  * @since 2.0.0
  * @property persistenceBehaviour The [PersistenceBehaviour] defines how the `Persistence` layer works.
  * We need this behaviour to differentiate if the [DefaultPersistenceLayer] is used for live capturing
@@ -78,7 +80,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     var persistenceBehaviour: B? = null
         private set
 
-    override val fileDao: FileDao
+    override val fileIOHandler: FileIOHandler
 
     override val identifierDao: IdentifierDao?
 
@@ -89,6 +91,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     override val locationDao: LocationDao?
 
     override val pressureDao: PressureDao?
+
+    override val attachmentDao: AttachmentDao?
 
     /**
      * A `SupervisorJob` is used so that the failure of one async task started by this supervisor
@@ -115,7 +119,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         eventRepository = null
         locationDao = null
         pressureDao = null
-        fileDao = DefaultFileDao()
+        attachmentDao = null
+        fileIOHandler = DefaultFileIOHandler()
     }
 
     /**
@@ -125,7 +130,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
      * to capture live data.
      */
-    constructor(context: Context, persistenceBehaviour: B): this(context, persistenceBehaviour, DefaultFileDao())
+    constructor(context: Context, persistenceBehaviour: B): this(context, persistenceBehaviour, DefaultFileIOHandler())
 
     /**
      * Creates a new completely initialized `PersistenceLayer`.
@@ -133,9 +138,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param context The [Context] required to locate the app's internal storage directory.
      * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
      * to capture live data.
-     * @param fileDao The DAO to load files from.
+     * @param fileIOHandler The handler to load files from.
      */
-    constructor(context: Context, persistenceBehaviour: B, fileDao: FileDao) {
+    constructor(context: Context, persistenceBehaviour: B, fileIOHandler: FileIOHandler) {
         this.context = context
         val database = Database.build(context.applicationContext)
         this.identifierDao = database.identifierDao()
@@ -143,14 +148,15 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         this.eventRepository = EventRepository(database.eventDao())
         this.locationDao = database.locationDao()
         this.pressureDao = database.pressureDao()
+        this.attachmentDao = database.attachmentDao()
         this.persistenceBehaviour = persistenceBehaviour
-        this.fileDao = fileDao
+        this.fileIOHandler = fileIOHandler
         val accelerationsFolder =
-            fileDao.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         val rotationsFolder =
-            fileDao.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
         val directionsFolder =
-            fileDao.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
         checkOrCreateFolder(accelerationsFolder)
         checkOrCreateFolder(rotationsFolder)
         checkOrCreateFolder(directionsFolder)
@@ -160,9 +166,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     /**
      * Ensures that the specified exists.
      *
-     * @param folder The [File] pointer to the folder which is created if it does not yet exist
+     * @param folder The [Attachment] pointer to the folder which is created if it does not yet exist
      */
-    private fun checkOrCreateFolder(folder: File) {
+    private fun checkOrCreateFolder(folder: java.io.File) {
         if (!folder.exists()) {
             Validate.isTrue(folder.mkdir())
         }
@@ -279,8 +285,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * such measurements, but never `null`.
      */
     // Implementing apps (SR) use this api to load the finished measurements
-    fun loadMeasurements(status: MeasurementStatus): List<Measurement?>? {
-        var measurements: List<Measurement?>?
+    fun loadMeasurements(status: MeasurementStatus): List<Measurement> {
+        var measurements: List<Measurement>
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
                 measurementRepository!!.loadAllByStatus(status)
@@ -308,7 +314,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         // TODO [CY-4359]: implement cyface variant where not only sensor data but also GeoLocations are deleted
         try {
             val accelerationFile = Point3DFile.loadFile(
-                context!!, fileDao, measurementId, Point3DType.ACCELERATION
+                context!!, fileIOHandler, measurementId, Point3DType.ACCELERATION
             )
                 .file
             Validate.isTrue(accelerationFile.delete())
@@ -317,7 +323,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         }
         try {
             val rotationFile = Point3DFile.loadFile(
-                context!!, fileDao, measurementId, Point3DType.ROTATION
+                context!!, fileIOHandler, measurementId, Point3DType.ROTATION
             ).file
             Validate.isTrue(rotationFile.delete())
         } catch (e: NoSuchFileException) {
@@ -325,13 +331,105 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         }
         try {
             val directionFile = Point3DFile.loadFile(
-                context!!, fileDao, measurementId, Point3DType.DIRECTION
+                context!!, fileIOHandler, measurementId, Point3DType.DIRECTION
             )
                 .file
             Validate.isTrue(directionFile.delete())
         } catch (e: NoSuchFileException) {
             Log.v(TAG, "markAsSynchronized: No direction file found to delete, nothing to do")
         }
+
+        // Also delete syncable attachments binaries when the measurement is skipped or deprecated
+        if (newStatus == MeasurementStatus.SKIPPED || newStatus == MeasurementStatus.DEPRECATED) {
+            runBlocking {
+                val attachments = attachmentDao!!.loadAllByMeasurementIdAndStatus(measurementId, AttachmentStatus.SAVED)
+                attachments.forEach {
+                    // When re-writing this in a non-blocking way, ensure sync can handle this
+                    val newAttachmentStatus = when (newStatus) {
+                        MeasurementStatus.SKIPPED -> AttachmentStatus.SKIPPED
+                        MeasurementStatus.DEPRECATED -> AttachmentStatus.DEPRECATED
+                        else -> throw IllegalArgumentException("Unexpected status: $newStatus")
+                    }
+                    markSavedAs(newAttachmentStatus, it)
+                    Log.d(TAG, "Cleaned up attachment (id ${it.id}): $newAttachmentStatus")
+                }
+                cleanupEmptyFolder(measurementId)
+            }
+        }
+    }
+
+    /**
+     * Marks a [MeasurementStatus.FINISHED] [Measurement] as [MeasurementStatus.SYNCED],
+     * [MeasurementStatus.SKIPPED] or [MeasurementStatus.DEPRECATED] and deletes the sensor data.
+     *
+     * **ATTENTION:** This method should not be called from outside the SDK.
+     *
+     * @param measurementId The id of the [Measurement] to remove.
+     * @throws NoSuchMeasurementException If the [Measurement] does not exist.
+     */
+    @Throws(NoSuchMeasurementException::class)
+    fun markSyncableAttachmentsAs(newStatus: MeasurementStatus, measurementId: Long) {
+
+        // The status in the database could be different from the one in the object so load it again
+        Validate.isTrue(loadMeasurementStatus(measurementId) === MeasurementStatus.SYNCABLE_ATTACHMENTS)
+        setStatus(measurementId, newStatus, false)
+
+        cleanupEmptyFolder(measurementId)
+    }
+
+    private fun cleanupEmptyFolder(measurementId: Long) = runBlocking {
+        val attachment = attachmentDao!!.loadOneByMeasurementId(measurementId)
+        attachment?.let {
+            val parentDir = it.path.toFile().parentFile
+            if (parentDir!!.isDirectory && parentDir.list()?.isEmpty() == true) {
+                if (!parentDir.delete()) {
+                    Log.w(TAG, "Failed to delete empty directory: ${parentDir.absolutePath}")
+                } else {
+                    Log.d(TAG, "Deleted empty directory: ${parentDir.absolutePath}")
+                }
+            } else {
+                Log.w(TAG, "Skipped deleting directory, not empty: ${parentDir.absolutePath}")
+            }
+        }
+    }
+
+    /**
+     * Marks a [AttachmentStatus.SAVED] [de.cyface.persistence.model.Attachment] as [AttachmentStatus.SYNCED],
+     * [AttachmentStatus.SKIPPED] or [AttachmentStatus.DEPRECATED] and deletes the binary attachment data.
+     *
+     * **ATTENTION:** This method should not be called from outside the SDK.
+     *
+     * @param attachmentId The id of the [Attachment] to remove.
+     */
+    fun markSavedAs(newStatus: AttachmentStatus, attachmentId: Long) {
+
+        // The status in the database could be different from the one in the object so load it again
+        runBlocking {
+            val attachment = attachmentDao!!.loadById(attachmentId)!!
+            markSavedAs(newStatus, attachment)
+        }
+    }
+
+    /**
+     * Marks a [AttachmentStatus.SAVED] [de.cyface.persistence.model.Attachment] as [AttachmentStatus.SYNCED],
+     * [AttachmentStatus.SKIPPED] or [AttachmentStatus.DEPRECATED] and deletes the binary attachment data.
+     *
+     * **ATTENTION:** This method should not be called from outside the SDK.
+     *
+     * @param attachment The [Attachment] to remove.
+     */
+    private fun markSavedAs(newStatus: AttachmentStatus, attachment: Attachment) {
+
+        // The status in the database could be different from the one in the object so load it again
+        Validate.isTrue(attachment.status === AttachmentStatus.SAVED, "Unexpected status: ${attachment.status}")
+        Validate.isTrue(newStatus == AttachmentStatus.SYNCED || newStatus == AttachmentStatus.SKIPPED || newStatus == AttachmentStatus.DEPRECATED, "Unexpected status change from ${attachment.status} to $newStatus")
+        runBlocking {
+            attachmentDao!!.updateStatus(attachment.id, newStatus)
+        }
+
+        // Deleting first as a second upload approach would be handled by the API
+        val file = attachment.path.toFile()
+        Validate.isTrue(file.delete())
     }
 
     override fun restoreOrCreateDeviceId(): String {
@@ -416,13 +514,13 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     private fun deletePoint3DData(measurementIdentifier: Long) {
         val accelerationFolder =
-            fileDao.getFolderPath(context!!, Point3DFile.ACCELERATIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context!!, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         val rotationFolder =
-            fileDao.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
         val directionFolder =
-            fileDao.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
         if (accelerationFolder.exists()) {
-            val accelerationFile = fileDao.getFilePath(
+            val accelerationFile = fileIOHandler.getFilePath(
                 context, measurementIdentifier,
                 Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION
             )
@@ -431,7 +529,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             }
         }
         if (rotationFolder.exists()) {
-            val rotationFile = fileDao.getFilePath(
+            val rotationFile = fileIOHandler.getFilePath(
                 context, measurementIdentifier,
                 Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION
             )
@@ -440,7 +538,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             }
         }
         if (directionFolder.exists()) {
-            val directionFile = fileDao.getFilePath(
+            val directionFile = fileIOHandler.getFilePath(
                 context, measurementIdentifier,
                 Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION
             )
@@ -1005,14 +1103,14 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * an actual [MeasurementStatus.OPEN] or [MeasurementStatus.PAUSED] measurement.
      */
     @Throws(NoSuchMeasurementException::class)
-    fun loadCurrentlyCapturedMeasurementFromPersistence(): Measurement? {
+    fun loadCurrentlyCapturedMeasurementFromPersistence(): Measurement {
         Log.v(TAG, "Trying to load currently captured measurement from PersistenceLayer!")
         val openMeasurements = loadMeasurements(MeasurementStatus.OPEN)
         val pausedMeasurements = loadMeasurements(MeasurementStatus.PAUSED)
-        if (openMeasurements!!.isEmpty() && pausedMeasurements!!.isEmpty()) {
+        if (openMeasurements.isEmpty() && pausedMeasurements.isEmpty()) {
             throw NoSuchMeasurementException("No currently captured measurement found!")
         }
-        check(openMeasurements.size + pausedMeasurements!!.size <= 1) { "More than one currently captured measurement found!" }
+        check(openMeasurements.size + pausedMeasurements.size <= 1) { "More than one currently captured measurement found!" }
         return (if (openMeasurements.size == 1) openMeasurements else pausedMeasurements)[0]
     }
 
@@ -1051,6 +1149,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                     Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN))
                     Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED))
                 }
+            MeasurementStatus.SYNCABLE_ATTACHMENTS,
             MeasurementStatus.SYNCED, MeasurementStatus.SKIPPED, MeasurementStatus.DEPRECATED -> {}
             else -> throw IllegalArgumentException(String.format("Unknown status: %s", newStatus))
         }
@@ -1111,7 +1210,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return id!!
     }
 
-    override val cacheDir: File
+    override val cacheDir: java.io.File
         get() = context!!.cacheDir
 
 

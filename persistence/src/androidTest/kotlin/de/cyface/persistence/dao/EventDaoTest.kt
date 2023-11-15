@@ -23,6 +23,7 @@ import de.cyface.persistence.Database
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
 import de.cyface.persistence.model.Measurement
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.After
@@ -33,7 +34,7 @@ import org.junit.Test
  * Tests the CRUD operations of the [EventDao].
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 7.5.0
  */
 class EventDaoTest {
@@ -57,13 +58,14 @@ class EventDaoTest {
     }
 
     @Test
-    fun testInsert() {
+    fun testInsert() = runBlocking {
         // Arrange
         // Act
         createEvent(measurementId!!)
 
         // Assert
-        assertThat(eventDao.getAll().size, equalTo(1))
+        assertThat(eventDao.
+        getAll().size, equalTo(1))
     }
 
     @Test(expected = SQLiteConstraintException::class)
@@ -75,7 +77,7 @@ class EventDaoTest {
     }
 
     @Test
-    fun testGetAll() {
+    fun testGetAll() = runBlocking {
         // Arrange
         val event1 = createEvent(measurementId!!)
         val event2 = createEvent(measurementId!!)
@@ -89,7 +91,7 @@ class EventDaoTest {
     }
 
     @Test
-    fun testLoadById() {
+    fun testLoadById() = runBlocking {
         // Arrange
         val event = createEvent(measurementId!!)
         // Act
@@ -100,7 +102,7 @@ class EventDaoTest {
     }
 
     @Test
-    fun testLoadAllByMeasurementId() {
+    fun testLoadAllByMeasurementId() = runBlocking {
         // Arrange
         val event1 = createEvent(measurementId!!)
         val event2 = createEvent(measurementId!!)
@@ -116,7 +118,7 @@ class EventDaoTest {
     }
 
     @Test
-    fun testLoadAllByMeasurementIdAndType() {
+    fun testLoadAllByMeasurementIdAndType() = runBlocking{
         // Arrange
         val event = createEvent(measurementId!!, EventType.LIFECYCLE_START)
         val otherMeasurementId = createMeasurement().id
@@ -134,7 +136,7 @@ class EventDaoTest {
     }
 
     @Test
-    fun testDeleteItemByMeasurementId() {
+    fun testDeleteItemByMeasurementId() = runBlocking {
         // Arrange
         createEvent(measurementId!!)
         val otherMeasurementId = createMeasurement().id
@@ -151,7 +153,7 @@ class EventDaoTest {
     }
 
     @Test
-    fun testDeleteItemById() {
+    fun testDeleteItemById() = runBlocking{
         // Arrange
         val event = createEvent(measurementId!!)
         val keep = createEvent(measurementId!!)
@@ -167,7 +169,7 @@ class EventDaoTest {
     }
 
     @Test
-    fun testDeleteAll() {
+    fun testDeleteAll() = runBlocking{
         // Arrange
         for (i in 0..1) {
             createEvent(measurementId!!)
@@ -189,10 +191,10 @@ class EventDaoTest {
     private fun createEvent(
         measurementId: Long,
         type: EventType = EventType.LIFECYCLE_START
-    ): Event {
+    ): Event = runBlocking {
         val event = TestUtils.eventFixture(measurementId, type)
         event.id = eventDao.insert(event)
-        return event
+        return@runBlocking event
     }
 
     /**
@@ -200,9 +202,9 @@ class EventDaoTest {
      *
      * @return The created object.
      */
-    private fun createMeasurement(): Measurement {
+    private fun createMeasurement(): Measurement = runBlocking {
         val measurement = TestUtils.measurementFixture()
         measurement.id = measurementDao.insert(measurement)
-        return measurement
+        return@runBlocking measurement
     }
 }

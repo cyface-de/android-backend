@@ -29,29 +29,29 @@ import de.cyface.persistence.model.Pressure
  * Data access object which provides the API to interact with the [Pressure] database table.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 2.0.0
  * @since 7.5.0
  */
 @Dao
 interface PressureDao {
     @Insert
-    fun insert(pressure: Pressure): Long
+    suspend fun insert(pressure: Pressure): Long
 
     @Insert
-    fun insertAll(vararg pressures: Pressure)
+    suspend fun insertAll(vararg pressures: Pressure)
 
     @Query("SELECT * FROM ${PressureTable.URI_PATH}")
-    fun getAll(): List<Pressure>
+    suspend fun getAll(): List<Pressure>
 
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM ${PressureTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY ${BaseColumns.TIMESTAMP} ASC")
-    fun loadAllByMeasurementId(measurementId: Long): List<Pressure>
+    suspend fun loadAllByMeasurementId(measurementId: Long): List<Pressure>
 
     @Query("DELETE FROM ${PressureTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
-    fun deleteItemByMeasurementId(measurementId: Long): Int
+    suspend fun deleteItemByMeasurementId(measurementId: Long): Int
 
     @Query("DELETE FROM ${PressureTable.URI_PATH}")
-    fun deleteAll(): Int
+    suspend fun deleteAll(): Int
 }

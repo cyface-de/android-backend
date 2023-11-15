@@ -24,17 +24,20 @@ import de.cyface.persistence.Database
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
+import de.cyface.persistence.model.Attachment
+import de.cyface.persistence.model.AttachmentStatus
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.model.Pressure
+import kotlin.io.path.Path
 
 /**
  * Utility methods used in different [de.cyface.persistence.dao] `androidTest`s.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 7.5.0
  */
 class TestUtils {
@@ -74,6 +77,11 @@ class TestUtils {
 
         fun eventFixture(measurementId: Long, type: EventType = EventType.LIFECYCLE_START): Event {
             return Event(1000L, type, null, measurementId)
+        }
+
+        fun attachmentFixtures(measurementId: Long = 1L): Attachment {
+            return Attachment(1000L, AttachmentStatus.SAVED, de.cyface.protos.model.File.FileType.CSV, 1,
+                1234L, Path("./some/test/file.ext"), null, null, 999L, measurementId)
         }
     }
 }

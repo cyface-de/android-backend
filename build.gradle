@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.10.0
+ * @version 2.11.0
  * @since 1.0.0
  */
 
@@ -51,8 +51,8 @@ ext {
 
     // Cyface dependencies
     cyfaceUtilsVersion = "4.0.4"
-    cyfaceSerializationVersion = "3.0.0"
-    cyfaceUploaderVersion = "1.0.0"
+    cyfaceSerializationVersion = "3.2.0"
+    cyfaceUploaderVersion = "1.2.0"
 
     // Android SDK versions
     minSdkVersion = 21 // device support
@@ -61,6 +61,7 @@ ext {
     buildToolsVersion = '34.0.0' // optional, if defined, use latest (SDK Manager > SDK Tools)
     // 1.1.0-alpha05: ':persistence:mergeExtDexDebugAndroidTest' fails (transitive dependency)
     datastoreVersion = "1.1.0-alpha04" // only 1.1.0 supports multi-process datastore
+    desugaringVersion = "2.0.3"
 
     // Android dependencies
     androidxAnnotationVersion = '1.6.0'

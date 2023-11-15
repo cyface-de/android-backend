@@ -32,31 +32,39 @@ import de.cyface.persistence.Constants
 import de.cyface.persistence.Database
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceLayer
-import de.cyface.persistence.dao.DefaultFileDao
-import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.exception.NoSuchMeasurementException
+import de.cyface.persistence.io.DefaultFileIOHandler
+import de.cyface.persistence.io.FileIOHandler
+import de.cyface.persistence.model.AttachmentStatus
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
+import de.cyface.persistence.model.ParcelableAttachment
 import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.DefaultLocationCleaning
+import de.cyface.protos.model.File.FileType
 import de.cyface.protos.model.Measurement
 import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.model.Point3DType
 import de.cyface.utils.Validate
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.UUID
 
 /**
  * This class (and the module test-utils) exist to be able to share test code between modules.
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 9.0.0
  * @since 3.0.0
  */
 object SharedTestUtils {
@@ -208,7 +216,7 @@ object SharedTestUtils {
     /**
      * This deserializes a [Point3DFile] for testing.
      *
-     * @param fileDao The [FileDao] used to access the files.
+     * @param fileIOHandler The [FileIOHandler] used to access the files.
      * @param file The `Point3DFile` to access
      * @param type The [Point3DType] for the `file` passed as parameter
      * @return the data restored from the `Point3DFile`
@@ -217,15 +225,16 @@ object SharedTestUtils {
     @JvmStatic
     @Throws(InvalidProtocolBufferException::class)
     fun deserialize(
-        fileDao: FileDao, file: File?,
+        fileIOHandler: FileIOHandler, file: File?,
         type: Point3DType
     ): Measurement {
-        val bytes = fileDao.loadBytes(file)
+        val bytes = fileIOHandler.loadBytes(file)
         val measurementBytes = MeasurementBytes.newBuilder()
             .setFormatVersion(DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION.toInt())
         when (type) {
             Point3DType.ACCELERATION -> measurementBytes.accelerationsBinary =
                 ByteString.copyFrom(bytes)
+
             Point3DType.ROTATION -> measurementBytes.rotationsBinary = ByteString.copyFrom(bytes)
             Point3DType.DIRECTION -> measurementBytes.directionsBinary = ByteString.copyFrom(bytes)
             else -> throw IllegalArgumentException("Unknown type: $type")
@@ -274,12 +283,12 @@ object SharedTestUtils {
         context: Context,
         @Suppress("SameParameterValue") removeFolder: Boolean = true
     ): Int {
-        val fileDao: FileDao = DefaultFileDao()
+        val fileIOHandler: FileIOHandler = DefaultFileIOHandler()
 
         // Remove {@code Point3DFile}s and their parent folders
         var removedFiles = 0
         val accelerationFolder =
-            fileDao.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         if (accelerationFolder.exists()) {
             Validate.isTrue(accelerationFolder.isDirectory)
             val accelerationFiles = accelerationFolder.listFiles()
@@ -294,7 +303,7 @@ object SharedTestUtils {
             }
         }
         val rotationFolder =
-            fileDao.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
         if (rotationFolder.exists()) {
             Validate.isTrue(rotationFolder.isDirectory)
             val rotationFiles = rotationFolder.listFiles()
@@ -309,7 +318,7 @@ object SharedTestUtils {
             }
         }
         val directionFolder =
-            fileDao.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
         if (directionFolder.exists()) {
             Validate.isTrue(directionFolder.isDirectory)
             val directionFiles = directionFolder.listFiles()
@@ -336,18 +345,30 @@ object SharedTestUtils {
      */
     @JvmStatic
     @Throws(NoSuchMeasurementException::class)
-    fun insertSampleMeasurementWithData(
+    suspend fun insertSampleMeasurementWithData(
         context: Context,
         status: MeasurementStatus,
         persistence: DefaultPersistenceLayer<*>,
         point3DCount: Int,
-        locationCount: Int
+        locationCount: Int,
+        logCount: Int = 0,
+        imageCount: Int = 0,
+        videoCount: Int = 0,
+        sampleFiles: List<Path> = emptyList()
     ): de.cyface.persistence.model.Measurement {
-        Validate.isTrue(point3DCount > 0)
-        Validate.isTrue(locationCount > 0)
+        require(point3DCount >= 0)
+        require(locationCount >= 0)
+        require(logCount >= 0)
+        require(imageCount >= 0)
+        require(videoCount >= 0)
+        require(sampleFiles.size == logCount + imageCount + videoCount) {
+            "Expected $logCount + $imageCount + $videoCount files but found ${sampleFiles.size}"
+        }
+
         val geoLocations: MutableList<ParcelableGeoLocation> = ArrayList()
         val measurement = insertMeasurementEntry(persistence, Modality.UNKNOWN)
-        val measurementIdentifier = measurement.id
+        val measurementId = measurement.id
+        val database = Database.build(context)
         for (i in 0 until locationCount) {
             // We add some salt to make sure the compression of the data is realistic
             // This is required as the testOnPerformSyncWithLargeData test requires large data
@@ -360,13 +381,13 @@ object SharedTestUtils {
                     )
                 )
         }
-        insertGeoLocations(Database.build(context), measurement.id, geoLocations)
+        insertGeoLocations(database, measurement.id, geoLocations)
 
-        // Insert file base data
+        // Insert sensor data
         val accelerationsFile =
-            Point3DFile(context, measurementIdentifier, Point3DType.ACCELERATION)
-        val rotationsFile = Point3DFile(context, measurementIdentifier, Point3DType.ROTATION)
-        val directionsFile = Point3DFile(context, measurementIdentifier, Point3DType.DIRECTION)
+            Point3DFile(context, measurementId, Point3DType.ACCELERATION)
+        val rotationsFile = Point3DFile(context, measurementId, Point3DType.ROTATION)
+        val directionsFile = Point3DFile(context, measurementId, Point3DType.DIRECTION)
         val aPoints = ArrayList<Point3DImpl?>()
         val rPoints = ArrayList<Point3DImpl?>()
         val dPoints = ArrayList<Point3DImpl?>()
@@ -414,9 +435,9 @@ object SharedTestUtils {
         if (status === MeasurementStatus.FINISHED || status === MeasurementStatus.SYNCED || status === MeasurementStatus.SKIPPED) {
             persistence.storePersistenceFileFormatVersion(
                 DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION,
-                measurementIdentifier
+                measurementId
             )
-            persistence.setStatus(measurementIdentifier, MeasurementStatus.FINISHED, false)
+            persistence.setStatus(measurementId, MeasurementStatus.FINISHED, false)
         }
         if (status === MeasurementStatus.SYNCED) {
             persistence.markFinishedAs(MeasurementStatus.SYNCED, measurement.id)
@@ -424,10 +445,25 @@ object SharedTestUtils {
             persistence.markFinishedAs(MeasurementStatus.SKIPPED, measurement.id)
         }
 
+        // Insert attachments
+        val logStartIndex = 0
+        val imageStartIndex = logStartIndex + logCount
+        val videoStartIndex = imageStartIndex + imageCount
+        val logFilesPaths = getFiles(logCount, logStartIndex, sampleFiles)
+        val imageFilesPaths = getFiles(imageCount, imageStartIndex, sampleFiles)
+        val videoFilesPaths = getFiles(videoCount, videoStartIndex, sampleFiles)
+        val logFiles = files(logCount, FileType.CSV, null, logFilesPaths, measurementId)
+        val location = geoLocations[0]
+        val imageFiles = files(imageCount, FileType.JPG, location, imageFilesPaths, measurementId)
+        val videoFiles = files(videoCount, FileType.MP4, location, videoFilesPaths, measurementId)
+        insertFiles(database, measurement.id, logFiles)
+        insertFiles(database, measurement.id, imageFiles)
+        insertFiles(database, measurement.id, videoFiles)
+
         // Check the measurement entry
-        val loadedMeasurement = persistence.loadMeasurement(measurementIdentifier)
+        val loadedMeasurement = persistence.loadMeasurement(measurementId)
         assertThat(loadedMeasurement, CoreMatchers.notNullValue())
-        assertThat(persistence.loadMeasurementStatus(measurementIdentifier), equalTo(status))
+        assertThat(persistence.loadMeasurementStatus(measurementId), equalTo(status))
         assertThat(
             loadedMeasurement!!.fileFormatVersion,
             equalTo(DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
@@ -435,9 +471,32 @@ object SharedTestUtils {
 
         // Check the Tracks
         // noinspection unchecked
-        val loadedTracks = persistence.loadTracks(measurementIdentifier)
+        val loadedTracks = persistence.loadTracks(measurementId)
         assertThat(loadedTracks[0].geoLocations.size, equalTo(locationCount))
         return measurement
+    }
+
+    private fun <T> getFiles(count: Int, startingIndex: Int, files: List<T>): List<T> {
+        val endIndex = startingIndex + count
+        return if (endIndex <= files.size) {
+            files.subList(startingIndex, endIndex)
+        } else {
+            throw IllegalArgumentException("Expected $count but found ${files.size}")
+        }
+    }
+
+    private fun files(count: Int, type: FileType, location: ParcelableGeoLocation?, sampleFiles: List<Path>, measurementId: Long): List<ParcelableAttachment> {
+        require(sampleFiles.size == count) {"Expected $count files but found ${sampleFiles.size}"}
+        val files: MutableList<de.cyface.persistence.model.Attachment> = ArrayList()
+        for (j in 0 until count) {
+            files.add(
+                de.cyface.persistence.model.Attachment(
+                    1000L + j, AttachmentStatus.SAVED, type, 1, 1234L, sampleFiles[j],
+                    location?.lat, location?.lon, 999L, measurementId
+                )
+            )
+        }
+        return files
     }
 
     /**
@@ -476,7 +535,7 @@ object SharedTestUtils {
      */
     // Used by the cyface flavour tests
     @JvmStatic
-    fun insertGeoLocation(
+    suspend fun insertGeoLocation(
         dao: LocationDao, measurementIdentifier: Long,
         timestamp: Long, lat: Double, lon: Double, altitude: Double, speed: Double,
         accuracy: Double, verticalAccuracy: Double
@@ -498,7 +557,7 @@ object SharedTestUtils {
      * @param measurementIdentifier The identifier of the test [Measurement].
      * @param geoLocations Test fake `GeoLocation`s to add.
      */
-    private fun insertGeoLocations(
+    private suspend fun insertGeoLocations(
         database: Database,
         measurementIdentifier: Long, geoLocations: List<ParcelableGeoLocation>
     ) {
@@ -520,5 +579,32 @@ object SharedTestUtils {
             nextInsertIndex += subArray.length;
             Log.v(TAG, "Inserted " + nextInsertIndex);
         }*/
+    }
+
+    /**
+     * Inserts test [ParcelableAttachment]s into the database content provider accessed by the test.
+     *
+     * This increases the performance of large tests and avoids "failed binder transaction - parcel size ..." error.
+     *
+     * @param database The [Database] to access the data
+     * @param measurementId The identifier of the test [Measurement].
+     * @param files The entries to add.
+     */
+    private suspend fun insertFiles(
+        database: Database,
+        measurementId: Long,
+        files: List<ParcelableAttachment>
+    ) {
+        val entries = ArrayList<de.cyface.persistence.model.Attachment>()
+        for (entry in files) {
+            entries.add(de.cyface.persistence.model.Attachment(entry, measurementId))
+        }
+        database.attachmentDao().insertAll(*entries.toTypedArray())
+    }
+
+    suspend fun randomFiles(count: Int): List<Path> = withContext(Dispatchers.IO) {
+        List(count) {
+            Files.createTempFile(UUID.randomUUID().toString(), ".tmp")
+        }
     }
 }

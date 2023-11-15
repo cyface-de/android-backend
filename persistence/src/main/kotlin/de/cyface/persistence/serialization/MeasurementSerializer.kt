@@ -48,7 +48,7 @@ import java.util.zip.DeflaterOutputStream
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.0.0
+ * @version 9.1.0
  * @since 2.0.0
  */
 class MeasurementSerializer {
@@ -98,6 +98,49 @@ class MeasurementSerializer {
     }
 
     /**
+     * Loads the [de.cyface.persistence.model.Attachment] with the provided identifier from the persistence
+     * layer serialized in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] format and writes
+     * it to a temp file, ready to be transferred.
+     *
+     * **ATTENTION**: The caller needs to delete the file which is referenced by the returned `FileInputStream`
+     * when no longer needed or on program crash!
+     *
+     * @param attachment The [de.cyface.persistence.model.Attachment] to load
+     * @param persistenceLayer The [PersistenceLayer] to load the data from
+     * @return A [File] pointing to a temporary file containing the serialized data for transfer.
+     */
+    @Throws(CursorIsNullException::class)
+    suspend fun writeSerializedAttachment(
+        attachment: de.cyface.persistence.model.Attachment,
+        persistenceLayer: PersistenceLayer<*>
+    ): File? {
+
+        // Store the compressed bytes into a temp file to be able to read the byte size for transmission
+        val cacheDir = persistenceLayer.cacheDir
+        var tempFile: File? = null
+        try {
+            tempFile =
+                withContext(Dispatchers.IO) {
+                    File.createTempFile(TRANSFER_FILE_PREFIX, ".tmp", cacheDir)
+                }
+            withContext(Dispatchers.IO) {
+                FileOutputStream(tempFile).use { fileOutputStream ->
+                    loadSerializedAttachment(
+                        fileOutputStream,
+                        attachment
+                    )
+                }
+            }
+        } catch (e: IOException) {
+            if (tempFile != null && tempFile.exists()) {
+                Validate.isTrue(tempFile.delete())
+            }
+            throw IllegalStateException(e)
+        }
+        return tempFile
+    }
+
+    /**
      * Writes the [de.cyface.persistence.model.Measurement] with the provided identifier from the persistence layer serialized and compressed
      * in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] format, ready to be transferred.
      *
@@ -129,11 +172,38 @@ class MeasurementSerializer {
             loadSerialized(outputStream, measurementId, persistenceLayer)
             outputStream.flush()
         }
+        compressor.end()
         Log.d(
             TAG,
             "loadSerializedCompressed: finished after " + (System.currentTimeMillis() - startTimestamp) / 1000
                     + " s with Deflater Level: " + deflaterLevel
         )
+    }
+
+    /**
+     * Writes the [de.cyface.persistence.model.Attachment] with the provided identifier from the persistence
+     * layer serialized in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] format, ready to be
+     * transferred.
+     *
+     * No compression is used as we're mostly transferring JPG files right now which are pre-compressed.
+     *
+     * @param fileOutputStream the `FileInputStream` to write the compressed data to
+     * @param attachment The [de.cyface.persistence.model.Attachment] to load
+     * @throws IOException When flushing or closing the [OutputStream] fails
+     */
+    @Throws(IOException::class)
+    private suspend fun loadSerializedAttachment(
+        fileOutputStream: OutputStream,
+        attachment: de.cyface.persistence.model.Attachment
+    ) {
+        // These streams don't throw anything and, thus, it should be enough to close the outermost stream at the end
+
+        // Wrapping the streams with Buffered streams for performance reasons
+        BufferedOutputStream(fileOutputStream).use { outputStream ->
+            // Injecting the outputStream into which the serialized data is written to
+            TransferFileSerializer.loadSerializedAttachment(outputStream, attachment)
+            outputStream.flush()
+        }
     }
 
     companion object {
@@ -167,5 +237,10 @@ class MeasurementSerializer {
          * The prefix of the filename used to store compressed files for serialization.
          */
         private const val COMPRESSED_TRANSFER_FILE_PREFIX = "compressedTransferFile"
+
+        /**
+         * The prefix of the filename used to store temp files for serialization.
+         */
+        private const val TRANSFER_FILE_PREFIX = "transferFile"
     }
 }

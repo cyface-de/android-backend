@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 7.4.2" type="baseline" client="gradle" dependencies="false" name="AGP (7.4.2)" variant="all" version="7.4.2">
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 26 (current min is 21): `java.nio.file.Path#toFile`"
+        errorLine1="            val parentDir = it.path.toFile().parentFile"
+        errorLine2="                                    ~~~~~~">
+        <location
+            file="src/main/kotlin/de/cyface/persistence/DefaultPersistenceLayer.kt"
+            line="384"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 26 (current min is 21): `java.nio.file.Path#toFile`"
+        errorLine1="        val binaryFile = file.path.toFile()"
+        errorLine2="                                   ~~~~~~">
+        <location
+            file="src/main/kotlin/de/cyface/persistence/DefaultPersistenceLayer.kt"
+            line="432"
+            column="36"/>
+    </issue>
+
+</issues>
