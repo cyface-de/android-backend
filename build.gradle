@@ -51,6 +51,9 @@ ext {
 
     // Cyface dependencies
     cyfaceUtilsVersion = "4.0.4"
+    // (!) Match versions `android-app`, `SDK` and `camera-service`.
+    // When `android-app` is checkout out, `rootProject.uploaderVersion` in the submodules will point
+    // to `android-app/build.gradle` instead of `submodule/build.gradle`.
     cyfaceSerializationVersion = "3.2.0"
     cyfaceUploaderVersion = "1.2.0"
 
