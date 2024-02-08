@@ -144,7 +144,9 @@ dependencies {
     // Add support desugaring with for NIO
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs_nio:$rootProject.ext.desugaringVersion"
 
-    // OAuth 2.0 with OpenID Connect (required by CyfaceAuthenticator) // Move to uploader [RFR-581]
+    // OAuth 2.0 with OpenID Connect (required by CyfaceAuthenticator)
+    // There was an issue trying to move this to the `uploader` lib [RFR-581].
+    // But as the phone uploader tool uses direct flow anyways, there is no need to move the auth.
     implementation "net.openid:appauth:$rootProject.ext.appAuthVersion"
 
     // Dependencies for instrumentation tests
