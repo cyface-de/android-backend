@@ -52,6 +52,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -145,7 +146,11 @@ public class UploadProgressTest {
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED);
         filter.addAction(CyfaceConnectionStatusListener.SYNC_PROGRESS);
         filter.addAction(CyfaceConnectionStatusListener.SYNC_STARTED);
-        context.registerReceiver(receiver, filter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            context.registerReceiver(receiver, filter);
+        }
 
         ContentProviderClient client = null;
         try {
