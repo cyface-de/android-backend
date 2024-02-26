@@ -28,6 +28,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
@@ -136,8 +137,13 @@ public class PongReceiver extends BroadcastReceiver {
         // Run receiver on a different thread so it runs even if calling thread waits for it to return:
         pongReceiverThread.start();
         Handler receiverHandler = new Handler(pongReceiverThread.getLooper());
-        context.get().registerReceiver(this, new IntentFilter(pongActionId), null,
-                receiverHandler);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.get().registerReceiver(this, new IntentFilter(pongActionId), null,
+                    receiverHandler, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            context.get().registerReceiver(this, new IntentFilter(pongActionId), null,
+                    receiverHandler);
+        }
 
         long currentUptimeInMillis = SystemClock.uptimeMillis();
         long offset = unit.toMillis(timeout);

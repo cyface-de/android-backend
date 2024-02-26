@@ -49,6 +49,7 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -732,8 +733,13 @@ public abstract class DataCapturingService {
     private synchronized void runService(final Measurement measurement,
             final @NonNull StartUpFinishedHandler startUpFinishedHandler) throws DataCapturingException {
         final Context context = getContext();
-        context.registerReceiver(startUpFinishedHandler,
-                new IntentFilter(MessageCodes.getServiceStartedActionId(appId)));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(startUpFinishedHandler,
+                    new IntentFilter(MessageCodes.getServiceStartedActionId(appId)), Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            context.registerReceiver(startUpFinishedHandler,
+                    new IntentFilter(MessageCodes.getServiceStartedActionId(appId)));
+        }
         Log.d(StartUpFinishedHandler.TAG, "DataCapturingService: StartUpFinishedHandler registered for broadcasts.");
 
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
