@@ -35,6 +35,11 @@ jobs:
         echo "githubUser=${{ github.actor }}" >> gradle.properties
         echo "githubToken=${{ secrets.GITHUB_TOKEN }}" >> gradle.properties
 
+    # versionName is required to publish artifacts to Github Registry
+    - name: Set versionName
+      run: |
+        sed -i "s/cyfaceBackendVersion = \"0.0.0\"/cyfaceBackendVersion = \"${{ github.ref_name }}\"/g" build.gradle
+
     - name: Publish with Gradle
       run: ./gradlew publishAll
 
