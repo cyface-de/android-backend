@@ -31,6 +31,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 
 import de.cyface.utils.Validate;
 
@@ -62,7 +63,11 @@ public class ConnectionStatusReceiver extends BroadcastReceiver {
         filter.addAction(SYNC_FINISHED);
         filter.addAction(SYNC_PROGRESS);
         filter.addAction(SYNC_STARTED);
-        context.registerReceiver(this, filter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(this, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            context.registerReceiver(this, filter);
+        }
     }
 
     @Override

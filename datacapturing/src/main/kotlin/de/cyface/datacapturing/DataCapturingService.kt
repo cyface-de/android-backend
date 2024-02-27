@@ -738,10 +738,18 @@ abstract class DataCapturingService(
         startUpFinishedHandler: StartUpFinishedHandler
     ) {
         val context = getContext()
-        context!!.registerReceiver(
-            startUpFinishedHandler,
-            IntentFilter(MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED)
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context!!.registerReceiver(
+                startUpFinishedHandler,
+                IntentFilter(MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED),
+                Context.RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            context!!.registerReceiver(
+                startUpFinishedHandler,
+                IntentFilter(MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED)
+            )
+        }
         Log.d(
             StartUpFinishedHandler.TAG,
             "DataCapturingService: StartUpFinishedHandler registered for broadcasts."
