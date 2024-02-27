@@ -333,8 +333,8 @@ class MovebisDataCapturingService internal constructor(
             val openMeasurements = persistenceLayer.loadMeasurements(MeasurementStatus.OPEN)
             val pausedMeasurements = persistenceLayer
                 .loadMeasurements(MeasurementStatus.PAUSED)
-            corruptedMeasurements.addAll(openMeasurements!!)
-            corruptedMeasurements.addAll(pausedMeasurements!!)
+            corruptedMeasurements.addAll(openMeasurements)
+            corruptedMeasurements.addAll(pausedMeasurements)
             for (measurement in corruptedMeasurements) {
                 Log.w(
                     Constants.TAG,

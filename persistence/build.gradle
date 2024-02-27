@@ -37,7 +37,6 @@ plugins {
 android {
     namespace "de.cyface.persistence"
     compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
 
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
@@ -88,13 +87,6 @@ android {
         options.compilerArgs << '-Xlint:unchecked'
         options.deprecation = true
     }*/
-}
-
-configurations.all {
-    resolutionStrategy.dependencySubstitution {
-        // collides with hamcrest-all
-        substitute module("org.hamcrest:hamcrest-core:$rootProject.ext.hamcrestVersion") with module("junit:junit:$rootProject.ext.junitVersion")
-    }
 }
 
 dependencies {
