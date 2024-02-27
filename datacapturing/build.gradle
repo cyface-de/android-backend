@@ -111,9 +111,14 @@ android {
         exclude("META-INF/DEPENDENCIES")
     }
 
-    /*buildFeatures { // for Upgrade to Gradle 8 [RFR-412]
+    lintOptions {
+        // To ignore false-positive lint errors
+        baseline file("lint-baseline.xml")
+    }
+
+    buildFeatures { // Required with AGP 8+
         buildConfig = true
-    }*/
+    }
 }
 
 dependencies {

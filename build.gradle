@@ -72,7 +72,7 @@ ext {
     datastoreVersion = "1.1.0-alpha04" // only 1.1.0 supports multi-process datastore
 
     // Kotlin components
-    coroutinesVersion = "1.6.4"
+    coroutinesVersion = "1.7.3"
 
     // Other dependencies
     appAuthVersion = "0.11.1" // Can't move to uploader lib because of dependency issues
