@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- On Android 12+ we must request both FINE and COARSE, but add a handle to explicitly request FINE -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- On Android 14+ we need this permission for foregroundServiceType location -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <!-- Required to change periodic synchronisation intervals in the background -->
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
     <!-- Required to read current background synchronisation settings -->

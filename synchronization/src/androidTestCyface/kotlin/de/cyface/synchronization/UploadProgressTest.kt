@@ -27,6 +27,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SyncResult
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -122,7 +123,11 @@ class UploadProgressTest {
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED)
         filter.addAction(CyfaceConnectionStatusListener.SYNC_PROGRESS)
         filter.addAction(CyfaceConnectionStatusListener.SYNC_STARTED)
-        context!!.registerReceiver(receiver, filter)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context!!.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context!!.registerReceiver(receiver, filter)
+        }
         var client: ContentProviderClient? = null
         try {
             val (measurementIdentifier) = insertMeasurementEntry(
