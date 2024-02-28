@@ -64,7 +64,7 @@ public class ConnectionStatusReceiver extends BroadcastReceiver {
         filter.addAction(SYNC_PROGRESS);
         filter.addAction(SYNC_STARTED);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(this, filter, Context.RECEIVER_NOT_EXPORTED);
+            context.registerReceiver(this, filter, Context.RECEIVER_EXPORTED);
         } else {
             context.registerReceiver(this, filter);
         }
