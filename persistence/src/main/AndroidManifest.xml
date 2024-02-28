@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.cyface.persistence"><!-- remove package with Gradle 8 [RFR-412] -->
+    package="de.cyface.persistence">
 
     <application>
         <!-- Stub Content provider required for the SyncAdapter. -->
