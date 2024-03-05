@@ -39,8 +39,8 @@ import kotlinx.coroutines.runBlocking
  * against the Cyface server.
  *
  * **ATTENTION:** The [.getAuthToken] method is only
- * called by the system if no token is cached. As our logic to invalidate token currently is in this method, we call it
- * directly where we need a fresh token.
+ * called by the system if no token is cached. As our logic to invalidate tokens is in this method,
+ * we call it directly where we need a fresh token.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -48,7 +48,7 @@ import kotlinx.coroutines.runBlocking
  * @since 2.0.0
  */
 class CyfaceAuthenticator(private val context: Context) :
-    AbstractAccountAuthenticator(context) {
+    AbstractAccountAuthenticator(context), LoginActivityProvider {
 
     private var auth: OAuth2 = OAuth2(context, settings)
 
@@ -170,5 +170,9 @@ class CyfaceAuthenticator(private val context: Context) :
          * Custom settings used by this library.
          */
         lateinit var settings: SynchronizationSettings
+    }
+
+    override fun getLoginActivity(): Class<out Activity?>? {
+        return LOGIN_ACTIVITY
     }
 }

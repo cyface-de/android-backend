@@ -19,7 +19,6 @@
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.Constants.TAG;
-import static de.cyface.synchronization.CyfaceAuthenticator.LOGIN_ACTIVITY;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,8 +28,6 @@ import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-
-import org.json.JSONObject;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.CorruptedMeasurementException;
@@ -49,6 +46,7 @@ import de.cyface.persistence.strategy.DefaultDistanceCalculation;
 import de.cyface.persistence.strategy.DefaultLocationCleaning;
 import de.cyface.persistence.strategy.DistanceCalculationStrategy;
 import de.cyface.persistence.strategy.LocationCleaningStrategy;
+import de.cyface.synchronization.LoginActivityProvider;
 import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.uploader.exception.SynchronisationException;
 import de.cyface.utils.Validate;
@@ -85,15 +83,16 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
      */
     private CyfaceDataCapturingService(@NonNull final Context context,
-            @NonNull final String authority, @NonNull final String accountType,
-            @NonNull final EventHandlingStrategy eventHandlingStrategy,
-            @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
-            @NonNull final LocationCleaningStrategy locationCleaningStrategy,
-            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency) {
+       @NonNull final String authority, @NonNull final String accountType,
+       @NonNull final EventHandlingStrategy eventHandlingStrategy,
+       @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
+       @NonNull final LocationCleaningStrategy locationCleaningStrategy,
+       @NonNull final DataCapturingListener capturingListener, final int sensorFrequency,
+       @NonNull final LoginActivityProvider loginActivityProvider) {
         super(context, authority, accountType, eventHandlingStrategy,
                 new DefaultPersistenceLayer<>(context, new CapturingPersistenceBehaviour()),
                 distanceCalculationStrategy, locationCleaningStrategy, capturingListener, sensorFrequency);
-        if (LOGIN_ACTIVITY == null) {
+        if (loginActivityProvider.getLoginActivity() == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");
         }
     }
@@ -119,11 +118,12 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
     public CyfaceDataCapturingService(@NonNull final Context context,
             @NonNull final String authority, @NonNull final String accountType,
             @NonNull final EventHandlingStrategy eventHandlingStrategy,
-            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
+            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency,
+            @NonNull final LoginActivityProvider loginActivityProvider)
             throws SetupException {
         this(context, authority, accountType, eventHandlingStrategy,
                 new DefaultDistanceCalculation(), new DefaultLocationCleaning(), capturingListener,
-                sensorFrequency);
+                sensorFrequency, loginActivityProvider);
     }
 
     /**

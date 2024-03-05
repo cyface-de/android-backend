@@ -119,6 +119,7 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
                             metaData,
                             measurementId,
                             file,
+                            fileName,
                             progressListener
                         )
 

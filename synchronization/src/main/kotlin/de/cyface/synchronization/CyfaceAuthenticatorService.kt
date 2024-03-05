@@ -39,22 +39,10 @@ class CyfaceAuthenticatorService : Service() {
     private var authenticator: CyfaceAuthenticator? = null
 
     override fun onCreate() {
-        Log.d(TAG, "authenticator service on create!")
-
         authenticator = CyfaceAuthenticator(this)
     }
 
     override fun onBind(intent: Intent): IBinder? {
-        Log.d(TAG, "authenticator service on bind")
         return authenticator!!.iBinder
-    }
-
-    companion object {
-        /**
-         * Logging TAG to identify logs associated with the [WiFiSurveyor].
-         */
-        @Suppress("unused") // we add and move logs often, so keep it
-
-        val TAG = Constants.TAG + ".authSvc"
     }
 }
