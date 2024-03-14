@@ -1,5 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.cyface.datacapturing">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Required to keep the app from being send to sleep by the system. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
