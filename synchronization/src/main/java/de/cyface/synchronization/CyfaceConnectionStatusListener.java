@@ -32,12 +32,16 @@ public final class CyfaceConnectionStatusListener implements ConnectionStatusLis
     @Override
     public void onSyncStarted() {
         final Intent intent = new Intent(SYNC_STARTED);
+        // Binding the intent to the package of the app which runs this SDK [DAT-1509].
+        intent.setPackage(context.getPackageName());
         context.sendBroadcast(intent);
     }
 
     @Override
     public void onProgress(final float percent, final long measurementId) {
         final Intent intent = new Intent(SYNC_PROGRESS);
+        // Binding the intent to the package of the app which runs this SDK [DAT-1509].
+        intent.setPackage(context.getPackageName());
         intent.putExtra(SYNC_PERCENTAGE_ID, percent);
         intent.putExtra(SYNC_MEASUREMENT_ID, measurementId);
         context.sendBroadcast(intent);
@@ -46,6 +50,8 @@ public final class CyfaceConnectionStatusListener implements ConnectionStatusLis
     @Override
     public void onSyncFinished() {
         final Intent intent = new Intent(SYNC_FINISHED);
+        // Binding the intent to the package of the app which runs this SDK [DAT-1509].
+        intent.setPackage(context.getPackageName());
         context.sendBroadcast(intent);
     }
 }

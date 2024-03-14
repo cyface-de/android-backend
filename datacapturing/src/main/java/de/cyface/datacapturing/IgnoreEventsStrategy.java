@@ -86,7 +86,7 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
         Validate.notNull(context, "No context provided!");
 
         // The NotificationChannel settings are cached so you need to temporarily change the channel id for testing
-        final String channelId = context.getString(R.string.cyface_notification_channel_id);
+        final String channelId = context.getString(de.cyface.utils.R.string.cyface_notification_channel_id);
         final NotificationManager notificationManager = (NotificationManager)context
                 .getSystemService(Context.NOTIFICATION_SERVICE);
         Validate.notNull(notificationManager);
@@ -98,9 +98,9 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
         }
 
         return new NotificationCompat.Builder(context, channelId)
-                .setContentTitle(context.getString(R.string.notification_title))
+                .setContentTitle(context.getString(de.cyface.utils.R.string.notification_title))
                 .setSmallIcon(de.cyface.utils.R.drawable.ic_hourglass_empty_black_24dp)
-                .setContentText(context.getString(R.string.notification_text)).setOngoing(true).setAutoCancel(false)
+                .setContentText(context.getString(de.cyface.utils.R.string.notification_text)).setOngoing(true).setAutoCancel(false)
                 .build();
     }
 

@@ -72,6 +72,8 @@ public class PingReceiver extends BroadcastReceiver {
 
         if (intent.getAction().equals(pingActionId)) {
             final Intent pongIntent = new Intent(pongActionId);
+            // Binding the intent to the package of the app which runs this SDK [DAT-1509].
+            intent.setPackage(context.getPackageName());
             /*if (BuildConfig.DEBUG) {
                 final String pingPongIdentifier = intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID);
                 Log.v(TAG, "PingReceiver.onReceive(): Received Ping with identifier " + pingPongIdentifier

@@ -227,7 +227,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // which we cannot pass via bind() as documented by the {@link #onBind()} method.
         final String appId = getBaseContext().getPackageName();
         pingReceiver = new PingReceiver(MessageCodes.getPingActionId(appId), MessageCodes.getPongActionId(appId));
-        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(appId)));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(appId)), Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(appId)));
+        }
         Log.d(TAG, "onCreate: Ping Receiver registered");
 
         startupTime = System.currentTimeMillis();
@@ -363,9 +367,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Log.d(StartUpFinishedHandler.TAG,
                 "DataCapturingBackgroundService.onStartCommand: Sending broadcast service started.");
         final String appId = getBaseContext().getPackageName();
-        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(appId));
-        serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
-        sendBroadcast(serviceStartedIntent);
+        final Intent startedIntent = new Intent(MessageCodes.getServiceStartedActionId(appId));
+        // Binding the intent to the package of the app which runs this SDK [DAT-1509].
+        startedIntent.setPackage(getBaseContext().getPackageName());
+        startedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
+        sendBroadcast(startedIntent);
 
         // NOT_STICKY to avoid recreation of the process which could mess up the life-cycle
         return Service.START_NOT_STICKY;

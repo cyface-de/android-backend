@@ -744,6 +744,8 @@ public abstract class DataCapturingService {
 
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
+        // Binding the intent to the package of the app which runs this SDK [DAT-1509].
+        startIntent.setPackage(context.getPackageName());
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
         startIntent.putExtra(AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);

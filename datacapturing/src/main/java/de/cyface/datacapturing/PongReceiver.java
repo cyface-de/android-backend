@@ -179,11 +179,13 @@ public class PongReceiver extends BroadcastReceiver {
             }
         }, currentUptimeInMillis + offset);
 
-        final Intent broadcastIntent = new Intent(pingActionId);
+        final Intent intent = new Intent(pingActionId);
+        // Binding the intent to the package of the app which runs this SDK [DAT-1509].
+        intent.setPackage(context.get().getPackageName());
         /*if (BuildConfig.DEBUG) {
             broadcastIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
         }*/
-        context.get().sendBroadcast(broadcastIntent);
+        context.get().sendBroadcast(intent);
         Log.d(TAG, "PongReceiver.checkIsRunningAsync(): Ping was sent!");
     }
 
