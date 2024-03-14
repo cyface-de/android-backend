@@ -1,5 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.cyface.testutils">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Required for SharedTestUtils#cleanupOldAccounts() to search and delete accounts and adjust periodic sync -->
     <uses-permission

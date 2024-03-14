@@ -1,5 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.cyface.synchronization">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Required to transmit data to a server -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Required to check current synchronization interval and whether it is active or not-->
