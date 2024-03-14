@@ -54,7 +54,7 @@ public interface EventHandlingStrategy extends Parcelable {
      * <b>Attention:</b>
      * If you want to use a **vector xml drawable as Notification icon** make sure to do the following:
      * Even with `vectorDrawables.useSupportLibrary` enabled the vector drawable won't work as a notification icon
-     * (`notificationBuilder.setSmallIcon()`) on devices with API < 21.
+     * (`notificationBuilder.setSmallIcon()`) on devices with API &lt; 21.
      * We assume that's because of the way we need to inject your custom notification.
      * A simple fix is to have a the xml in `res/drawable-anydpi-v21/icon.xml` and to generate notification icon PNGs
      * under the same resource name in the usual paths (`res/drawable-**dpi/icon.png`).
