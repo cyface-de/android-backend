@@ -18,19 +18,6 @@ pluginManagement {
         }
     }
 }
-// To test our publish plugin without publishing a version
-/*includeBuild("../android-publish")
-gradle.rootProject {
-    buildscript {
-        dependencies {
-            classpath("de.cyface:android-publish:0.0.0")
-        }
-        // e.g. to find kotlin plugin if dependency in android-publish
-        //repositories {
-        //    gradlePluginPortal()
-        //}
-    }
-}*/
 
 rootProject.name = "android-backend"
 
