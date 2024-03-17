@@ -146,7 +146,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
     @SuppressWarnings("unused") // This is called by the SDK implementing app after an account was created
     public void startWifiSurveyor() throws SetupException {
         try {
-            // We require SDK users (other than Movebis) to always have exactly one account available
+            // We require SDK users (other than SR) to always have exactly one account available
             final Account account = getWiFiSurveyor().getAccount();
             getWiFiSurveyor().startSurveillance(account);
         } catch (SynchronisationException e) {

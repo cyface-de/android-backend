@@ -30,6 +30,7 @@ import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
 import androidx.fragment.app.FragmentActivity
 import de.cyface.synchronization.Constants.TAG
+import de.cyface.synchronization.CyfaceSyncService.Companion.AUTH_TOKEN_TYPE
 import de.cyface.synchronization.settings.SynchronizationSettings
 import de.cyface.utils.Validate
 import net.openid.appauth.AppAuthConfiguration
@@ -180,7 +181,7 @@ class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
         for (existingAccount in existingAccounts) {
             if (existingAccount == account) {
                 accountManager.setUserData(account, "refresh_token", refreshToken)
-                accountManager.setAuthToken(account, Constants.AUTH_TOKEN_TYPE, accessToken)
+                accountManager.setAuthToken(account, AUTH_TOKEN_TYPE, accessToken)
                 accountUpdated = true
                 Log.d(TAG, "Updated existing account.")
             }
@@ -232,7 +233,7 @@ class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
         // As we use OAuth2 the password is not known to this client and is set to `null`.
         // The same occurs in alternative Authenticators such as in `MovebisDataCapturingService`.
         Validate.isTrue(accountManager.addAccountExplicitly(newAccount, null, userData))
-        accountManager.setAuthToken(newAccount, Constants.AUTH_TOKEN_TYPE, accessToken)
+        accountManager.setAuthToken(newAccount, AUTH_TOKEN_TYPE, accessToken)
         Validate.isTrue(accountManager.getAccountsByType(accountType).size == 1)
         Log.v(TAG, "New account added")
         ContentResolver.setSyncAutomatically(newAccount, authority, false)

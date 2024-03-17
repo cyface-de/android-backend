@@ -29,7 +29,7 @@
         errorLine1="            context!!.registerReceiver(receiver, filter)"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/androidTestCyface/kotlin/de/cyface/synchronization/UploadProgressTest.kt"
+            file="src/androidTest/kotlin/de/cyface/synchronization/UploadProgressTest.kt"
             line="129"
             column="13"/>
     </issue>

@@ -37,7 +37,8 @@ import kotlinx.coroutines.runBlocking
  * @version 1.0.9
  * @since 2.0.0
  */
-class SyncService : Service() {
+class CyfaceSyncService : Service() {
+
     override fun onCreate() {
         synchronized(LOCK) {
             if (syncAdapter == null) {
@@ -45,7 +46,7 @@ class SyncService : Service() {
                 syncAdapter = SyncAdapter(
                     applicationContext,
                     true,
-                    MovebisAuth(),
+                    OAuth2(applicationContext, CyfaceAuthenticator.settings),
                     DefaultUploader(collectorApi),
                 )
             }
@@ -84,5 +85,7 @@ class SyncService : Service() {
          * Lock object used to synchronize synchronisation adapter creation as described in the Android documentation.
          */
         private val LOCK = Any()
+
+        const val AUTH_TOKEN_TYPE = "de.cyface.auth_token_type"
     }
 }

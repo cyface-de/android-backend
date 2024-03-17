@@ -32,7 +32,7 @@ import android.util.Log
  * @version 1.0.7
  * @since 2.0.0
  */
-class AuthenticatorService : Service() {
+class CyfaceAuthenticatorService : Service() {
     /**
      * The `Authenticator` called from this service.
      */
