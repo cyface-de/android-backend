@@ -78,6 +78,6 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save
           disable-animations: true
-          script: ./gradlew :persistence:connectedDebugAndroidTest :datacapturing:connectedCyfaceMockDebugAndroidTest :synchronization:connectedCyfaceMockDebugAndroidTest :datacapturing:connectedMovebisMockDebugAndroidTest :synchronization:connectedMovebisMockDebugAndroidTest
+          script: ./gradlew :persistence:connectedDebugAndroidTest :datacapturing:connectedDebugAndroidTest :synchronization:connectedDebugAndroidTest
           # To execute a single test class
           #script: ./gradlew :datacapturing:connectedCyfaceMockDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=de.cyface.datacapturing.DataCapturingServiceTest

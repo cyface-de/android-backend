@@ -26,6 +26,7 @@ import static de.cyface.synchronization.ErrorHandler.ErrorCode.SERVER_UNAVAILABL
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNAUTHORIZED;
+import static de.cyface.synchronization.SyncPerformer.loadSslContext;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -214,53 +215,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         return bundle;
     }
 
-    /**
-     * Loads the SSL certificate from the trust store and returns the {@link SSLContext}. If the trust
-     * store file is empty, the default context is used.
-     *
-     * @param context The {@link Context} to use to load the trust store file.
-     * @return the {@link SSLContext} to be used for HTTPS connections.
-     * @throws SynchronisationException when the SSLContext could not be loaded
-     * @throws IOException if the trustStoreFile failed while closing.
-     */
-    static SSLContext loadSslContext(final Context context) throws SynchronisationException, IOException {
-        final SSLContext sslContext;
-
-        InputStream trustStoreFile = null;
-        try {
-            // If no self-signed certificate is used and an empty trust store is provided:
-            trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
-            if (trustStoreFile.read() == -1) {
-                Log.d(TAG, "Trust store is empty, loading default sslContext ...");
-                sslContext = SSLContext.getInstance("TLSv1");
-                sslContext.init(null, null, null);
-                return sslContext;
-            }
-
-            // Add trust store to sslContext
-            trustStoreFile.close();
-            trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
-            final KeyStore trustStore = KeyStore.getInstance("PKCS12");
-            trustStore.load(trustStoreFile, "secret".toCharArray());
-            final TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
-            tmf.init(trustStore);
-
-            // Create an SSLContext that uses our TrustManager
-            sslContext = SSLContext.getInstance("TLSv1");
-            final byte[] seed = ByteBuffer.allocate(8).putLong(System.currentTimeMillis()).array();
-            sslContext.init(null, tmf.getTrustManagers(), new SecureRandom(seed));
-
-        } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException
-                | KeyManagementException e) {
-            throw new SynchronisationException("Unable to load SSLContext", e);
-        } finally {
-            if (trustStoreFile != null) {
-                trustStoreFile.close();
-            }
-        }
-        return sslContext;
-    }
-
     @Override
     public String getAuthTokenLabel(String authTokenType) {
         return "JWT Token";
@@ -302,7 +256,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
         // Load authUrl
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
+        final String url = preferences.getString(SyncAdapter.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
         if (url == null) {
             throw new IllegalStateException(
                     "Server url not available. Please set the applications server url preference.");

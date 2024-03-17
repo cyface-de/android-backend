@@ -18,7 +18,7 @@
         errorLine1="            context.registerReceiver(receiver, filter);"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/androidTestCyface/java/de/cyface/synchronization/UploadProgressTest.java"
+            file="src/androidTest/java/de/cyface/synchronization/UploadProgressTest.java"
             line="152"
             column="13"/>
     </issue>

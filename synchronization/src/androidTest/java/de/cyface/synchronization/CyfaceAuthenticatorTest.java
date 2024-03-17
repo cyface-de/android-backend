@@ -96,7 +96,7 @@ public class CyfaceAuthenticatorTest {
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
+        editor.putString(SyncAdapter.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
         editor.apply();
 
         // Act

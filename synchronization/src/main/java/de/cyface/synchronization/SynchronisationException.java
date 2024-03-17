@@ -3,7 +3,7 @@ package de.cyface.synchronization;
 import androidx.annotation.NonNull;
 
 /**
- * An <code>Exception</code> thrown each time data synchronisation with a Cyface/Movebis server fails. It provides
+ * An <code>Exception</code> thrown each time data synchronisation with a Collector API fails. It provides
  * further information either via a message or another wrapped <code>Exception</code>.
  *
  * @author Klemens Muthmann

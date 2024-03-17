@@ -75,7 +75,7 @@ import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
- * Tests the actual data transmission code. Since this test requires a running Movebis API server, and communicates with
+ * Tests the actual data transmission code. Since this test requires a running API server, and communicates with
  * that server, it is a flaky test and a large test.
  *
  * @author Klemens Muthmann

@@ -52,11 +52,8 @@ To use it as a dependency in your app you need to:
 +
 ----
  dependencies {
-     # To use the 'movebis' flavour, use: 'datacapturingMovebis'
      implementation "de.cyface:datacapturing:$cyfaceBackendVersion"
-     # To use the 'movebis' flavour, use: 'synchronizationMovebis'
      implementation "de.cyface:synchronization:$cyfaceBackendVersion"
-     # There is only one 'persistence' flavor
      implementation "de.cyface:persistence:$cyfaceBackendVersion"
  }
 ----
@@ -101,6 +98,48 @@ This SDK is compatible with our https://github.com/cyface-de/data-collector/rele
 === Resource Files
 
 The following steps are required before you can start coding.
+
+[[authenticator-and-sync-service]]]
+==== Authenticator- and Sync Service
+
+The SDK provides the CyfaceAuthenticatorService and CyfaceSyncService which authenticates with and uploads data
+to a Cyface Collector API. The SDK implementing app can also implement services for different APIs.
+
+Register the Authenticator- and Sync service which should be called by the system in the SDK
+implementing app's `AndroidManifest.xml`, e.g. for the default implementations:
+
+[source,xml]
+----
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <service android:name="de.cyface.synchronization.CyfaceAuthenticatorService"
+            android:exported="false"
+            android:process=":sync">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accounts.AccountAuthenticator"
+                android:resource="@xml/authenticator" />
+        </service>
+
+        <service
+            android:name="de.cyface.synchronization.CyfaceSyncService"
+            android:exported="false"
+            android:process=":sync">
+            <intent-filter>
+                <action android:name="android.content.SyncAdapter" />
+            </intent-filter>
+            <meta-data
+                android:name="android.content.SyncAdapter"
+                android:resource="@xml/sync_adapter" />
+        </service>
+    </application>
+
+</manifest>
+----
 
 [[truststore]]
 ==== Truststore
@@ -151,7 +190,7 @@ application separately.
 </manifest>
 ----
 
-* Define your authority which you must use as parameter in `new Cyface/MovebisDataCapturingService()` (see sample below).
+* Define your authority which you must use as parameter in `new Cyface/CustomDataCapturingService()` (see sample below).
 This must be the same as defined in the `AndroidManifest.xml` above.
 
 [source,java]
@@ -180,11 +219,11 @@ public class Constants {
 
 The core of our SDK is the `DataCapturingService` which controls the capturing process.
 
-We provide two interfaces for this service: `CyfaceDataCapturingService` and `MovebisDataCapturingService`.
-Unless you are part of the _Movebis project_ `CyfaceDataCapturingService` is your candidate.
+We provide a default interfaces for this service: `CyfaceDataCapturingService`.
+Unless you need a custom `DataCapturingService` extension, use this one.
 
-To keep this documentation lightweight, we currently only use `MovebisDataCapturingService` in the samples
-but the interface for `CyfaceDataCapturingService` is mostly the same.
+NOTE: This documentation is out of date as describes a former extension `MovebisDataCapturingService`
+in the samples but the interface for `CyfaceDataCapturingService` is mostly the same.
 
 The following steps are required to communicate with this service.
 

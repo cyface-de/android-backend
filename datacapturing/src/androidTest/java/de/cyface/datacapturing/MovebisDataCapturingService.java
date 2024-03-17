@@ -19,10 +19,6 @@
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.Constants.TAG;
-import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import android.Manifest;
 import android.accounts.Account;
@@ -39,6 +35,9 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.CorruptedMeasurementException;
@@ -71,7 +70,7 @@ import de.cyface.utils.Validate;
  * <p>
  * Before you try to measure any data you should provide a valid JWT auth token for data synchronization. You may do
  * this using {@link #registerJWTAuthToken(String, String)} with a token for a certain username. To anonymize the user
- * is ok to use some garbage username here. If a user is no longer required, you can deregister it using
+ * is ok to use a dummy username here. If a user is no longer required, you can deregister using
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
@@ -87,6 +86,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * running.
      */
     private final LocationManager preMeasurementLocationManager;
+    private final static String AUTH_TOKEN_TYPE = "de.cyface.jwt";
     /**
      * A listener for location updates, which it passes through to the user interface.
      */
@@ -153,9 +153,9 @@ public class MovebisDataCapturingService extends DataCapturingService {
      */
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (SR)
     public MovebisDataCapturingService(@NonNull final Context context, @NonNull final String dataUploadServerAddress,
-            @NonNull final UIListener uiListener, final long locationUpdateRate,
-            @NonNull final EventHandlingStrategy eventHandlingStrategy,
-            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
+                                       @NonNull final UIListener uiListener, final long locationUpdateRate,
+                                       @NonNull final EventHandlingStrategy eventHandlingStrategy,
+                                       @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
         this(context, "de.cyface.provider", "de.cyface", dataUploadServerAddress, uiListener, locationUpdateRate,
                 eventHandlingStrategy, capturingListener, sensorFrequency);
@@ -194,10 +194,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     MovebisDataCapturingService(@NonNull final Context context, @NonNull final String authority,
-            @NonNull final String accountType, @NonNull final String dataUploadServerAddress,
-            @NonNull final UIListener uiListener, final long locationUpdateRate,
-            @NonNull final EventHandlingStrategy eventHandlingStrategy,
-            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
+                                @NonNull final String accountType, @NonNull final String dataUploadServerAddress,
+                                @NonNull final UIListener uiListener, final long locationUpdateRate,
+                                @NonNull final EventHandlingStrategy eventHandlingStrategy,
+                                @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
                 new PersistenceLayer<>(context, context.getContentResolver(), authority,

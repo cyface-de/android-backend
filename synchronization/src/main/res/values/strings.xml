@@ -29,4 +29,7 @@
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unexpected error</string>
+
+    <!-- Used in the authenticator.xml in the CyfaceAuthenticator -->
+    <string name="cyface" translatable="false">Cyface</string>
 </resources>

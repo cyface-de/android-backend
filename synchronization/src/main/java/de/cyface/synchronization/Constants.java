@@ -13,11 +13,6 @@ public final class Constants {
      * Tag used to identify Logcat messages issued by instances of this package.
      */
     public final static String TAG = "de.cyface.sync";
-    /**
-     * This may be used by all implementing apps, thus, public
-     */
-    @SuppressWarnings("WeakerAccess") // Because this allows the sdk integrating app to add a sync account
-    public final static String AUTH_TOKEN_TYPE = "de.cyface.auth_token_type";
 
     private Constants() {
         // Nothing to do here.

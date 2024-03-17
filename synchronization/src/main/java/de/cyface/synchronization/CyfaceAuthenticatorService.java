@@ -18,7 +18,7 @@ import androidx.annotation.NonNull;
  * @version 1.0.4
  * @since 2.0.0
  */
-public final class AuthenticatorService extends Service {
+public final class CyfaceAuthenticatorService extends Service {
     /**
      * The <code>Authenticator</code> called from this service.
      */

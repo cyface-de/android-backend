@@ -76,7 +76,7 @@ import de.cyface.utils.CursorIsNullException;
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
-public class DataCapturingBackgroundServiceTest {
+public class DataCapturingBackgroundServiceAndroidTest {
 
     /**
      * Junit rule handling the service connection.

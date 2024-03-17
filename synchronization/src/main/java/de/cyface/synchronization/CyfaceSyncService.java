@@ -17,17 +17,13 @@ import android.util.Log;
  * @version 1.0.8
  * @since 2.0.0
  */
-public final class SyncService extends Service {
+public final class CyfaceSyncService extends Service {
 
     /**
      * Logging TAG to identify logs associated with the {@link WiFiSurveyor}.
      */
     @SuppressWarnings({"FieldCanBeLocal", "unused"}) // we add and move logs often, so keep it
     public static final String TAG = Constants.TAG + ".syncsrvc";
-    /**
-     * The settings key used to identify the settings storing the URL of the server to upload data to.
-     */
-    public static final String SYNC_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.sync.endpoint";
     /**
      * The synchronisation adapter this service is supposed to call.
      * <p>
@@ -39,13 +35,18 @@ public final class SyncService extends Service {
      * Lock object used to synchronize synchronisation adapter creation as described in the Android documentation.
      */
     private static final Object LOCK = new Object();
+    /**
+     * This may be used by all implementing apps, thus, public
+     */
+    @SuppressWarnings("WeakerAccess") // Because this allows the sdk integrating app to add a sync account
+    public final static String AUTH_TOKEN_TYPE = "de.cyface.auth_token_type";
 
     @Override
     public void onCreate() {
         Log.v(TAG, "onCreate");
         synchronized (LOCK) {
             if (syncAdapter == null) {
-                syncAdapter = new SyncAdapter(getApplicationContext(), true, new HttpConnection());
+                syncAdapter = new SyncAdapter(getApplicationContext(), true, new HttpConnection(), AUTH_TOKEN_TYPE, new CyfaceAuthenticator(getApplicationContext()));
             }
         }
     }
