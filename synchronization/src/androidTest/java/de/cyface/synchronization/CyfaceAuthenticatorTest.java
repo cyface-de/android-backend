@@ -18,6 +18,7 @@
  */
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.CyfaceSyncService.AUTH_TOKEN_TYPE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TEST_API_URL;
@@ -28,6 +29,7 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -57,8 +59,8 @@ import de.cyface.utils.Validate;
  */
 @RunWith(AndroidJUnit4.class)
 @LargeTest
-@FlakyTest // Flaky means (because of build.gradle) that this test is not executed in the Mock flavour (because it
-           // required an actual api)
+// Previously disabled this test via build.gradle > FlakyTest flag.
+@Ignore("Requires an actual API.")
 public class CyfaceAuthenticatorTest {
 
     private AccountManager accountManager;
@@ -101,7 +103,7 @@ public class CyfaceAuthenticatorTest {
 
         // Act
         // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
-        Bundle bundle = new CyfaceAuthenticator(context).getAuthToken(null, requestAccount, Constants.AUTH_TOKEN_TYPE,
+        Bundle bundle = new CyfaceAuthenticator(context).getAuthToken(null, requestAccount, AUTH_TOKEN_TYPE,
                 null);
 
         // Assert

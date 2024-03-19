@@ -20,6 +20,7 @@ package de.cyface.synchronization;
 
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.synchronization.BundlesExtrasCodes.SYNC_PERCENTAGE_ID;
+import static de.cyface.synchronization.CyfaceSyncService.AUTH_TOKEN_TYPE;
 import static de.cyface.synchronization.SyncAdapter.MOCK_IS_CONNECTED_TO_RETURN_TRUE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
@@ -40,9 +41,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 
+import android.accounts.AbstractAccountAuthenticator;
 import android.accounts.Account;
+import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.AccountManager;
+import android.accounts.NetworkErrorException;
 import android.content.BroadcastReceiver;
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
@@ -113,7 +118,8 @@ public class UploadProgressTest {
         account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
         accountManager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
 
-        oocut = new SyncAdapter(context, false, new MockedHttpConnection());
+        oocut = new SyncAdapter(context, false, new MockedHttpConnection(),
+                AUTH_TOKEN_TYPE, new MockAuth(context));
     }
 
     @After

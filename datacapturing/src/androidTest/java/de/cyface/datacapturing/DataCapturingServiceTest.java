@@ -99,6 +99,7 @@ import de.cyface.utils.Validate;
  */
 @RunWith(AndroidJUnit4.class)
 @LargeTest
+@FlakyTest(detail = "The tests only work on the Emulator (tested w/ API 33) not on a real device")
 public class DataCapturingServiceTest {
 
     /**
