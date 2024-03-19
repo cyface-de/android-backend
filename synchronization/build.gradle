@@ -43,6 +43,13 @@ android {
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
 
+    // (disabled when removing the flavors as this was only applied in the `mock` flavor)
+    // Excludes flaky tests that are trying to access a Cyface server.
+    // [DAT-795] This annotation does not ignore tests marked with `@FlakyTest` anymore
+    // ./gradlew module:cAT -Pandroid.testInstrumentationRunnerArguments.notAnnotation=androidx.test.filters.FlakyTest
+    // still works when disabling this line
+    //testInstrumentationRunnerArgument "notAnnotation", "androidx.test.filters.FlakyTest"
+
     buildTypes {
         release {
             // Enable in app module to generate a single mapping.xml which can be uploaded to PlayStore
