@@ -89,6 +89,14 @@ android {
     }*/
 }
 
+// Required when executing connected tests
+configurations {
+    configureEach {
+        // collides with hamcrest-all
+        exclude group: "org.hamcrest", module: "hamcrest-core"
+    }
+}
+
 dependencies {
     // Android dependencies
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"

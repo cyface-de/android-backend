@@ -149,11 +149,11 @@ class SyncPerformerTestWithoutAuth {
                 )
                 file = loadSerializedCompressed(persistence, measurementIdentifier)
                 val metaData: RequestMetaData =
-                    loadMetaData(persistence, measurement, locationCount)
+                    loadMetaData(persistence, measurement, locationCount, 0, 0, 0, 0)
                 val url = "$TEST_API_URL/api/v3/measurements"
 
                 // Act
-                val result = DefaultUploader(url).upload(
+                val result = DefaultUploader(url).uploadMeasurement(
                     TEST_TOKEN, metaData, file!!, object : UploadProgressListener {
                         override fun updatedProgress(percent: Float) {
                             // Nothing to do

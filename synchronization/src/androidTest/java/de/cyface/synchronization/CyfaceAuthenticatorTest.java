@@ -18,6 +18,7 @@
  */
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.CyfaceSyncService.AUTH_TOKEN_TYPE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.is;
@@ -95,7 +96,7 @@ public class CyfaceAuthenticatorTest {
         // Act
         // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
         Bundle bundle = new CyfaceAuthenticator(context)
-                .getAuthToken(null, requestAccount, Constants.AUTH_TOKEN_TYPE, null);
+                .getAuthToken(null, requestAccount, AUTH_TOKEN_TYPE, null);
 
         // Assert
         String authToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);

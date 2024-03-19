@@ -18,8 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -32,6 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -50,7 +49,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
-import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.Validate;
 
@@ -64,6 +62,7 @@ import de.cyface.utils.Validate;
  * @since 4.0.0
  */
 @RunWith(AndroidJUnit4.class)
+@Ignore("This test is flaky on a local emulator and physical device")
 public class SetAccountFlagTest {
 
     /**

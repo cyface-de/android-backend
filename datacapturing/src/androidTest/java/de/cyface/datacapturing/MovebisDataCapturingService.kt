@@ -43,7 +43,6 @@ import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.strategy.DefaultDistanceCalculation
 import de.cyface.persistence.strategy.DefaultLocationCleaning
-import de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE
 import de.cyface.uploader.exception.SynchronisationException
 import de.cyface.utils.Validate
 
@@ -105,6 +104,7 @@ class MovebisDataCapturingService internal constructor(
      * running.
      */
     private val preMeasurementLocationManager: LocationManager?
+    private val AUTH_TOKEN_TYPE = "de.cyface.jwt"
 
     /**
      * A listener for location updates, which it passes through to the user interface.
