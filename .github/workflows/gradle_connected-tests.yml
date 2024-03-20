@@ -18,7 +18,10 @@ jobs:
     # Faster, but MacOS costs 8 ct/min instead of 0.8 ct/min of on Linux.
     # Unfortunately, `DataCapturingServiceTest.testDisconnectReconnect` fails on linux stack.
     # But as this is a public repository, Github Actions are currently free of charge.
-    runs-on: macos-latest # as recommended in `actions/android-emulator-runner`
+    #runs-on: macos-latest # as recommended in `actions/android-emulator-runner`
+
+    # But we had to add `free-disk-space` to fix emulator flakiness. It only runs on ubuntu.
+    runs-on: ubuntu-latest
 
     # To test against multiple APIs
     strategy:
