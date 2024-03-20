@@ -22,10 +22,10 @@ import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.synchronization.BundlesExtrasCodes.SYNC_PERCENTAGE_ID;
 import static de.cyface.synchronization.CyfaceSyncService.AUTH_TOKEN_TYPE;
 import static de.cyface.synchronization.SyncAdapter.MOCK_IS_CONNECTED_TO_RETURN_TRUE;
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.synchronization.TestUtils.TEST_API_URL;
+import static de.cyface.synchronization.AndroidTestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.AndroidTestUtils.AUTHORITY;
+import static de.cyface.synchronization.AndroidTestUtils.TAG;
+import static de.cyface.synchronization.AndroidTestUtils.TEST_API_URL;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.insertGeoLocation;
 import static de.cyface.testutils.SharedTestUtils.insertMeasurementEntry;
@@ -41,13 +41,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 
-import android.accounts.AbstractAccountAuthenticator;
 import android.accounts.Account;
-import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.AccountManager;
-import android.accounts.NetworkErrorException;
 import android.content.BroadcastReceiver;
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
@@ -115,8 +111,8 @@ public class UploadProgressTest {
         SharedTestUtils.cleanupOldAccounts(accountManager, ACCOUNT_TYPE, AUTHORITY);
 
         // Add new sync account (usually done by DataCapturingService and WifiSurveyor)
-        account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
-        accountManager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
+        account = new Account(AndroidTestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
+        accountManager.addAccountExplicitly(account, AndroidTestUtils.DEFAULT_PASSWORD, null);
 
         oocut = new SyncAdapter(context, false, new MockedHttpConnection(),
                 AUTH_TOKEN_TYPE, new MockAuth(context));

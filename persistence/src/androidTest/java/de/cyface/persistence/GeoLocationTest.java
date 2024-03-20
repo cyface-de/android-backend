@@ -1,6 +1,6 @@
 package de.cyface.persistence;
 
-import static de.cyface.persistence.TestUtils.AUTHORITY;
+import static de.cyface.persistence.AndroidTestUtils.AUTHORITY;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 import static org.hamcrest.CoreMatchers.equalTo;

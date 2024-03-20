@@ -18,9 +18,9 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TAG;
+import static de.cyface.synchronization.AndroidTestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.AndroidTestUtils.AUTHORITY;
+import static de.cyface.synchronization.AndroidTestUtils.TAG;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -84,8 +84,8 @@ public final class SyncAdapterTest {
         SharedTestUtils.cleanupOldAccounts(accountManager, ACCOUNT_TYPE, AUTHORITY);
 
         // Add new sync account (usually done by DataCapturingService and WifiSurveyor)
-        account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
-        accountManager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
+        account = new Account(AndroidTestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
+        accountManager.addAccountExplicitly(account, AndroidTestUtils.DEFAULT_PASSWORD, null);
     }
 
     @After

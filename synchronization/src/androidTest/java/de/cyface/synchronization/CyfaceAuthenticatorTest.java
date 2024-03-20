@@ -19,9 +19,9 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.CyfaceSyncService.AUTH_TOKEN_TYPE;
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TEST_API_URL;
+import static de.cyface.synchronization.AndroidTestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.AndroidTestUtils.AUTHORITY;
+import static de.cyface.synchronization.AndroidTestUtils.TEST_API_URL;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -43,7 +43,6 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.testutils.SharedTestUtils;
@@ -93,8 +92,8 @@ public class CyfaceAuthenticatorTest {
     public void testGetAuthToken() throws NetworkErrorException {
 
         // Arrange
-        Account requestAccount = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
-        accountManager.addAccountExplicitly(requestAccount, TestUtils.DEFAULT_PASSWORD, null);
+        Account requestAccount = new Account(AndroidTestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
+        accountManager.addAccountExplicitly(requestAccount, AndroidTestUtils.DEFAULT_PASSWORD, null);
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();

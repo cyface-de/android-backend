@@ -18,8 +18,8 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.AndroidTestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.AndroidTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -71,7 +71,7 @@ public class SetAccountFlagTest {
     /**
      * Logging TAG to identify logs associated with this test.
      */
-    private final static String TAG = TestUtils.TAG;
+    private final static String TAG = AndroidTestUtils.TAG;
     /**
      * An object of the class under test.
      */
@@ -145,7 +145,7 @@ public class SetAccountFlagTest {
         // Arrange - nothing to do
 
         // Act 1: Create new Account
-        final Account account = oocut.createAccount(TestUtils.DEFAULT_USERNAME, null);
+        final Account account = oocut.createAccount(AndroidTestUtils.DEFAULT_USERNAME, null);
         final CheckerParameters checkerParameters1 = createAccountFlagCheckerParameters(account, false, false,
                 "createAccount()");
 
@@ -280,9 +280,9 @@ public class SetAccountFlagTest {
     private static boolean isAccountFlagsSet(@NonNull final Account account, final boolean syncAutomaticallyEnabled,
             final boolean periodicSyncEnabled) {
 
-        final boolean periodicSyncRegisteredState = ContentResolver.getPeriodicSyncs(account, TestUtils.AUTHORITY)
+        final boolean periodicSyncRegisteredState = ContentResolver.getPeriodicSyncs(account, AndroidTestUtils.AUTHORITY)
                 .size() > 0;
-        final boolean autoSyncEnabledState = ContentResolver.getSyncAutomatically(account, TestUtils.AUTHORITY);
+        final boolean autoSyncEnabledState = ContentResolver.getSyncAutomatically(account, AndroidTestUtils.AUTHORITY);
 
         return autoSyncEnabledState == syncAutomaticallyEnabled && periodicSyncRegisteredState == periodicSyncEnabled;
     }

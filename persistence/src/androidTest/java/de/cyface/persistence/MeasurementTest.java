@@ -18,7 +18,7 @@
  */
 package de.cyface.persistence;
 
-import static de.cyface.persistence.TestUtils.AUTHORITY;
+import static de.cyface.persistence.AndroidTestUtils.AUTHORITY;
 import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
@@ -96,9 +96,9 @@ public class MeasurementTest {
     public void testCascadingDeleteOneMeasurement() {
 
         // Create measurement with data
-        final long identifier = TestUtils.create(resolver, getMeasurementUri(AUTHORITY), fixtureMeasurement);
+        final long identifier = AndroidTestUtils.create(resolver, getMeasurementUri(AUTHORITY), fixtureMeasurement);
         final ContentValues fixtureGeoLocation = geoLocationContentValues(identifier);
-        TestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGeoLocation);
+        AndroidTestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGeoLocation);
 
         // Test load the create measurement
         try (final Cursor measurementCursor = resolver.query(getMeasurementUri(AUTHORITY), null,
@@ -111,7 +111,7 @@ public class MeasurementTest {
         // Ensure deletion of measurement with data works
         final int rowsDeleted = resolver.delete(getMeasurementUri(AUTHORITY), null, null);
         assertThat("Delete was unsuccessful for uri " + getMeasurementUri(AUTHORITY), 2, is(rowsDeleted));
-        assertThat(TestUtils.count(resolver, getGeoLocationsUri(AUTHORITY)), is(0));
+        assertThat(AndroidTestUtils.count(resolver, getGeoLocationsUri(AUTHORITY)), is(0));
     }
 
     /**
@@ -122,9 +122,9 @@ public class MeasurementTest {
 
         // Create measurements with data
         for (int i = 0; i < 2; i++) {
-            final long identifier = TestUtils.create(resolver, getMeasurementUri(AUTHORITY), fixtureMeasurement);
+            final long identifier = AndroidTestUtils.create(resolver, getMeasurementUri(AUTHORITY), fixtureMeasurement);
             final ContentValues fixtureGeoLocation = geoLocationContentValues(identifier);
-            TestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGeoLocation);
+            AndroidTestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGeoLocation);
         }
 
         // Ensure deletion of measurements with data works

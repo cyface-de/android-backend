@@ -44,7 +44,7 @@ import de.cyface.utils.Validate;
  * @version 2.0.3
  * @since 1.0.0
  */
-class TestUtils {
+class AndroidTestUtils {
 
     static final String AUTHORITY = "de.cyface.persistence.test.provider";
 
@@ -87,7 +87,7 @@ class TestUtils {
             List<ContentValues> fixture = new ArrayList<>();
             fixture.add(entry);
             Validate.notNull(cursor);
-            TestUtils.compareCursorWithValues(cursor, fixture);
+            AndroidTestUtils.compareCursorWithValues(cursor, fixture);
         }
     }
 

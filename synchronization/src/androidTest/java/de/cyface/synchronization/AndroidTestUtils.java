@@ -26,7 +26,7 @@ package de.cyface.synchronization;
  * @version 2.4.0
  * @since 2.1.0
  */
-public final class TestUtils {
+public final class AndroidTestUtils {
     /**
      * The tag used to identify Logcat messages from this module.
      */

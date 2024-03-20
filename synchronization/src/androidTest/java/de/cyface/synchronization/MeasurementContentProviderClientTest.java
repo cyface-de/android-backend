@@ -22,8 +22,8 @@ import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUER
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TAG;
+import static de.cyface.synchronization.AndroidTestUtils.AUTHORITY;
+import static de.cyface.synchronization.AndroidTestUtils.TAG;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;

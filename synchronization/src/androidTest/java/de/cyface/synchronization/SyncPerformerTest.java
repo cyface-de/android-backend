@@ -18,8 +18,8 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TAG;
+import static de.cyface.synchronization.AndroidTestUtils.AUTHORITY;
+import static de.cyface.synchronization.AndroidTestUtils.TAG;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -54,7 +54,6 @@ import android.content.SyncResult;
 import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
