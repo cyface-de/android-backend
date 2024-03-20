@@ -14,7 +14,7 @@ on:
       - 'release-6'
 
 jobs:
-  build:
+  androidTest:
     # Faster, but MacOS costs 8 ct/min instead of 0.8 ct/min of on Linux.
     # Unfortunately, `DataCapturingServiceTest.testDisconnectReconnect` fails on linux stack.
     # But as this is a public repository, Github Actions are currently free of charge.
@@ -23,7 +23,7 @@ jobs:
     # But we had to add `free-disk-space` to fix emulator flakiness. It only runs on ubuntu.
     runs-on: ubuntu-latest
 
-    # To test against multiple APIs
+    timeout-minutes: 55
     strategy:
       matrix:
         api-level: [ 28 ]
@@ -41,6 +41,15 @@ jobs:
           swap-storage: true # rm -f /mnt/swapfile (4GiB)
           docker-images: false # Takes 16s (`nowinandroid`), enable if needed in the future
           large-packages: false # includes google-cloud-sdk and it's slow
+
+      # Set up KVM permissions to enable efficient Android emulator runs by modifying udev rules for universal access.
+      # From https://github.com/android/nowinandroid/blob/main/.github/workflows/Build.yaml#L142
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls /dev/kvm
 
       - name: Checkout commit
         uses: actions/checkout@v3
