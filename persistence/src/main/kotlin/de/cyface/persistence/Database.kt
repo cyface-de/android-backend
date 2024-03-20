@@ -63,6 +63,7 @@ import de.cyface.persistence.model.Pressure
         Attachment::class
     ],
     // version 18 imported data from `v6.1` database into `measures.17` and migrated `measures` to Room
+    // version 19 adds the attachments table
     version = 19
     //autoMigrations = [] // test this feature on the next version change
 )

@@ -3,13 +3,13 @@
  * <p>
  * It provides a stub authenticator for default account realised as described in the
  * <a href="https://developer.android.com/training/sync-adapters/creating-authenticator.html">Android documentation</a>
- * with an {@link de.cyface.synchronization.AuthenticatorService} and the actual
+ * with an {@link de.cyface.synchronization.CyfaceAuthenticatorService} and the actual
  * {@link de.cyface.synchronization.CyfaceAuthenticator}.
  * <p>
  * It also provides a synchronization adapter as described in the
  * <a href="https://developer.android.com/training/sync-adapters/creating-sync-adapter.html">Android documentation</a>.
  * The synchronization adapter is the service running in the background to upload data to a server. It is realised by
- * the two classes {@link de.cyface.synchronization.SyncService} and
+ * the two classes {@link de.cyface.synchronization.CyfaceSyncService} and
  * {@link de.cyface.synchronization.SyncAdapter}. The former is required to run the adapter independent of the
  * application using the framework, while the later does the actual synchronisation work.
  * The {@code ContentProvider} required by the synchronisation adapter is the

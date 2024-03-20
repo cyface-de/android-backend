@@ -12,5 +12,18 @@
             android:process=":persistence_process"
             android:syncable="true"
             tools:replace="android:authorities"/>
+
+        <!-- Some connected Android tests needs this to create a test account, or else we get -->
+        <!-- SecurityException: ... cannot explicitly add accounts of type: ... -->
+        <service android:name="de.cyface.synchronization.CyfaceAuthenticatorService"
+            android:exported="false"
+            android:process=":sync"> <!-- should be fine to use the sync process -->
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accounts.AccountAuthenticator"
+                android:resource="@xml/authenticator" />
+        </service>
     </application>
 </manifest>

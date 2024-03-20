@@ -162,7 +162,7 @@ class SyncPerformerTest {
             progressListener,
             "testToken",
             fileName,
-            uploader.measurementsEndpoint()
+            UploadType.MEASUREMENT
         )
 
         // Assert
@@ -328,7 +328,7 @@ class SyncPerformerTest {
                 progressListener,
                 "testToken",
                 fileName,
-                mockedUploader.measurementsEndpoint()
+                UploadType.MEASUREMENT
             )
 
             // Assert:

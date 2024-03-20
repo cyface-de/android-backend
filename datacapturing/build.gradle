@@ -29,7 +29,7 @@ plugins {
     // use `:datacapturing:publishToMavenLocal` instead of `publishToMavenLocal` (see custom task `publishAll`)
     // Don't move to root `build.gradle` as this forces SDK and camera_service to define this, too.
     // Keep version in sync with other modules!
-    id 'de.cyface.android-publish' version '1.0.8'
+    id 'de.cyface.android-publish' version '1.1.0'
     id 'kotlin-android'
     id 'kotlin-kapt'
 }
@@ -50,32 +50,6 @@ android {
                 // Replace this in the app which in integrated the SDK.
                 'appAuthRedirectScheme': 'com.example.PLACEHOLDER'
         ]
-    }
-
-    // Specifies the flavor dimensions you want to use. The order in which you
-    // list each dimension determines its priority, from highest to lowest,
-    // when Gradle merges variant sources and configurations. You must assign
-    // each product flavor you configure to one of the flavor dimensions.
-    flavorDimensions "project", "mode"
-
-    productFlavors {
-        // Configurations in the "project" product flavors override those in "mode"
-        // flavors and the defaultConfig block. Gradle determines the priority
-        // between flavor dimensions based on the order in which they appear next
-        // to the flavorDimensions property above--the first dimension has a higher
-        // priority than the second, and so on.
-        movebis {
-            dimension "project"
-        }
-        cyface {
-            dimension "project"
-        }
-        mock {
-            dimension "mode"
-        }
-        full {
-            dimension "mode"
-        }
     }
 
     buildTypes {

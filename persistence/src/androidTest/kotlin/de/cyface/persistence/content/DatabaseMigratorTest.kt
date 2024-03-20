@@ -99,7 +99,8 @@ class DatabaseMigratorTest {
             DatabaseMigrator.MIGRATION_14_15,
             DatabaseMigrator.MIGRATION_15_16,
             DatabaseMigrator.MIGRATION_16_17,
-            migrator!!.MIGRATION_17_18
+            migrator!!.MIGRATION_17_18,
+            DatabaseMigrator.MIGRATION_18_19,
         )
     }
 
@@ -849,7 +850,7 @@ class DatabaseMigratorTest {
 
         // Assert
         // Loading from the newly added table must work (STAD-85)
-        db!!.execSQL("SELECT * FROM events;")
+        db.execSQL("SELECT * FROM events;")
     }
 
     /**
@@ -895,7 +896,7 @@ class DatabaseMigratorTest {
 
         // Assert
         // Loading from the newly added table must work (STAD-85)
-        db!!.execSQL("SELECT * FROM events;")
+        db.execSQL("SELECT * FROM events;")
 
         // Make sure the relevant data from before the upgrade still exists
         var cursor: Cursor? = null
