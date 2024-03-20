@@ -71,20 +71,32 @@ public class Event {
         this.value = value;
     }
 
+    /**
+     * @return the type
+     */
     @NonNull
     public EventType getType() {
         return type;
     }
 
+    /**
+     * @return The timestamp
+     */
     public long getTimestamp() {
         return timestamp;
     }
 
+    /**
+     * @return The value
+     */
     @Nullable
     public String getValue() {
         return value;
     }
 
+    /**
+     * @return the id
+     */
     public long getIdentifier() {
         return id;
     }
@@ -134,12 +146,18 @@ public class Event {
         LIFECYCLE_START("LIFECYCLE_START"), LIFECYCLE_PAUSE("LIFECYCLE_PAUSE"), LIFECYCLE_RESUME(
                 "LIFECYCLE_RESUME"), LIFECYCLE_STOP("LIFECYCLE_STOP"), MODALITY_TYPE_CHANGE("MODALITY_TYPE_CHANGE");
 
+        /**
+         * The value which represents this enum in the database.
+         */
         private String databaseIdentifier;
 
         EventType(final String databaseIdentifier) {
             this.databaseIdentifier = databaseIdentifier;
         }
 
+        /**
+         * @return The value which represents this enum in the database.
+         */
         public String getDatabaseIdentifier() {
             return databaseIdentifier;
         }

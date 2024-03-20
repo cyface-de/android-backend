@@ -37,6 +37,8 @@ public interface PersistenceBehaviour {
 
     /**
      * This is called in the {@code Persistence}'s constructor.
+     *
+     * @param persistenceLayer The persistence layer which uses this behavior.
      */
     void onStart(@NonNull PersistenceLayer persistenceLayer);
 

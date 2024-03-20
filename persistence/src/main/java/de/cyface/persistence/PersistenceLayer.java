@@ -124,7 +124,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     /**
      * <b>This constructor is only for testing.</b>
      * <p>
-     * It's required by the {@code DataCapturingLocalTest} to be able to {@link @Spy} on this object.
+     * It's required by the {@code DataCapturingLocalTest} to be able to {@code @Spy} on this object.
      */
     public PersistenceLayer() {
         this.context = null;
@@ -432,6 +432,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *
      * @param measurement The {@link Measurement} to remove.
      * @throws NoSuchMeasurementException If the {@link Measurement} does not exist.
+     * @throws CursorIsNullException when the cursor is null
      */
     public void markAsSynchronized(final Measurement measurement)
             throws NoSuchMeasurementException, CursorIsNullException {
@@ -476,6 +477,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * {@code DataCapturingService#getDeviceIdentifier()} instead.
      *
      * @return The device is as string
+     * @throws CursorIsNullException when the cursor is null
      */
     @NonNull
     public final String restoreOrCreateDeviceId() throws CursorIsNullException {
@@ -1498,7 +1500,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * @return
+     * @return the v6 specific database
      */
     public DatabaseV6 getDatabaseV6() {
         return databaseV6;

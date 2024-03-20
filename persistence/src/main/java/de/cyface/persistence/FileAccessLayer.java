@@ -43,6 +43,7 @@ public interface FileAccessLayer {
      *
      * @param context The {@link Context} required to access the underlying persistence layer.
      * @param folderName The folder name defining the type of {@link Point3d}
+     * @return the folder path
      */
     @NonNull
     File getFolderPath(@NonNull final Context context, @NonNull String folderName);

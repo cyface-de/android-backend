@@ -98,6 +98,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      *
      * @param data The data to store.
      * @param measurementIdentifier The id of the {@link Measurement} to store the data to.
+     * @param callback To be called when writing sensor data completed
      */
     public void storeData(final @NonNull CapturedData data, final long measurementIdentifier,
             final @NonNull WritingDataCompletedCallback callback) {
@@ -219,6 +220,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
     /**
      * Update the {@link MeasurementStatus} of the currently active {@link Measurement}.
      *
+     * @param newStatus The new status to set.
      * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
      * @throws IllegalArgumentException When the {@param newStatus} was none of the supported:
      *             {@link MeasurementStatus#FINISHED}, {@link MeasurementStatus#PAUSED} or

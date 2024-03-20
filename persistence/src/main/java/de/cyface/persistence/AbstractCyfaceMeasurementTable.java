@@ -74,6 +74,9 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
         database.execSQL(getCreateStatement());
     }
 
+    /**
+     * @return the create statement
+     */
     protected abstract String getCreateStatement();
 
     @Override
@@ -92,6 +95,9 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
         return database.query(getName(), projection, selection, selectionArgs, null, null, sortOrder);
     }
 
+    /**
+     * @param projection The projection column names to check
+     */
     protected void checkColumns(String[] projection) {
         if (projection != null) {
             Set<String> requestedColumns = new HashSet<>(Arrays.asList(projection));
@@ -102,6 +108,9 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
         }
     }
 
+    /**
+     * @return The database table column names
+     */
     protected abstract String[] getDatabaseTableColumns();
 
     @Override

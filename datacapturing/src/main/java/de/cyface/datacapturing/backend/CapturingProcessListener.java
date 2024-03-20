@@ -30,6 +30,7 @@ public interface CapturingProcessListener {
      * location fix or one second if no fix occurs..
      *
      * @param data The data captured covering a list of accelerations, rotations and directions.
+     * @throws DataCapturingException When capturing failed
      */
     void onDataCaptured(@NonNull CapturedData data) throws DataCapturingException;
 

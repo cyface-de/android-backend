@@ -138,7 +138,13 @@ public final class DefaultFileAccess implements FileAccessLayer {
         }
     }
 
-    // From https://stackoverflow.com/a/3758880/5815054
+    /**
+     * From <a href="https://stackoverflow.com/a/3758880/5815054">...</a>
+     *
+     * @param bytes The number of bytes
+     * @param si if the SI format should be used for formatting
+     * @return the formatted size
+     */
     public static String humanReadableByteCount(final long bytes, final boolean si) {
         final int unit = si ? 1000 : 1024;
         if (bytes < unit)

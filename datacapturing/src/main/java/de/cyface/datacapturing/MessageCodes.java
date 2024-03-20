@@ -101,6 +101,7 @@ public class MessageCodes {
      * @param appId A device-wide unique identifier for the application containing this SDK such as
      *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
      *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
+     * @return the action id
      */
     @NonNull
     public static String getServiceStartedActionId(@NonNull final String appId) {
@@ -115,6 +116,7 @@ public class MessageCodes {
      * @param appId A device-wide unique identifier for the application containing this SDK such as
      *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
      *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
+     * @return the action id
      */
     @NonNull
     public static String getPingActionId(@NonNull final String appId) {
@@ -129,6 +131,7 @@ public class MessageCodes {
      * @param appId A device-wide unique identifier for the application containing this SDK such as
      *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
      *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
+     * @return the action id
      */
     @NonNull
     public static String getPongActionId(@NonNull final String appId) {
