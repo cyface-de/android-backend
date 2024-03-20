@@ -19,7 +19,6 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
-import static de.cyface.synchronization.CyfaceAuthenticator.loadSslContext;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
@@ -36,12 +35,21 @@ import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNAUTHORIZED;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
 import java.util.Locale;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import android.content.Context;
 import android.content.SyncResult;
@@ -201,5 +209,52 @@ class SyncPerformer {
 
         syncResult.stats.numUpdates++; // Upload was successful, measurement can be marked as synced
         return true;
+    }
+
+    /**
+     * Loads the SSL certificate from the trust store and returns the {@link SSLContext}. If the trust
+     * store file is empty, the default context is used.
+     *
+     * @param context The {@link Context} to use to load the trust store file.
+     * @return the {@link SSLContext} to be used for HTTPS connections.
+     * @throws SynchronisationException when the SSLContext could not be loaded
+     * @throws IOException if the trustStoreFile failed while closing.
+     */
+    static SSLContext loadSslContext(final Context context) throws SynchronisationException, IOException {
+        final SSLContext sslContext;
+
+        InputStream trustStoreFile = null;
+        try {
+            // If no self-signed certificate is used and an empty trust store is provided:
+            trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
+            if (trustStoreFile.read() == -1) {
+                Log.d(TAG, "Trust store is empty, loading default sslContext ...");
+                sslContext = SSLContext.getInstance("TLSv1");
+                sslContext.init(null, null, null);
+                return sslContext;
+            }
+
+            // Add trust store to sslContext
+            trustStoreFile.close();
+            trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
+            final KeyStore trustStore = KeyStore.getInstance("PKCS12");
+            trustStore.load(trustStoreFile, "secret".toCharArray());
+            final TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
+            tmf.init(trustStore);
+
+            // Create an SSLContext that uses our TrustManager
+            sslContext = SSLContext.getInstance("TLSv1");
+            final byte[] seed = ByteBuffer.allocate(8).putLong(System.currentTimeMillis()).array();
+            sslContext.init(null, tmf.getTrustManagers(), new SecureRandom(seed));
+
+        } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException
+                 | KeyManagementException e) {
+            throw new SynchronisationException("Unable to load SSLContext", e);
+        } finally {
+            if (trustStoreFile != null) {
+                trustStoreFile.close();
+            }
+        }
+        return sslContext;
     }
 }

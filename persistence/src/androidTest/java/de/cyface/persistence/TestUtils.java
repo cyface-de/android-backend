@@ -70,7 +70,6 @@ class TestUtils {
                 }
             }
         }
-
     }
 
     static long create(final ContentResolver mockResolver, final Uri contentUri, final ContentValues entry) {
@@ -93,7 +92,7 @@ class TestUtils {
     }
 
     static void update(final ContentResolver mockResolver, final Uri contentUri, final long identifier,
-            final String columnName, final double changedValue) {
+                       final String columnName, final double changedValue) {
         ContentValues changedValues = new ContentValues();
         changedValues.put(columnName, changedValue);
 

@@ -21,32 +21,4 @@
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <!-- Required to check whether WiFi is active or not -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <application>
-        <!-- Not exposing the Sync/Auth service as the system can still call them [CY-5524]. -->
-        <!-- The tutorial (1) uses `exported: true` but the `android:exported` guide (2) says -->
-        <!-- "If `false`, the activity can be launched ... [by] privileged system components." -->
-        <!-- (1) https://developer.android.com/training/sync-adapters/creating-sync-adapter -->
-        <!-- (2) https://developer.android.com/guide/topics/manifest/activity-element#exported -->
-        <service
-                android:name="de.cyface.synchronization.SyncService"
-                android:exported="false"
-                android:process=":sync">
-            <intent-filter>
-                <action android:name="android.content.SyncAdapter" />
-            </intent-filter>
-            <meta-data
-                    android:name="android.content.SyncAdapter"
-                    android:resource="@xml/sync_adapter" />
-        </service>
-        <service android:name="de.cyface.synchronization.AuthenticatorService"
-          android:exported="false">
-            <intent-filter>
-                <action android:name="android.accounts.AccountAuthenticator" />
-            </intent-filter>
-            <meta-data
-                    android:name="android.accounts.AccountAuthenticator"
-                    android:resource="@xml/authenticator" />
-        </service>
-    </application>
 </manifest>

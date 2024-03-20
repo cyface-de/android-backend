@@ -18,7 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
@@ -31,6 +30,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
+import android.accounts.AbstractAccountAuthenticator;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AuthenticatorException;
@@ -89,6 +89,12 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      * When this is set to true the {@link #isConnected(Account, String)} method always returns true.
      */
     private boolean mockIsConnectedToReturnTrue;
+    private String authTokenType;
+    private AbstractAccountAuthenticator authenticator;
+    /**
+     * The settings key used to identify the settings storing the URL of the server to upload data to.
+     */
+    public static final String SYNC_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.sync.endpoint";
 
     /**
      * Creates a new completely initialized {@code SyncAdapter}. See the documentation of
@@ -99,24 +105,26 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
      *            boolean)}.
      */
-    SyncAdapter(@NonNull final Context context, final boolean autoInitialize, @NonNull final Http http) {
-        this(context, autoInitialize, false, http);
+    SyncAdapter(@NonNull final Context context, final boolean autoInitialize, @NonNull final Http http, @NonNull final String authTokenType, @NonNull final AbstractAccountAuthenticator authenticator) {
+        this(context, autoInitialize, false, http, authTokenType, authenticator);
     }
 
     /**
      * Creates a new completely initialized {@code SyncAdapter}. See the documentation of
      * <code>AbstractThreadedSyncAdapter</code> from the Android framework for further information.
      *
-     * @param context The current context this adapter is running under.
-     * @param autoInitialize For details have a look at <code>AbstractThreadedSyncAdapter</code>.
+     * @param context            The current context this adapter is running under.
+     * @param autoInitialize     For details have a look at <code>AbstractThreadedSyncAdapter</code>.
      * @param allowParallelSyncs For details have a look at <code>AbstractThreadedSyncAdapter</code>.
      * @see AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context, boolean)
      */
     private SyncAdapter(@NonNull final Context context, final boolean autoInitialize, final boolean allowParallelSyncs,
-            @NonNull final Http http) {
+                        @NonNull final Http http, String authTokenType, AbstractAccountAuthenticator authenticator) {
         super(context, autoInitialize, allowParallelSyncs);
 
         this.http = http;
+        this.authTokenType = authTokenType;
+        this.authenticator = authenticator;
         progressListener = new HashSet<>();
         addConnectionListener(new CyfaceConnectionStatusListener(context));
     }
@@ -138,7 +146,6 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         final MeasurementSerializer serializer = new MeasurementSerializer();
         final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
                 context.getContentResolver(), authority, new DefaultPersistenceBehaviour());
-        final CyfaceAuthenticator authenticator = new CyfaceAuthenticator(context);
         final SyncPerformer syncPerformer = new SyncPerformer(context);
 
         try {
@@ -239,7 +246,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     /**
-     * Gets the authentication token from the {@link CyfaceAuthenticator}.
+     * Gets the authentication token from the {@link #authenticator}.
      *
      * @param authenticator The {@code CyfaceAuthenticator} to be used
      * @param account The {@code Account} to get the token for
@@ -248,21 +255,21 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      * @throws NetworkErrorException If the network authentication request failed for any reasons
      * @throws SynchronizationInterruptedException If the synchronization was {@link Thread#interrupted()}.
      */
-    private String getAuthToken(@NonNull final CyfaceAuthenticator authenticator, @NonNull final Account account)
+    private String getAuthToken(@NonNull final AbstractAccountAuthenticator authenticator, @NonNull final Account account)
             throws AuthenticatorException, NetworkErrorException, SynchronizationInterruptedException {
 
         String jwtAuthToken;
         // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
         final Bundle bundle;
         try {
-            bundle = authenticator.getAuthToken(null, account, AUTH_TOKEN_TYPE, null);
+            bundle = authenticator.getAuthToken(null, account, authTokenType, null);
         } catch (final NetworkErrorException e) {
             // This happened e.g. when Wifi was manually disabled just after synchronization started (Pixel 2 XL).
             Log.w(TAG, "getAuthToken failed, was the connection closed? Aborting sync.");
             throw e;
         }
         if (bundle == null) {
-            // Because of Movebis we don't throw an IllegalStateException if there is no auth token
+            // Because of SR we don't throw an IllegalStateException if there is no auth token
             throw new AuthenticatorException("No valid auth token supplied. Aborting data synchronization!");
         }
         jwtAuthToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);
@@ -284,7 +291,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     @NonNull
     private String getApiUrl(@NonNull final Context context) {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String endPointUrl = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
+        final String endPointUrl = preferences.getString(SyncAdapter.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
         Validate.notNull(endPointUrl,
                 "Sync canceled: Server url not available. Please set the applications server url preference.");
         // noinspection ConstantConditions - cannot be null because of the validation

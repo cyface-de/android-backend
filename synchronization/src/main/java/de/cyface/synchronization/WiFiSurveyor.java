@@ -303,7 +303,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * Creates a new {@code Account} which is required for the {@link WiFiSurveyor} to work.
      *
      * @param username The username of the account to be created.
-     * @param password The password of the account to be created. May be null if a custom {@link CyfaceAuthenticator} is
+     * @param password The password of the account to be created. May be null if a custom {@link android.accounts.AbstractAccountAuthenticator} is
      *            used instead of a LoginActivity to return tokens as in {@code MovebisDataCapturingService}.
      * @return The created {@code Account}
      */

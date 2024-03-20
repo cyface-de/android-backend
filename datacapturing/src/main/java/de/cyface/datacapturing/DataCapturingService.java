@@ -85,7 +85,7 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.ConnectionStatusListener;
 import de.cyface.synchronization.ConnectionStatusReceiver;
-import de.cyface.synchronization.SyncService;
+import de.cyface.synchronization.SyncAdapter;
 import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -259,7 +259,7 @@ public abstract class DataCapturingService {
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
-        sharedPreferencesEditor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, dataUploadServerAddress);
+        sharedPreferencesEditor.putString(SyncAdapter.SYNC_ENDPOINT_URL_SETTINGS_KEY, dataUploadServerAddress);
         if (!sharedPreferencesEditor.commit()) {
             throw new SetupException("Unable to write preferences!");
         }
