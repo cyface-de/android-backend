@@ -107,9 +107,11 @@ jobs:
           disk-size: 6000M
           heap-size: 600M
           # <<<<
-          #force-avd-creation: false
-          #emulator-options: -no-snapshot-save
+          # default options are: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          # Action recommendation: -no-snapshot-save -camera-back none
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           #avd-name: ubuntu-avd-28
+          #force-avd-creation: false
           script: ./gradlew :persistence:connectedDebugAndroidTest :datacapturing:connectedDebugAndroidTest :synchronization:connectedDebugAndroidTest --daemon
           # To execute a single test class
           #script: ./gradlew :datacapturing:connectedCyfaceMockDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=de.cyface.datacapturing.DataCapturingServiceTest --daemon
