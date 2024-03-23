@@ -311,6 +311,7 @@ class SyncPerformerTest {
                 metaData: RequestMetaData,
                 measurementId: Long,
                 file: File,
+                fileName: String,
                 progressListener: UploadProgressListener
             ): Result {
                 throw UploadFailed(ConflictException("Test ConflictException"))

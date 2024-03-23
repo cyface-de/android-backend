@@ -46,11 +46,13 @@ import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.synchronization.CyfaceAuthenticator
+import de.cyface.synchronization.settings.DefaultSynchronizationSettings
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert.assertThat
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Ignore
@@ -120,6 +122,7 @@ class DataCapturingServiceTest {
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = Activity::class.java
+        CyfaceAuthenticator.settings = MockSynchronizationSettings()
 
         // Add test account
         val requestAccount = Account(TestUtils.DEFAULT_USERNAME, TestUtils.ACCOUNT_TYPE)
@@ -138,7 +141,8 @@ class DataCapturingServiceTest {
                     //TestUtils.oauthConfig(),
                     IgnoreEventsStrategy(),
                     testListener!!,
-                    100
+                    100,
+                    CyfaceAuthenticator(context!!)
                 )
             } catch (e: SetupException) {
                 throw IllegalStateException(e)
