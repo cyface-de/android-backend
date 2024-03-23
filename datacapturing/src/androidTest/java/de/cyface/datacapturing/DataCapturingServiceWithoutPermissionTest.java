@@ -26,6 +26,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -46,6 +48,7 @@ import de.cyface.persistence.SetupException;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.CyfaceAuthenticator;
+import de.cyface.synchronization.settings.SynchronizationSettings;
 
 /**
  * Checks if missing permissions are correctly detected before starting a service.
@@ -82,18 +85,30 @@ public class DataCapturingServiceWithoutPermissionTest {
      * Initializes the object of class under test.
      */
     @Before
-    public void setUp() {
+    public void setUp() throws JSONException {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
+        CyfaceAuthenticator.settings = new SynchronizationSettings(
+                context,
+                "https://TEST_URL/",
+                new JSONObject().put("discovery_uri", "https://TEST_URL/")
+        );
 
         //final String dataUploadServerAddress = "https://localhost:8080/api/v3";
         final DataCapturingListener listener = new TestListener();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             try {
-                oocut = new CyfaceDataCapturingService(context, TestUtils.AUTHORITY, TestUtils.ACCOUNT_TYPE,
-                        /*dataUploadServerAddress, TestUtils.oauthConfig(),*/ new IgnoreEventsStrategy(), listener, 100);
+                oocut = new CyfaceDataCapturingService(
+                    context,
+                    TestUtils.AUTHORITY,
+                    TestUtils.ACCOUNT_TYPE,
+                    /*dataUploadServerAddress, TestUtils.oauthConfig(),*/ new IgnoreEventsStrategy(),
+                    listener,
+                        100,
+                        new CyfaceAuthenticator(context)
+                );
             } catch (SetupException e) {
                 throw new IllegalStateException(e);
             }

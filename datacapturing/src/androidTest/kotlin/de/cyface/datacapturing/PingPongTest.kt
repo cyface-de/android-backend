@@ -37,10 +37,12 @@ import de.cyface.persistence.SetupException
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Modality
 import de.cyface.synchronization.CyfaceAuthenticator
+import de.cyface.synchronization.settings.SynchronizationSettings
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -140,6 +142,11 @@ class PingPongTest {
         val testListener: DataCapturingListener = TestListener()
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = Activity::class.java
+        CyfaceAuthenticator.settings = SynchronizationSettings(
+            context!!,
+            "https://TEST_URL/",
+            JSONObject().put("discovery_uri", "https://TEST_URL/")
+        )
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             dcs = try {
                 CyfaceDataCapturingService(
@@ -150,7 +157,8 @@ class PingPongTest {
                     //TestUtils.oauthConfig(),
                     IgnoreEventsStrategy(),
                     testListener,
-                    100
+                    100,
+                    CyfaceAuthenticator(context!!)
                 )
             } catch (e: SetupException) {
                 throw IllegalStateException(e)

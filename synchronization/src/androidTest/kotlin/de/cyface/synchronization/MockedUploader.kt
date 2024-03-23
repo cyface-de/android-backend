@@ -66,6 +66,7 @@ internal class MockedUploader : Uploader {
         metaData: RequestMetaData,
         measurementId: Long,
         file: File,
+        fileName: String,
         progressListener: UploadProgressListener
     ): Result {
         progressListener.updatedProgress(1.0f) // 100%
