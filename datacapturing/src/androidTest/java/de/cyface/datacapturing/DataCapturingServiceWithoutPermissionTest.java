@@ -48,7 +48,7 @@ import de.cyface.persistence.SetupException;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.CyfaceAuthenticator;
-import de.cyface.synchronization.settings.SynchronizationSettings;
+import de.cyface.synchronization.settings.DefaultSynchronizationSettings;
 
 /**
  * Checks if missing permissions are correctly detected before starting a service.
@@ -90,11 +90,7 @@ public class DataCapturingServiceWithoutPermissionTest {
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
-        CyfaceAuthenticator.settings = new SynchronizationSettings(
-                context,
-                "https://TEST_URL/",
-                new JSONObject().put("discovery_uri", "https://TEST_URL/")
-        );
+        CyfaceAuthenticator.settings = new MockSynchronizationSettings();
 
         //final String dataUploadServerAddress = "https://localhost:8080/api/v3";
         final DataCapturingListener listener = new TestListener();

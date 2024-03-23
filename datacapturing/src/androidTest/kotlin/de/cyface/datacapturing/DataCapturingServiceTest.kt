@@ -46,7 +46,7 @@ import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.synchronization.CyfaceAuthenticator
-import de.cyface.synchronization.settings.SynchronizationSettings
+import de.cyface.synchronization.settings.DefaultSynchronizationSettings
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
@@ -122,11 +122,7 @@ class DataCapturingServiceTest {
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = Activity::class.java
-        CyfaceAuthenticator.settings = SynchronizationSettings(
-            context!!,
-            "https://TEST_URL/",
-            JSONObject().put("discovery_uri", "https://TEST_URL/")
-        )
+        CyfaceAuthenticator.settings = MockSynchronizationSettings()
 
         // Add test account
         val requestAccount = Account(TestUtils.DEFAULT_USERNAME, TestUtils.ACCOUNT_TYPE)

@@ -433,7 +433,7 @@ class CustomApplication : Application() {
         // Initialize DataStore once for all settings
         appSettings = lazyAppSettings
         TrackingSettings.initialize(this) // energy_settings
-        CyfaceAuthenticator.settings = SynchronizationSettings( // synchronization
+        CyfaceAuthenticator.settings = DefaultSynchronizationSettings( // synchronization
             this,
             "https://example.com/api/v4", // Set the Data Collector URL
             // Movebis variant can replace oauth config with `JsonObject()`

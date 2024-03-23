@@ -26,7 +26,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Test the inner workings of the [SynchronizationSettings].
+ * Test the inner workings of the [DefaultSynchronizationSettings].
  *
  * @author Armin Schnabel
  * @version 1.0.0
@@ -42,7 +42,7 @@ class SynchronizationSettingsTest {
     }
 
     /**
-     * Test that checks that the [SynchronizationSettings] constructor only accepts API URls with
+     * Test that checks that the [DefaultSynchronizationSettings] constructor only accepts API URls with
      * "https://" as protocol.
      *
      * We had twice the problem that SDK implementors used no or a false protocol. This test ensures
@@ -52,7 +52,7 @@ class SynchronizationSettingsTest {
     @Test(expected = SetupException::class)
     @Throws(SetupException::class)
     fun testConstructor_doesNotAcceptUrlWithoutProtocol() {
-        SynchronizationSettings(
+        DefaultSynchronizationSettings(
             context!!,
             "localhost:8080/api/v3",
             JSONObject()
