@@ -50,7 +50,7 @@ import kotlinx.coroutines.runBlocking
 class CyfaceAuthenticator(private val context: Context) :
     AbstractAccountAuthenticator(context), LoginActivityProvider {
 
-    private var auth: OAuth2 = OAuth2(context, settings)
+    var auth: OAuth2 = OAuth2(context, settings, "CyfaceAuthenticator")
 
     override fun editProperties(
         response: AccountAuthenticatorResponse,

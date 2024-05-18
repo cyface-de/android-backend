@@ -21,7 +21,6 @@ package de.cyface.synchronization
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
-import android.util.Log
 
 /**
  * The Android service used to communicate with the Stub Authenticator. This has been implemented as described in

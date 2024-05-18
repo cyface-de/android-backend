@@ -19,7 +19,10 @@
 package de.cyface.synchronization
 
 import android.app.Service
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.os.IBinder
 import de.cyface.uploader.DefaultUploader
 import de.cyface.utils.Validate
@@ -46,7 +49,7 @@ class CyfaceSyncService : Service() {
                 syncAdapter = SyncAdapter(
                     applicationContext,
                     true,
-                    OAuth2(applicationContext, CyfaceAuthenticator.settings),
+                    OAuth2(applicationContext, CyfaceAuthenticator.settings, "CyfaceSyncService"),
                     DefaultUploader(collectorApi),
                 )
             }

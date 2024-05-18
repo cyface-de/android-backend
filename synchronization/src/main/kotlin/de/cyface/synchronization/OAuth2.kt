@@ -22,7 +22,6 @@ import android.accounts.Account
 import android.accounts.AccountManager
 import android.content.ContentResolver
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -38,7 +37,6 @@ import net.openid.appauth.AuthState
 import net.openid.appauth.AuthorizationException
 import net.openid.appauth.AuthorizationResponse
 import net.openid.appauth.AuthorizationService
-import net.openid.appauth.AuthorizationServiceConfiguration
 import net.openid.appauth.ClientAuthentication
 import net.openid.appauth.EndSessionRequest
 import net.openid.appauth.TokenRequest
@@ -57,7 +55,7 @@ import org.json.JSONObject
  * @param context The context to load settings and accounts from.
  * @param settings The settings which store the user preferences.
  */
-class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
+class OAuth2(context: Context, settings: SynchronizationSettings, private val caller: String) : Auth {
 
     /**
      * The service used for authorization.
@@ -84,6 +82,7 @@ class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
             //Handler().postDelayed({signOut()}, 2000)
             //return
         }*/
+        Log.i(TAG, "OAuth2 init ($caller)")
         authService = AuthorizationService(
             context,
             AppAuthConfiguration.Builder()
@@ -259,7 +258,7 @@ class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
     fun signOut() {
         // discard the authorization and token state, but retain the configuration and
         // dynamic client registration (if applicable), to save from retrieving them again.
-        val currentState: AuthState = stateManager.current
+        val currentState = stateManager.current
         if (currentState.authorizationServiceConfiguration != null) {
             // Replace the state with a fresh `AuthState`
             val clearedState = AuthState(currentState.authorizationServiceConfiguration!!)
@@ -267,16 +266,23 @@ class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
                 clearedState.update(currentState.lastRegistrationResponse)
             }
             stateManager.replace(clearedState)
+            // FIXME: completely delete AuthState.xml in sharedPreferences to fix credentials
+            // incorrect bug after logout and login during upload
+            stateManager.deletePreferencesFile()//clearState()
+        } else {
+            Log.w(TAG, "No authorization service configuration to sign out")
         }
+
+        // Invalidate all tokens to ensure they are no longer used
+        authService.dispose()
     }
 
-    // Keep: login is currently just deactivated because it's buggy
+    // FIXME: Keep: login is currently just deactivated because it's buggy
     fun endSession(activity: FragmentActivity) {
-        val currentState: AuthState = stateManager.current
-        val config: AuthorizationServiceConfiguration =
-            currentState.authorizationServiceConfiguration!!
+        val currentState = stateManager.current
+        val config = currentState.authorizationServiceConfiguration!!
         if (config.endSessionEndpoint != null) {
-            val endSessionIntent: Intent = authService.getEndSessionRequestIntent(
+            val endSessionIntent = authService.getEndSessionRequestIntent(
                 EndSessionRequest.Builder(config)
                     .setIdTokenHint(currentState.idToken)
                     .setPostLogoutRedirectUri(configuration.endSessionRedirectUri)

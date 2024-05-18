@@ -374,8 +374,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * @return The only <code>Account</code> existing
      */
     public Account getAccount() {
-        final AccountManager accountManager = AccountManager.get(context.get());
-        final Account[] cyfaceAccounts = accountManager.getAccountsByType(accountType);
+        final var accountManager = AccountManager.get(context.get());
+        final var cyfaceAccounts = accountManager.getAccountsByType(accountType);
         if (cyfaceAccounts.length == 0) {
             throw new IllegalStateException("No cyface account exists.");
         }
