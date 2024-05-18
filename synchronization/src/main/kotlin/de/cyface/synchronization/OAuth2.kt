@@ -261,9 +261,10 @@ class OAuth2(context: Context, settings: SynchronizationSettings, caller: String
                 clearedState.update(currentState.lastRegistrationResponse)
             }
             stateManager.replace(clearedState)
-            // FIXME: completely delete AuthState.xml in sharedPreferences to fix credentials
-            // incorrect bug after logout and login during upload
-            stateManager.deletePreferencesFile()//clearState()
+
+            // [LEIP-233] Completely deleting the sharedPreferences/AuthState.xml file does not
+            // fix the `Credentials incorrect` error after re-login (app restart required)
+            //stateManager.deletePreferencesFile()
         } else {
             Log.w(TAG, "No authorization service configuration to sign out")
         }

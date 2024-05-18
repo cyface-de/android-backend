@@ -23,7 +23,6 @@ import net.openid.appauth.AuthorizationResponse
 import net.openid.appauth.RegistrationResponse
 import net.openid.appauth.TokenResponse
 import org.json.JSONException
-import java.io.File
 import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
@@ -120,38 +119,6 @@ class AuthStateManager private constructor(private val context: Context) {
                 editor.putString(KEY_STATE, state.jsonSerializeString())
             }
             check(editor.commit()) { "Failed to write state to shared prefs" }
-        } finally {
-            mPrefsLock.unlock()
-        }
-    }
-
-    /**
-     * Removes the shared preferences file, as clearing the state did not work.
-     *
-     * This was added in [LEIP-233] to fix the bug where the shared preferences were not cleared
-     * and "credentials invalid" was shown after re-login during upload.
-     */
-    /*@AnyThread
-    fun clearState() {
-        mPrefsLock.lock()
-        try {
-            val editor = mPrefs.edit()
-            editor.clear()  // Clears all data in the SharedPreferences
-            check(editor.commit()) { "Failed to clear state from shared prefs" }
-            mCurrentAuthState.set(null)  // Reset the current auth state reference
-        } finally {
-            mPrefsLock.unlock()
-        }
-    }*/
-    @AnyThread
-    fun deletePreferencesFile() {
-        mPrefsLock.lock()
-        try {
-            val file = File(context.filesDir.parentFile, "shared_prefs/$STORE_NAME.xml")
-            if (file.exists()) {
-                file.delete()
-            }
-            mCurrentAuthState.set(null)
         } finally {
             mPrefsLock.unlock()
         }
