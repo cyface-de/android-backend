@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Cyface GmbH
+ * Copyright 2018-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -44,13 +44,11 @@ import kotlinx.coroutines.runBlocking
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.1.1
- * @since 2.0.0
  */
 class CyfaceAuthenticator(private val context: Context) :
     AbstractAccountAuthenticator(context), LoginActivityProvider {
 
-    private var auth: OAuth2 = OAuth2(context, settings)
+    var auth: OAuth2 = OAuth2(context, settings, "CyfaceAuthenticator")
 
     override fun editProperties(
         response: AccountAuthenticatorResponse,

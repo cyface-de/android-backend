@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -34,8 +34,6 @@ import kotlinx.coroutines.runBlocking
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.9
- * @since 2.0.0
  */
 class CyfaceSyncService : Service() {
 
@@ -46,7 +44,7 @@ class CyfaceSyncService : Service() {
                 syncAdapter = SyncAdapter(
                     applicationContext,
                     true,
-                    OAuth2(applicationContext, CyfaceAuthenticator.settings),
+                    OAuth2(applicationContext, CyfaceAuthenticator.settings, "CyfaceSyncService"),
                     DefaultUploader(collectorApi),
                 )
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -22,7 +22,6 @@ import android.accounts.Account
 import android.accounts.AccountManager
 import android.content.ContentResolver
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -38,7 +37,6 @@ import net.openid.appauth.AuthState
 import net.openid.appauth.AuthorizationException
 import net.openid.appauth.AuthorizationResponse
 import net.openid.appauth.AuthorizationService
-import net.openid.appauth.AuthorizationServiceConfiguration
 import net.openid.appauth.ClientAuthentication
 import net.openid.appauth.EndSessionRequest
 import net.openid.appauth.TokenRequest
@@ -52,12 +50,10 @@ import org.json.JSONObject
  * accounts, and handling sessions.
  *
  * @author Armin Schnabel
- * @version 1.0.0
- * @since 7.9.0
  * @param context The context to load settings and accounts from.
  * @param settings The settings which store the user preferences.
  */
-class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
+class OAuth2(context: Context, settings: SynchronizationSettings, caller: String) : Auth {
 
     /**
      * The service used for authorization.
@@ -67,23 +63,21 @@ class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
     /**
      * The authorization state.
      */
-    private var stateManager: AuthStateManager
+    private var stateManager: AuthStateManager = AuthStateManager.getInstance(context)
 
     /**
      * The configuration of the OAuth 2 endpoint to authorize against.
      */
-    private var configuration: Configuration
+    private var configuration: Configuration = Configuration.getInstance(context, settings)
 
     init {
-        // Authorization
-        stateManager = AuthStateManager.getInstance(context)
-        configuration = Configuration.getInstance(context, settings)
         /*if (config.hasConfigurationChanged()) {
             //throw IllegalArgumentException("config changed (SyncAdapter)")
             Toast.makeText(context, "Ignoring: config changed (SyncAdapter)", Toast.LENGTH_SHORT).show()
             //Handler().postDelayed({signOut()}, 2000)
             //return
         }*/
+        Log.i(TAG, "OAuth2 init ($caller)")
         authService = AuthorizationService(
             context,
             AppAuthConfiguration.Builder()
@@ -259,7 +253,7 @@ class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
     fun signOut() {
         // discard the authorization and token state, but retain the configuration and
         // dynamic client registration (if applicable), to save from retrieving them again.
-        val currentState: AuthState = stateManager.current
+        val currentState = stateManager.current
         if (currentState.authorizationServiceConfiguration != null) {
             // Replace the state with a fresh `AuthState`
             val clearedState = AuthState(currentState.authorizationServiceConfiguration!!)
@@ -267,16 +261,26 @@ class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
                 clearedState.update(currentState.lastRegistrationResponse)
             }
             stateManager.replace(clearedState)
+
+            // [LEIP-233] Completely deleting the sharedPreferences/AuthState.xml file does not
+            // fix the `Credentials incorrect` error after re-login (app restart required)
+            //stateManager.deletePreferencesFile()
+        } else {
+            Log.w(TAG, "No authorization service configuration to sign out")
         }
+
+        // Invalidate all tokens to ensure they are no longer used
+        dispose()
     }
 
-    // Keep: login is currently just deactivated because it's buggy
+    /**
+     * Sends the end session request to the auth service to sign out the user.
+     */
     fun endSession(activity: FragmentActivity) {
-        val currentState: AuthState = stateManager.current
-        val config: AuthorizationServiceConfiguration =
-            currentState.authorizationServiceConfiguration!!
+        val currentState = stateManager.current
+        val config = currentState.authorizationServiceConfiguration!!
         if (config.endSessionEndpoint != null) {
-            val endSessionIntent: Intent = authService.getEndSessionRequestIntent(
+            val endSessionIntent = authService.getEndSessionRequestIntent(
                 EndSessionRequest.Builder(config)
                     .setIdTokenHint(currentState.idToken)
                     .setPostLogoutRedirectUri(configuration.endSessionRedirectUri)

@@ -32,16 +32,10 @@ import java.util.concurrent.locks.ReentrantLock
  * This stores the instance in a shared preferences file, and provides thread-safe access and
  * mutation.
  */
-class AuthStateManager private constructor(context: Context) {
-    private val mPrefs: SharedPreferences
-    private val mPrefsLock: ReentrantLock
-    private val mCurrentAuthState: AtomicReference<AuthState>
-
-    init {
-        mPrefs = context.getSharedPreferences(STORE_NAME, Context.MODE_PRIVATE)
-        mPrefsLock = ReentrantLock()
-        mCurrentAuthState = AtomicReference()
-    }
+class AuthStateManager private constructor(private val context: Context) {
+    private val mPrefs: SharedPreferences = context.getSharedPreferences(STORE_NAME, Context.MODE_PRIVATE)
+    private val mPrefsLock: ReentrantLock = ReentrantLock()
+    private val mCurrentAuthState: AtomicReference<AuthState> = AtomicReference()
 
     @get:AnyThread
     val current: AuthState
