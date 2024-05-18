@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -19,10 +19,7 @@
 package de.cyface.synchronization
 
 import android.app.Service
-import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
-import android.content.ServiceConnection
 import android.os.IBinder
 import de.cyface.uploader.DefaultUploader
 import de.cyface.utils.Validate
@@ -37,8 +34,6 @@ import kotlinx.coroutines.runBlocking
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.9
- * @since 2.0.0
  */
 class CyfaceSyncService : Service() {
 

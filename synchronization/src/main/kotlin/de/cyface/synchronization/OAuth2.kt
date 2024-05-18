@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -50,12 +50,10 @@ import org.json.JSONObject
  * accounts, and handling sessions.
  *
  * @author Armin Schnabel
- * @version 1.0.0
- * @since 7.9.0
  * @param context The context to load settings and accounts from.
  * @param settings The settings which store the user preferences.
  */
-class OAuth2(context: Context, settings: SynchronizationSettings, private val caller: String) : Auth {
+class OAuth2(context: Context, settings: SynchronizationSettings, caller: String) : Auth {
 
     /**
      * The service used for authorization.
@@ -65,17 +63,14 @@ class OAuth2(context: Context, settings: SynchronizationSettings, private val ca
     /**
      * The authorization state.
      */
-    private var stateManager: AuthStateManager
+    private var stateManager: AuthStateManager = AuthStateManager.getInstance(context)
 
     /**
      * The configuration of the OAuth 2 endpoint to authorize against.
      */
-    private var configuration: Configuration
+    private var configuration: Configuration = Configuration.getInstance(context, settings)
 
     init {
-        // Authorization
-        stateManager = AuthStateManager.getInstance(context)
-        configuration = Configuration.getInstance(context, settings)
         /*if (config.hasConfigurationChanged()) {
             //throw IllegalArgumentException("config changed (SyncAdapter)")
             Toast.makeText(context, "Ignoring: config changed (SyncAdapter)", Toast.LENGTH_SHORT).show()
@@ -274,10 +269,12 @@ class OAuth2(context: Context, settings: SynchronizationSettings, private val ca
         }
 
         // Invalidate all tokens to ensure they are no longer used
-        authService.dispose()
+        dispose()
     }
 
-    // FIXME: Keep: login is currently just deactivated because it's buggy
+    /**
+     * Sends the end session request to the auth service to sign out the user.
+     */
     fun endSession(activity: FragmentActivity) {
         val currentState = stateManager.current
         val config = currentState.authorizationServiceConfiguration!!

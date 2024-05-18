@@ -28,8 +28,6 @@ import android.os.IBinder
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.7
- * @since 2.0.0
  */
 class CyfaceAuthenticatorService : Service() {
     /**

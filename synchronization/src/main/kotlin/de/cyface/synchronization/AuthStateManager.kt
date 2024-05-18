@@ -34,15 +34,9 @@ import java.util.concurrent.locks.ReentrantLock
  * mutation.
  */
 class AuthStateManager private constructor(private val context: Context) {
-    private val mPrefs: SharedPreferences
-    private val mPrefsLock: ReentrantLock
-    private val mCurrentAuthState: AtomicReference<AuthState>
-
-    init {
-        mPrefs = context.getSharedPreferences(STORE_NAME, Context.MODE_PRIVATE)
-        mPrefsLock = ReentrantLock()
-        mCurrentAuthState = AtomicReference()
-    }
+    private val mPrefs: SharedPreferences = context.getSharedPreferences(STORE_NAME, Context.MODE_PRIVATE)
+    private val mPrefsLock: ReentrantLock = ReentrantLock()
+    private val mCurrentAuthState: AtomicReference<AuthState> = AtomicReference()
 
     @get:AnyThread
     val current: AuthState
