@@ -116,6 +116,10 @@ class OAuth2(context: Context, settings: SynchronizationSettings, caller: String
         }
     }
 
+    override fun userId(): String? {
+        return stateManager.current.parsedIdToken?.subject
+    }
+
     @MainThread
     fun performTokenRequest(
         request: TokenRequest,
@@ -273,10 +277,7 @@ class OAuth2(context: Context, settings: SynchronizationSettings, caller: String
         dispose()
     }
 
-    /**
-     * Sends the end session request to the auth service to sign out the user.
-     */
-    fun endSession(activity: FragmentActivity) {
+    override fun endSession(activity: FragmentActivity) {
         val currentState = stateManager.current
         val config = currentState.authorizationServiceConfiguration!!
         if (config.endSessionEndpoint != null) {
