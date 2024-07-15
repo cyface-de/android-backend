@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -30,8 +30,6 @@ import java.net.URL
  * An [Uploader] that does not actually connect to the server, for testing.
  *
  * @author Armin Schnabel
- * @version 2.0.0
- * @since 7.7.0
  */
 internal class MockedUploader : Uploader {
 
@@ -43,9 +41,9 @@ internal class MockedUploader : Uploader {
         }
     }
 
-    override fun attachmentsEndpoint(measurementId: Long): URL {
+    override fun attachmentsEndpoint(deviceId: String, measurementId: Long): URL {
         return try {
-            URL("https://mocked.cyface.de/api/v123/measurements/ID/attachments")
+            URL("https://mocked.cyface.de/api/v123/measurements/did/mid/attachments")
         } catch (e: MalformedURLException) {
             throw IllegalStateException(e)
         }
@@ -53,7 +51,7 @@ internal class MockedUploader : Uploader {
 
     override fun uploadMeasurement(
         jwtToken: String,
-        metaData: RequestMetaData,
+        metaData: RequestMetaData<RequestMetaData.MeasurementIdentifier>,
         file: File,
         progressListener: UploadProgressListener
     ): Result {
@@ -63,8 +61,7 @@ internal class MockedUploader : Uploader {
 
     override fun uploadAttachment(
         jwtToken: String,
-        metaData: RequestMetaData,
-        measurementId: Long,
+        metaData: RequestMetaData<RequestMetaData.AttachmentIdentifier>,
         file: File,
         fileName: String,
         progressListener: UploadProgressListener

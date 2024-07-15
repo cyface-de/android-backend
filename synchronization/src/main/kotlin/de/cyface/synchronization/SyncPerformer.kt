@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,7 +21,6 @@ package de.cyface.synchronization
 import android.content.Context
 import android.content.SyncResult
 import android.util.Log
-import de.cyface.model.RequestMetaData
 import de.cyface.serializer.DataSerializable
 import de.cyface.synchronization.ErrorHandler.ErrorCode
 import de.cyface.uploader.Result
@@ -43,6 +42,9 @@ import de.cyface.uploader.exception.UnauthorizedException
 import de.cyface.uploader.exception.UnexpectedResponseCode
 import de.cyface.uploader.exception.UploadFailed
 import de.cyface.uploader.exception.UploadSessionExpired
+import de.cyface.uploader.model.Attachment
+import de.cyface.uploader.model.Measurement
+import de.cyface.uploader.model.Uploadable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -56,8 +58,6 @@ import java.net.MalformedURLException
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.1.0
- * @since 2.0.0
  * @property context The Android `Context` to use for setting the correct server certification information.
  * @property fromBackground `true` if the error was caused without user interaction, e.g. to avoid
  *          disturbing the user while he is not using the app.
@@ -75,7 +75,7 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
      *
      * @param uploader The uploader to use for transmission
      * @param syncResult The [SyncResult] used to store sync error information.
-     * @param metaData The [RequestMetaData] required for the Multipart request.
+     * @param uploadable The [Uploadable] which describes the data to be uploaded.
      * @param file The compressed transfer file containing the data to transmit
      * @param progressListener The [UploadProgressListener] to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
@@ -86,7 +86,7 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
     fun sendData(
         uploader: Uploader,
         syncResult: SyncResult,
-        metaData: RequestMetaData,
+        uploadable: Uploadable,
         file: File,
         progressListener: UploadProgressListener,
         jwtAuthToken: String,
@@ -98,32 +98,33 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
 
         return runBlocking {
             val deferredResult = CoroutineScope(Dispatchers.IO).async {
-                val measurementId = metaData.measurementIdentifier.toLong()
-                val endpoint =
-                    if (uploadType == UploadType.MEASUREMENT) uploader.measurementsEndpoint()
-                    else uploader.attachmentsEndpoint(measurementId)
                 val result = try {
-                    Log.i(TAG, "Uploading $fileName to $endpoint")
-
-                    @Suppress("REDUNDANT_ELSE_IN_WHEN")
                     when (uploadType) {
-                        UploadType.MEASUREMENT -> uploader.uploadMeasurement(
-                            jwtAuthToken,
-                            metaData,
-                            file,
-                            progressListener
-                        )
+                        UploadType.MEASUREMENT ->  {
+                            val endpoint = uploader.measurementsEndpoint()
+                            Log.i(TAG, "Uploading $fileName to $endpoint.")
+                            uploader.uploadMeasurement(
+                                jwtAuthToken,
+                                uploadable as Measurement,
+                                file,
+                                progressListener
+                            )
+                        }
 
-                        UploadType.ATTACHMENT -> uploader.uploadAttachment(
-                            jwtAuthToken,
-                            metaData,
-                            measurementId,
-                            file,
-                            fileName,
-                            progressListener
-                        )
-
-                        else -> throw IllegalArgumentException("Unsupported upload type: $uploadType")
+                        UploadType.ATTACHMENT -> {
+                            val attachment = uploadable as Attachment
+                            val measurementId = attachment.identifier.measurementIdentifier
+                            val deviceId = uploadable.identifier.deviceIdentifier.toString()
+                            val endpoint = uploader.attachmentsEndpoint(deviceId, measurementId)
+                            Log.i(TAG, "Uploading $fileName to $endpoint.")
+                            uploader.uploadAttachment(
+                                jwtAuthToken,
+                                attachment,
+                                file,
+                                fileName,
+                                progressListener
+                            )
+                        }
                     }
                 } catch (e: UploadFailed) {
                     return@async handleUploadFailed(e, syncResult)
