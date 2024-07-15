@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -46,13 +46,11 @@ import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.synchronization.CyfaceAuthenticator
-import de.cyface.synchronization.settings.DefaultSynchronizationSettings
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert.assertThat
-import org.json.JSONObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Ignore
@@ -70,8 +68,6 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.7.8
- * @since 2.0.0
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -224,7 +220,7 @@ class DataCapturingServiceTest {
      * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
      * Android context was available.
      * @throws MissingPermissionException If no Android `ACCESS_FINE_LOCATION` has been granted. You may
-     * register a [de.cyface.datacapturing.ui.UIListener] to ask the user for this permission and prevent the
+     * register a `de.cyface.datacapturing.ui.UIListener` to ask the user for this permission and prevent the
      * `Exception`. If the `Exception` was thrown the service does not start.
      */
     @Throws(

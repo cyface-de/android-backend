@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Cyface GmbH
+ * Copyright 2018-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -23,7 +23,6 @@ import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
-import de.cyface.model.RequestMetaData
 import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.exception.NoSuchMeasurementException
@@ -72,8 +71,6 @@ import java.io.IOException
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.3
- * @since 2.0.0
  * @see [Testing documentation](http://d.android.com/tools/testing)
  */
 @RunWith(AndroidJUnit4::class)
@@ -148,7 +145,7 @@ class SyncPerformerTestWithoutAuth {
                     )
                 )
                 file = loadSerializedCompressed(persistence, measurementIdentifier)
-                val metaData: RequestMetaData =
+                val metaData =
                     loadMetaData(persistence, measurement, locationCount, 0, 0, 0, 0)
                 val url = "$TEST_API_URL/api/v3/measurements"
 

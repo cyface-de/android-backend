@@ -18,10 +18,11 @@
  */
 package de.cyface.synchronization
 
-import de.cyface.model.RequestMetaData
 import de.cyface.uploader.Result
 import de.cyface.uploader.UploadProgressListener
 import de.cyface.uploader.Uploader
+import de.cyface.uploader.model.Attachment
+import de.cyface.uploader.model.Measurement
 import java.io.File
 import java.net.MalformedURLException
 import java.net.URL
@@ -51,7 +52,7 @@ internal class MockedUploader : Uploader {
 
     override fun uploadMeasurement(
         jwtToken: String,
-        metaData: RequestMetaData<RequestMetaData.MeasurementIdentifier>,
+        uploadable: Measurement,
         file: File,
         progressListener: UploadProgressListener
     ): Result {
@@ -61,7 +62,7 @@ internal class MockedUploader : Uploader {
 
     override fun uploadAttachment(
         jwtToken: String,
-        metaData: RequestMetaData<RequestMetaData.AttachmentIdentifier>,
+        uploadable: Attachment,
         file: File,
         fileName: String,
         progressListener: UploadProgressListener
