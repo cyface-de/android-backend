@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,8 +21,6 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.11.0
- * @since 1.0.0
  */
 
 buildscript {

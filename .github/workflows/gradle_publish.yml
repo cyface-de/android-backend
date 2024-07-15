@@ -1,8 +1,6 @@
 # This workflow publishes a new version to the Github Registry.
 #
 # @author Armin Schnabel
-# @version 1.1.0
-# @since 5.0.0
 name: Gradle Publish
 
 on:

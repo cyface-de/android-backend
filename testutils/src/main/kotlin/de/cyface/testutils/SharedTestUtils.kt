@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Cyface GmbH
+ * Copyright 2018-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -27,7 +27,6 @@ import android.util.Log
 import com.google.protobuf.ByteString
 import com.google.protobuf.InvalidProtocolBufferException
 import de.cyface.model.Point3DImpl
-import de.cyface.model.RequestMetaData
 import de.cyface.persistence.Constants
 import de.cyface.persistence.Database
 import de.cyface.persistence.DefaultPersistenceLayer
@@ -64,8 +63,6 @@ import java.util.UUID
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 9.0.0
- * @since 3.0.0
  */
 object SharedTestUtils {
     /**
@@ -157,15 +154,6 @@ object SharedTestUtils {
             salt * (DefaultLocationCleaning.UPPER_ACCURACY_THRESHOLD - 1),
             20.0
         )
-    }
-
-    @JvmStatic
-    fun generateRequestMetaDataGeoLocation(
-        distanceFromBase: Int,
-        timestamp: Long
-    ): RequestMetaData.GeoLocation {
-        val location = generateGeoLocation(distanceFromBase, timestamp)
-        return RequestMetaData.GeoLocation(location.timestamp, location.lat, location.lon)
     }
 
     /**

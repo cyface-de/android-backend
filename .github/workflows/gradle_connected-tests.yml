@@ -1,8 +1,6 @@
 # This workflow ensures the connected tests keep working
 #
 # @author Armin Schnabel
-# @version 1.0.0
-# @since 7.4.0
 name: Gradle Connected Tests
 
 on:
