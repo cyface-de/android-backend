@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Cyface GmbH
+ * Copyright 2018-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -24,7 +24,6 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
-import de.cyface.model.RequestMetaData
 import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.exception.NoSuchMeasurementException
@@ -56,6 +55,13 @@ import de.cyface.uploader.exception.UnauthorizedException
 import de.cyface.uploader.exception.UnexpectedResponseCode
 import de.cyface.uploader.exception.UploadFailed
 import de.cyface.uploader.exception.UploadSessionExpired
+import de.cyface.uploader.model.Attachment
+import de.cyface.uploader.model.MeasurementIdentifier
+import de.cyface.uploader.model.metadata.ApplicationMetaData
+import de.cyface.uploader.model.metadata.AttachmentMetaData
+import de.cyface.uploader.model.metadata.DeviceMetaData
+import de.cyface.uploader.model.metadata.GeoLocation
+import de.cyface.uploader.model.metadata.MeasurementMetaData
 import de.cyface.utils.CursorIsNullException
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
@@ -68,6 +74,7 @@ import java.io.File
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.UUID
 
 /**
  * Tests the data transmission code.
@@ -76,8 +83,6 @@ import java.nio.file.Path
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
- * @since 7.7.0
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -140,14 +145,22 @@ class SyncPerformerTest {
         MatcherAssert.assertThat(loadedStatus, CoreMatchers.equalTo(MeasurementStatus.FINISHED))
         val compressedTransferTempFile = loadSerializedCompressed(persistence, measurementId)
         val metaData =
-            loadMetaData(persistence, measurement, locationCount, logCount, imageCount, videoCount, filesSize)
+            loadMetaData(
+                persistence,
+                measurement,
+                locationCount,
+                logCount,
+                imageCount,
+                videoCount,
+                filesSize
+            )
         val progressListener = object : UploadProgressListener {
             override fun updatedProgress(percent: Float) {
                 Log.d(TAG, String.format("Upload Progress %f", percent))
             }
         }
         val fileName =
-            "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.${SyncAdapter.COMPRESSED_TRANSFER_FILE_EXTENSION}"
+            "${metaData.identifier.deviceIdentifier}_${metaData.identifier.measurementIdentifier}.${SyncAdapter.COMPRESSED_TRANSFER_FILE_EXTENSION}"
         val uploader = MockedUploader()
 
         // Prepare transmission
@@ -178,12 +191,12 @@ class SyncPerformerTest {
     @Test
     @Throws(CursorIsNullException::class, NoSuchMeasurementException::class)
     fun testSendData() = runBlocking {
-            performSendDataTest(
-                point3DCount = 600 * 1000,
-                locationCount = 3 * 1000,
-                0, 0, 0, 0
-            )
-        }
+        performSendDataTest(
+            point3DCount = 600 * 1000,
+            locationCount = 3 * 1000,
+            0, 0, 0, 0
+        )
+    }
 
     /**
      * Tests the basic transmission with a measurement with attached files.
@@ -263,21 +276,28 @@ class SyncPerformerTest {
         val startLocation = tracks[0].geoLocations[0]!!
         val lastTrack = tracks[tracks.size - 1].geoLocations
         val endLocation = lastTrack[lastTrack.size - 1]!!
-        val deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8" // Must be a valid UUID
-        val startRecord = RequestMetaData.GeoLocation(
+        val deviceId = UUID.randomUUID()
+        val startRecord = GeoLocation(
             startLocation.timestamp,
             startLocation.lat,
             startLocation.lon
         )
-        val endRecord = RequestMetaData.GeoLocation(
+        val endRecord = GeoLocation(
             endLocation.timestamp, endLocation.lat,
             endLocation.lon
         )
-        val metaData = RequestMetaData(
-            deviceId, measurementIdentifier.toString(),
-            "testOsVersion", "testDeviceType", "testAppVersion",
-            distance, locationCount.toLong(), startRecord, endRecord,
-            Modality.BICYCLE.databaseIdentifier, 3, 0, 0, 0, 0
+        val metaData = de.cyface.uploader.model.Measurement(
+            MeasurementIdentifier(deviceId, measurementIdentifier),
+            DeviceMetaData("testOsVersion", "testDeviceType"),
+            ApplicationMetaData("testAppVersion", 3),
+            MeasurementMetaData(
+                distance,
+                locationCount.toLong(),
+                startRecord,
+                endRecord,
+                Modality.BICYCLE.databaseIdentifier,
+            ),
+            AttachmentMetaData(0, 0, 0, 0),
         )
         val progressListener = object : UploadProgressListener {
             override fun updatedProgress(percent: Float) {
@@ -285,7 +305,7 @@ class SyncPerformerTest {
             }
         }
         val fileName =
-            "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.${SyncAdapter.COMPRESSED_TRANSFER_FILE_EXTENSION}"
+            "${metaData.identifier.deviceIdentifier}_${metaData.identifier.measurementIdentifier}.${SyncAdapter.COMPRESSED_TRANSFER_FILE_EXTENSION}"
 
         // Mock the actual post request
         val mockedUploader = object : Uploader {
@@ -293,13 +313,13 @@ class SyncPerformerTest {
                 return URL("https://mocked.cyface.de/api/v123/measurements")
             }
 
-            override fun attachmentsEndpoint(measurementId: Long): URL {
-                return URL("https://mocked.cyface.de/api/v123/measurements/$measurementId/attachments")
+            override fun attachmentsEndpoint(deviceId: String, measurementId: Long): URL {
+                return URL("https://mocked.cyface.de/api/v123/measurements/$deviceId/$measurementId/attachments")
             }
 
             override fun uploadMeasurement(
                 jwtToken: String,
-                metaData: RequestMetaData,
+                uploadable: de.cyface.uploader.model.Measurement,
                 file: File,
                 progressListener: UploadProgressListener
             ): Result {
@@ -308,8 +328,7 @@ class SyncPerformerTest {
 
             override fun uploadAttachment(
                 jwtToken: String,
-                metaData: RequestMetaData,
-                measurementId: Long,
+                uploadable: Attachment,
                 file: File,
                 fileName: String,
                 progressListener: UploadProgressListener

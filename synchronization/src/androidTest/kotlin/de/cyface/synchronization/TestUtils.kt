@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Cyface GmbH
+ * Copyright 2019-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -19,24 +19,25 @@
 package de.cyface.synchronization
 
 import android.util.Log
-import de.cyface.model.MeasurementIdentifier
-import de.cyface.model.RequestMetaData
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.serialization.MeasurementSerializer
 import de.cyface.serializer.DataSerializable
+import de.cyface.uploader.model.metadata.ApplicationMetaData
+import de.cyface.uploader.model.metadata.AttachmentMetaData
+import de.cyface.uploader.model.metadata.DeviceMetaData
+import de.cyface.uploader.model.metadata.GeoLocation
+import de.cyface.uploader.model.metadata.MeasurementMetaData
 import de.cyface.utils.CursorIsNullException
 import java.io.File
-import kotlin.math.log
+import java.util.UUID
 
 /**
  * Contains utility methods and constants required by the tests within the synchronization project.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.4.2
- * @since 2.1.0
  */
 object TestUtils {
     /**
@@ -85,27 +86,33 @@ object TestUtils {
         imageCount: Int,
         videoCount: Int,
         filesSize: Long
-    ): RequestMetaData {
+    ): de.cyface.uploader.model.Measurement {
         // Load meta data
         val tracks = persistence.loadTracks(measurement.id)
         val startLocation = tracks[0].geoLocations[0]!!
         val lastTrack = tracks[tracks.size - 1].geoLocations
         val endLocation = lastTrack[lastTrack.size - 1]!!
-        val deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8" // Must be a valid UUID
-        val id = MeasurementIdentifier(deviceId, measurement.id)
-        val startRecord = RequestMetaData.GeoLocation(
+        val deviceId = UUID.randomUUID()
+        val startRecord = GeoLocation(
             startLocation.timestamp, startLocation.lat,
             startLocation.lon
         )
-        val endRecord = RequestMetaData.GeoLocation(
+        val endRecord = GeoLocation(
             endLocation.timestamp, endLocation.lat,
             endLocation.lon
         )
-        return RequestMetaData(
-            deviceId, id.measurementIdentifier.toString(),
-            "testOsVersion", "testDeviceType", "testAppVersion",
-            measurement.distance, locationCount.toLong(), startRecord, endRecord,
-            Modality.BICYCLE.databaseIdentifier, 3, logCount, imageCount, videoCount, filesSize
+        return de.cyface.uploader.model.Measurement(
+            de.cyface.uploader.model.MeasurementIdentifier(deviceId, measurement.id),
+            DeviceMetaData("testOsVersion", "testDeviceType"),
+            ApplicationMetaData("testAppVersion", 3),
+            MeasurementMetaData(
+                measurement.distance,
+                locationCount.toLong(),
+                startRecord,
+                endRecord,
+                Modality.BICYCLE.databaseIdentifier,
+            ),
+            AttachmentMetaData(logCount, imageCount, videoCount, filesSize),
         )
     }
 

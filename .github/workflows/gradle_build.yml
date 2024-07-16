@@ -1,8 +1,6 @@
 # This workflow ensures the building step works
 #
 # @author Armin Schnabel
-# @version 1.0.3
-# @since 5.0.0
 name: Gradle Build
 
 on:

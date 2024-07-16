@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -31,7 +31,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import de.cyface.model.RequestMetaData
 import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.exception.NoSuchMeasurementException
@@ -45,12 +44,23 @@ import de.cyface.synchronization.ErrorHandler.ErrorCode
 import de.cyface.uploader.Result
 import de.cyface.uploader.Uploader
 import de.cyface.uploader.exception.SynchronizationInterruptedException
+import de.cyface.uploader.model.Attachment
+import de.cyface.uploader.model.AttachmentIdentifier
+import de.cyface.uploader.model.MeasurementIdentifier
+import de.cyface.uploader.model.Uploadable
+import de.cyface.uploader.model.metadata.ApplicationMetaData
+import de.cyface.uploader.model.metadata.ApplicationMetaData.Companion.CURRENT_TRANSFER_FILE_FORMAT_VERSION
+import de.cyface.uploader.model.metadata.AttachmentMetaData
+import de.cyface.uploader.model.metadata.DeviceMetaData
+import de.cyface.uploader.model.metadata.GeoLocation
+import de.cyface.uploader.model.metadata.MeasurementMetaData
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.util.UUID
 
 /**
  * An Android SyncAdapter implementation to transmit data to a Cyface server.
@@ -60,8 +70,6 @@ import java.io.File
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 4.1.1
- * @since 2.0.0
  * @property authenticator The authenticator to use for synchronization.
  * @property uploader The uploader to use for synchronization.
  */
@@ -73,7 +81,7 @@ class SyncAdapter private constructor(
     private val uploader: Uploader
 ) : AbstractThreadedSyncAdapter(context, autoInitialize, allowParallelSyncs) {
 
-    private val progressListeners: MutableCollection<ConnectionStatusListener>
+    private val progressListeners: MutableCollection<ConnectionStatusListener> = HashSet()
 
     /**
      * When this is set to true the [.isConnected] method always returns true.
@@ -103,7 +111,6 @@ class SyncAdapter private constructor(
     )
 
     init {
-        progressListeners = HashSet()
         addConnectionListener(CyfaceConnectionStatusListener(context))
     }
 
@@ -241,8 +248,10 @@ class SyncAdapter private constructor(
             val measurement = measurements[index]
 
             validateMeasurementFormat(measurement)
-            val metaData = loadMetaData(measurement, persistence, deviceId, context)
-            val attachmentCount = metaData.logCount + metaData.imageCount + metaData.videoCount
+            val measurementMeta = loadMeasurementMeta(measurement, persistence, deviceId, context)
+            val attachmentCount = measurementMeta.attachmentMetaData.logCount +
+                    measurementMeta.attachmentMetaData.imageCount +
+                    measurementMeta.attachmentMetaData.videoCount
 
             Log.d(TAG, "Preparing to upload Measurement (id ${measurement.id}) with $attachmentCount attachments.")
 
@@ -258,7 +267,7 @@ class SyncAdapter private constructor(
                     val progressListener = DefaultUploadProgressListener(measurementCount, index, measurement.id, attachmentCount, indexWithinMeasurement, progressListeners)
                     error = !syncMeasurement(
                         measurement,
-                        metaData,
+                        measurementMeta,
                         compressedTransferTempFile,
                         syncPerformer,
                         syncResult,
@@ -301,9 +310,9 @@ class SyncAdapter private constructor(
                             indexWithinMeasurement,
                             progressListeners
                         )
+                        val attachmentMeta = attachmentMeta(measurementMeta, attachment.id)
                         error = !syncAttachment(
-                            attachment.id,
-                            metaData,
+                            attachmentMeta,
                             syncPerformer,
                             transferTempFile,
                             syncResult,
@@ -347,7 +356,7 @@ class SyncAdapter private constructor(
 
     private suspend fun syncMeasurement(
         measurement: Measurement,
-        metaData: RequestMetaData,
+        uploadable: de.cyface.uploader.model.Measurement,
         compressedTransferTempFile: File?,
         syncPerformer: SyncPerformer,
         syncResult: SyncResult,
@@ -370,11 +379,11 @@ class SyncAdapter private constructor(
                 resultDeferred.complete(false)
             } else {
                 val fileName =
-                    "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.${COMPRESSED_TRANSFER_FILE_EXTENSION}"
+                    "${uploadable.identifier.deviceIdentifier}_${uploadable.identifier.measurementIdentifier}.${COMPRESSED_TRANSFER_FILE_EXTENSION}"
                 val result = syncPerformer.sendData(
                     uploader,
                     syncResult,
-                    metaData,
+                    uploadable,
                     compressedTransferTempFile!!,
                     progressListener,
                     accessToken!!,
@@ -423,8 +432,7 @@ class SyncAdapter private constructor(
     }
 
     private suspend fun syncAttachment(
-        attachmentId: Long,
-        metaData: RequestMetaData,
+        attachment: Attachment,
         syncPerformer: SyncPerformer,
         transferFile: File?,
         syncResult: SyncResult,
@@ -446,12 +454,13 @@ class SyncAdapter private constructor(
                 )
                 resultDeferred.complete(false)
             } else {
+                val attachmentId = attachment.identifier.attachmentIdentifier
                 val fileName =
-                    "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}_$attachmentId.${TRANSFER_FILE_EXTENSION}"
+                    "${attachment.identifier.deviceIdentifier}_${attachment.identifier.measurementIdentifier}_$attachmentId.${TRANSFER_FILE_EXTENSION}"
                 val result = syncPerformer.sendData(
                     uploader,
                     syncResult,
-                    metaData,
+                    attachment,
                     transferFile!!,
                     progressListener,
                     accessToken!!,
@@ -582,15 +591,16 @@ class SyncAdapter private constructor(
      * @param persistence The [DefaultPersistenceLayer] to load track data required
      * @param deviceId The device identifier generated for this device
      * @param context The `Context` to load the version name of this SDK
-     * @return The [RequestMetaData] loaded
+     * @return The [Uploadable] loaded
      * @throws CursorIsNullException when accessing the `ContentProvider` failed
      */
     @Throws(CursorIsNullException::class)
-    private fun loadMetaData(
+    private fun loadMeasurementMeta(
         measurement: Measurement,
-        persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>, deviceId: String,
+        persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>,
+        deviceId: String,
         context: Context
-    ): RequestMetaData {
+    ): de.cyface.uploader.model.Measurement {
 
         // If there is only one location captured, start and end locations are identical
         val tracks = persistence.loadTracks(measurement.id)
@@ -604,15 +614,15 @@ class SyncAdapter private constructor(
         )
         val lastTrack: List<ParcelableGeoLocation?>? =
             if (tracks.isNotEmpty()) tracks[tracks.size - 1].geoLocations else null
-        var startLocation: RequestMetaData.GeoLocation? = null
+        var startLocation: GeoLocation? = null
         if (tracks.isNotEmpty()) {
             val l = tracks[0].geoLocations[0]!!
-            startLocation = RequestMetaData.GeoLocation(l.timestamp, l.lat, l.lon)
+            startLocation = GeoLocation(l.timestamp, l.lat, l.lon)
         }
-        var endLocation: RequestMetaData.GeoLocation? = null
+        var endLocation: GeoLocation? = null
         if (lastTrack != null) {
             val l = lastTrack[lastTrack.size - 1]
-            endLocation = RequestMetaData.GeoLocation(l!!.timestamp, l.lat, l.lon)
+            endLocation = GeoLocation(l!!.timestamp, l.lat, l.lon)
         }
 
         return runBlocking {
@@ -639,24 +649,34 @@ class SyncAdapter private constructor(
             } catch (e: PackageManager.NameNotFoundException) {
                 throw IllegalStateException(e)
             }
-            return@runBlocking RequestMetaData(
-                deviceId,
-                measurement.id.toString(),
-                osVersion,
-                deviceType,
-                appVersion,
-                measurement.distance,
-                locationCount.toLong(),
-                startLocation,
-                endLocation,
-                measurement.modality.databaseIdentifier,
-                RequestMetaData.CURRENT_TRANSFER_FILE_FORMAT_VERSION,
-                logCount,
-                imageCount,
-                0,
-                filesSize
+            return@runBlocking de.cyface.uploader.model.Measurement(
+                MeasurementIdentifier(UUID.fromString(deviceId), measurement.id),
+                DeviceMetaData(osVersion, deviceType),
+                ApplicationMetaData(appVersion, CURRENT_TRANSFER_FILE_FORMAT_VERSION),
+                MeasurementMetaData(
+                    measurement.distance,
+                    locationCount.toLong(),
+                    startLocation,
+                    endLocation,
+                    measurement.modality.databaseIdentifier,
+                ),
+                AttachmentMetaData(logCount, imageCount, 0, filesSize),
             )
         }
+    }
+
+    private fun attachmentMeta(measurement: de.cyface.uploader.model.Measurement, attachmentId: Long): Attachment {
+        return Attachment(
+            AttachmentIdentifier(
+                measurement.identifier.deviceIdentifier,
+                measurement.identifier.measurementIdentifier,
+                attachmentId,
+            ),
+            measurement.deviceMetaData,
+            measurement.applicationMetaData,
+            measurement.measurementMetaData,
+            measurement.attachmentMetaData,
+        )
     }
 
     private fun getFolderSize(folder: File): Long {
