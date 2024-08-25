@@ -131,7 +131,7 @@ open class ParcelableAttachment : DataPoint {
         require(timestamp >= 0L) { "Illegal argument: timestamp was less than 0L!" }
         require(type != FileType.FILE_TYPE_UNSPECIFIED) { "Unsupported type $type." }
         require(fileFormatVersion >= 1) { "Unsupported format version $fileFormatVersion" }
-        require(size > 0) { "Unsupported size: $size bytes" }
+        require(size >= 0) { "Unsupported size: $size bytes" }
         if (lat != null) {
             require(!(lat < -90.0 || lat > 90.0)) {
                 "Illegal value for latitude. Is required to be between -90.0 and 90.0 but was $lat."
