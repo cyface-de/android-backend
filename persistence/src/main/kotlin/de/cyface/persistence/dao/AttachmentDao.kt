@@ -63,6 +63,9 @@ interface AttachmentDao {
     @Query("SELECT * FROM ${AttachmentTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId LIMIT 1")
     suspend fun loadOneByMeasurementId(measurementId: Long): Attachment?
 
+    @Query("SELECT * FROM ${AttachmentTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${AttachmentTable.COLUMN_TYPE} = :type ORDER BY ${BaseColumns.TIMESTAMP} ASC")
+    suspend fun loadOneByMeasurementIdAndType(measurementId: Long, type: FileType): Attachment?
+
     @Query("SELECT * FROM ${AttachmentTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${AttachmentTable.COLUMN_STATUS} = :status ORDER BY ${BaseColumns.TIMESTAMP} ASC")
     suspend fun loadAllByMeasurementIdAndStatus(measurementId: Long, status: AttachmentStatus): List<Attachment>
 
