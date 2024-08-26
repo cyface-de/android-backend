@@ -277,7 +277,8 @@ object TransferFileSerializer {
         val builder = de.cyface.protos.model.Measurement.newBuilder()
             .setFormatVersion(MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION.toInt())
         when (reference.type) {
-            FileType.CSV -> {
+            // TODO: zip all attachments
+            FileType.JSON, FileType.CSV -> {
                 builder.capturingLog = attachment
             }
 

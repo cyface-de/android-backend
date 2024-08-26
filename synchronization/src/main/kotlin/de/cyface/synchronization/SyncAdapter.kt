@@ -514,6 +514,9 @@ class SyncAdapter private constructor(
             FileType.CSV -> {
                 Validate.isTrue(format == 1.toShort())
             }
+            FileType.JSON -> {
+                Validate.isTrue(format == 1.toShort())
+            }
             FileType.JPG -> {
                 Validate.isTrue(format == 1.toShort())
             }
@@ -627,13 +630,18 @@ class SyncAdapter private constructor(
 
         return runBlocking {
             // Attachments
-            val logCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.CSV)
+            val csvCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.CSV)
+            val jsonCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.JSON)
+            val logCount = csvCount + jsonCount
             val imageCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.JPG)
             val allAttachments = persistence.attachmentDao!!.countByMeasurementId(measurement.id)
             val unsupportedAttachments = allAttachments - logCount - imageCount
-            require(unsupportedAttachments == 0) { "Number of unsupported attachments: $unsupportedAttachments" }
+            require(unsupportedAttachments == 0) {
+                "Number of unsupported attachments: $unsupportedAttachments"
+            }
             val filesSize = if (allAttachments > 0) {
-                val attachment = persistence.attachmentDao!!.loadOneByMeasurementId(measurement.id)
+                // TODO: support multiple attachments by zipping them
+                val attachment = persistence.attachmentDao!!.loadOneByMeasurementIdAndType(measurement.id, FileType.JSON)
                 val folderPath = File(attachment!!.path.parent.toUri())
                 getFolderSize(folderPath)
             } else 0

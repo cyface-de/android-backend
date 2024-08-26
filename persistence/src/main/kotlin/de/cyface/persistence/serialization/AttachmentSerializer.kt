@@ -44,7 +44,7 @@ class AttachmentSerializer {
      */
     fun readFrom(attachment: Attachment) {
         val builder = de.cyface.protos.model.File.newBuilder()
-        require(attachment.type == FileType.CSV || attachment.type == FileType.JPG) { "Unsupported type: ${attachment.type}" }
+        require(attachment.type == FileType.CSV || attachment.type == FileType.JSON || attachment.type == FileType.JPG) { "Unsupported type: ${attachment.type}" }
 
         // Ensure we only inject bytes from the correct file format version
         // The current version of the file format used to persist attachment data. It's stored in each attachment
