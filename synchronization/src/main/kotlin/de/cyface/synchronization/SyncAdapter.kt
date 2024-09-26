@@ -615,8 +615,7 @@ class SyncAdapter private constructor(
             tracks.isEmpty() || (tracks[0].geoLocations.size > 0
                     && tracks[tracks.size - 1].geoLocations.size > 0)
         )
-        val lastTrack: List<ParcelableGeoLocation?>? =
-            if (tracks.isNotEmpty()) tracks[tracks.size - 1].geoLocations else null
+        val lastTrack = if (tracks.isNotEmpty()) tracks[tracks.size - 1].geoLocations else null
         var startLocation: GeoLocation? = null
         if (tracks.isNotEmpty()) {
             val l = tracks[0].geoLocations[0]!!
@@ -641,7 +640,9 @@ class SyncAdapter private constructor(
             }
             val filesSize = if (allAttachments > 0) {
                 // TODO: support multiple attachments by zipping them
-                val attachment = persistence.attachmentDao!!.loadOneByMeasurementIdAndType(measurement.id, FileType.JSON)
+                // (!) we load the CSV file here as the location_metrics.csv should always exist
+                // if not, the upload crashes with an NPE.
+                val attachment = persistence.attachmentDao!!.loadOneByMeasurementIdAndType(measurement.id, FileType.CSV)
                 val folderPath = File(attachment!!.path.parent.toUri())
                 getFolderSize(folderPath)
             } else 0
