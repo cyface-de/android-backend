@@ -101,7 +101,7 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
                 val result = try {
                     when (uploadType) {
                         UploadType.MEASUREMENT ->  {
-                            val endpoint = uploader.measurementsEndpoint()
+                            val endpoint = uploader.measurementsEndpoint(uploadable)
                             Log.i(TAG, "Uploading $fileName to $endpoint.")
                             uploader.uploadMeasurement(
                                 jwtAuthToken,
@@ -113,9 +113,7 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
 
                         UploadType.ATTACHMENT -> {
                             val attachment = uploadable as Attachment
-                            val measurementId = attachment.identifier.measurementIdentifier
-                            val deviceId = uploadable.identifier.deviceIdentifier.toString()
-                            val endpoint = uploader.attachmentsEndpoint(deviceId, measurementId)
+                            val endpoint = uploader.attachmentsEndpoint(uploadable)
                             Log.i(TAG, "Uploading $fileName to $endpoint.")
                             uploader.uploadAttachment(
                                 jwtAuthToken,
