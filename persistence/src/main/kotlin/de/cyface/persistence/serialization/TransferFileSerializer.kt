@@ -39,6 +39,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.BufferedOutputStream
 import java.io.IOException
+import java.util.Locale
 
 /**
  * Serializes [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] files.
@@ -274,10 +275,17 @@ object TransferFileSerializer {
     ) {
         val attachment = loadAttachment(reference)
 
+        // In case we switch back to the cyf wrapper for attachments, we need to adjust the code:
+        // Out Protobuf format only supports one `capturing_log` file, but we collect multiple
+        // files which do not fit the "images" or "video" categories (i.e. CSV, JSON). If we would
+        // upload all attachments in one request, we would need to compress them into one ZIP files.
+        // That is why we added the file format "ZIP" to the Protobuf message definition.
+        // But as we upload each attachment separately, even with the cyf wrapper we should be fine
+        // with one `capturing_log` support, as we can just add this one file as such.
+        // So if you enable the cyf wrapping code below again, make sure all log files are uploaded.
         /*val builder = de.cyface.protos.model.Measurement.newBuilder()
             .setFormatVersion(MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION.toInt())
         when (reference.type) {
-            // TODO: zip all attachments
             FileType.JSON, FileType.CSV -> {
                 builder.capturingLog = attachment
             }
@@ -309,6 +317,7 @@ object TransferFileSerializer {
         }
         Log.d(
             TAG, String.format(
+                Locale.getDefault(),
                 "Serialized attachment: %s",
                 DataSerializable.humanReadableSize(
                     (transferFileHeader.size + uploadBytes.size).toLong(),
