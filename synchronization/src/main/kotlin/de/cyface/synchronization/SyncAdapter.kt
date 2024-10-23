@@ -181,7 +181,7 @@ class SyncAdapter private constructor(
         syncResult: SyncResult,
         fromBackground: Boolean
     ) {
-        Log.w(TAG, e.javaClass.simpleName + ": " + e.message)
+        Log.w(TAG, e.javaClass.simpleName + ": " + e.message, e)
         when (e) {
             is CursorIsNullException -> {
                 syncResult.databaseError = true

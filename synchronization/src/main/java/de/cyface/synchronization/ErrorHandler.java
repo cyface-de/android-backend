@@ -231,8 +231,6 @@ public class ErrorHandler extends BroadcastReceiver {
      * A list of known Errors which are thrown by the Cyface SDK.
      *
      * @author Armin Schnabel
-     * @version 1.3.0
-     * @since 1.0.0
      */
     public enum ErrorCode {
 
@@ -273,8 +271,6 @@ public class ErrorHandler extends BroadcastReceiver {
      * Interface for listeners receiving errors.
      *
      * @author Armin Schnabel
-     * @version 1.0.0
-     * @since 1.0.0
      */
     public interface ErrorListener {
         /**
