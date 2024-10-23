@@ -310,13 +310,13 @@ object TransferFileSerializer {
         // Currently loading one image per transfer file into memory (~ 2-5 MB / image).
         // - To load add all high-res image data or video data in the future we cannot use the pre-compiled
         // builder but have to stream the data without loading it into memory to avoid an OOM exception.
-        val transferFileHeader = DataSerializable.transferFileHeader()
+        //val transferFileHeader = DataSerializable.transferFileHeader()
         //val uploadBytes = builder.build().toByteArray()
         val uploadBytes = attachment.bytes.toByteArray()
         try {
             // The stream must be closed by the caller in a finally catch
             withContext(Dispatchers.IO) {
-                bufferedOutputStream.write(transferFileHeader)
+                //bufferedOutputStream.write(transferFileHeader)
                 bufferedOutputStream.write(uploadBytes)
                 bufferedOutputStream.flush()
             }
@@ -329,7 +329,7 @@ object TransferFileSerializer {
                 Locale.getDefault(),
                 "Serialized attachment: %s",
                 DataSerializable.humanReadableSize(
-                    (transferFileHeader.size + uploadBytes.size).toLong(),
+                    (/*transferFileHeader.size +*/ uploadBytes.size).toLong(),
                     true
                 )
             )
