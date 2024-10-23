@@ -29,7 +29,6 @@ import de.cyface.persistence.content.AbstractCyfaceTable.Companion.DATABASE_QUER
 import de.cyface.persistence.model.Attachment
 import de.cyface.persistence.model.Measurement
 import de.cyface.protos.model.Event
-import de.cyface.protos.model.File.FileType
 import de.cyface.protos.model.LocationRecords
 import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.DataSerializable
@@ -45,8 +44,6 @@ import java.io.IOException
  * Serializes [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] files.
  *
  * @author Armin Schnabel
- * @version 3.1.0
- * @since 5.0.0
  */
 object TransferFileSerializer {
     /**
@@ -253,12 +250,15 @@ object TransferFileSerializer {
      * Implements the core algorithm of loading data of a [Attachment] from the [PersistenceLayer]
      * and serializing it into an array of bytes, ready to be transferred.
      *
-     * We use the {@param loader} to access the measurement data. FIXME?
-     *
      * We assemble the data using a buffer to avoid OOM exceptions.
      *
      * **ATTENTION:** The caller must make sure the {@param bufferedOutputStream} is closed when no longer needed
      * or the app crashes.
+     *
+     * Attention:
+     * We don't wrap the attachments in the `cyf` wrapper, as:
+     * - Most our project currently prefer the plain JPG, CSV, ZIP, etc. formats
+     * - We have a version in meta data, and currently have version 1 for attachment files format.
      *
      * @param bufferedOutputStream The `OutputStream` to which the serialized data should be written. Injecting
      * this allows us to compress the serialized data without the need to write it into a temporary file.
@@ -274,7 +274,7 @@ object TransferFileSerializer {
     ) {
         val attachment = loadAttachment(reference)
 
-        val builder = de.cyface.protos.model.Measurement.newBuilder()
+        /*val builder = de.cyface.protos.model.Measurement.newBuilder()
             .setFormatVersion(MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION.toInt())
         when (reference.type) {
             // TODO: zip all attachments
@@ -289,18 +289,19 @@ object TransferFileSerializer {
             else -> {
                 throw IllegalArgumentException("Unsupported type: ${reference.type}")
             }
-        }
+        }*/
 
         // Currently loading one image per transfer file into memory (~ 2-5 MB / image).
         // - To load add all high-res image data or video data in the future we cannot use the pre-compiled
         // builder but have to stream the data without loading it into memory to avoid an OOM exception.
         val transferFileHeader = DataSerializable.transferFileHeader()
-        val measurementBytes = builder.build().toByteArray()
+        //val uploadBytes = builder.build().toByteArray()
+        val uploadBytes = attachment.bytes.toByteArray()
         try {
             // The stream must be closed by the caller in a finally catch
             withContext(Dispatchers.IO) {
                 bufferedOutputStream.write(transferFileHeader)
-                bufferedOutputStream.write(measurementBytes)
+                bufferedOutputStream.write(uploadBytes)
                 bufferedOutputStream.flush()
             }
         } catch (e: IOException) {
@@ -310,7 +311,7 @@ object TransferFileSerializer {
             TAG, String.format(
                 "Serialized attachment: %s",
                 DataSerializable.humanReadableSize(
-                    (transferFileHeader.size + measurementBytes.size).toLong(),
+                    (transferFileHeader.size + uploadBytes.size).toLong(),
                     true
                 )
             )
