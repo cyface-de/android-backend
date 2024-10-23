@@ -28,8 +28,6 @@ import java.nio.file.Files
  * Serializes a [Attachment] in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION].
  *
  * @author Armin Schnabel
- * @version 1.0.0
- * @since 7.10.0
  */
 class AttachmentSerializer {
     /**

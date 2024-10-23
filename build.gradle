@@ -53,7 +53,7 @@ ext {
     // When `android-app` is checkout out, `rootProject.uploaderVersion` in the submodules will point
     // to `android-app/build.gradle` instead of `submodule/build.gradle`.
     cyfaceSerializationVersion = "3.4.2"
-    cyfaceUploaderVersion = "1.4.1"
+    cyfaceUploaderVersion = "1.5.0"
 
     // Android SDK versions
     minSdkVersion = 21 // device support

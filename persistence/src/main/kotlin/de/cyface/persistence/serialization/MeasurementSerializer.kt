@@ -185,6 +185,11 @@ class MeasurementSerializer {
      * layer serialized in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] format, ready to be
      * transferred.
      *
+     * Attention:
+     * We don't wrap the attachments in the `cyf` wrapper, as:
+     * - Most our project currently prefer the plain JPG, CSV, ZIP, etc. formats
+     * - We have a version in meta data, and currently have version 1 for attachment files format.
+     *
      * No compression is used as we're mostly transferring JPG files right now which are pre-compressed.
      *
      * @param fileOutputStream the `FileInputStream` to write the compressed data to

@@ -37,7 +37,6 @@ import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.AttachmentStatus
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
-import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.serialization.MeasurementSerializer
 import de.cyface.protos.model.File.FileType
 import de.cyface.synchronization.ErrorHandler.ErrorCode
@@ -301,6 +300,7 @@ class SyncAdapter private constructor(
 
                         if (isSyncRequestAborted(account, authority)) return
 
+                        @Suppress("SpellCheckingInspection")
                         val indexWithinMeasurement = 1 + syncedAttachments + attachmentIndex // ccyf is index 0
                         val progressListener = DefaultUploadProgressListener(
                             measurementCount,
@@ -313,6 +313,7 @@ class SyncAdapter private constructor(
                         val attachmentMeta = attachmentMeta(measurementMeta, attachment.id)
                         error = !syncAttachment(
                             attachmentMeta,
+                            attachment.type,
                             syncPerformer,
                             transferTempFile,
                             syncResult,
@@ -433,6 +434,7 @@ class SyncAdapter private constructor(
 
     private suspend fun syncAttachment(
         attachment: Attachment,
+        attachmentType: FileType,
         syncPerformer: SyncPerformer,
         transferFile: File?,
         syncResult: SyncResult,
@@ -456,7 +458,7 @@ class SyncAdapter private constructor(
             } else {
                 val attachmentId = attachment.identifier.attachmentIdentifier
                 val fileName =
-                    "${attachment.identifier.deviceIdentifier}_${attachment.identifier.measurementIdentifier}_$attachmentId.${TRANSFER_FILE_EXTENSION}"
+                    "${attachment.identifier.deviceIdentifier}_${attachment.identifier.measurementIdentifier}_$attachmentId.${attachmentType.name.lowercase()}"
                 val result = syncPerformer.sendData(
                     uploader,
                     syncResult,
@@ -744,11 +746,6 @@ class SyncAdapter private constructor(
          * method returns true;
          */
         const val MOCK_IS_CONNECTED_TO_RETURN_TRUE = "mocked_periodic_sync_check_false"
-
-        /**
-         * The file extension of the attachment file which is transmitted on synchronization.
-         */
-        private const val TRANSFER_FILE_EXTENSION = "cyf"
 
         /**
          * The file extension of the measurement file which is transmitted on synchronization.
