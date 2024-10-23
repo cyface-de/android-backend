@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Cyface GmbH
+ * Copyright 2018-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -48,14 +48,13 @@ import java.util.zip.DeflaterOutputStream
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.1.0
- * @since 2.0.0
  */
 class MeasurementSerializer {
     /**
-     * Loads the [de.cyface.persistence.model.Measurement] with the provided identifier from the persistence layer serialized and compressed
-     * in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] format and writes it to a temp file, ready to
-     * be transferred.
+     * Loads the [de.cyface.persistence.model.Measurement] with the provided identifier from the
+     * persistence layer serialized and compressed in the
+     * [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] format and writes it to a temp file,
+     * ready to be transferred.
      *
      * **ATTENTION**: The caller needs to delete the file which is referenced by the returned `FileInputStream`
      * when no longer needed or on program crash!
@@ -80,7 +79,8 @@ class MeasurementSerializer {
                 }
             withContext(Dispatchers.IO) {
                 FileOutputStream(compressedTempFile).use { fileOutputStream ->
-                    // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
+                    // As the DeflaterOutputStream is created with an FileOutputStream, the
+                    // compressed data is written to file
                     loadSerializedCompressed(
                         fileOutputStream,
                         measurementId,
@@ -119,11 +119,8 @@ class MeasurementSerializer {
         val cacheDir = persistenceLayer.cacheDir
         var tempFile: File? = null
         try {
-            tempFile =
-                withContext(Dispatchers.IO) {
-                    File.createTempFile(TRANSFER_FILE_PREFIX, ".tmp", cacheDir)
-                }
             withContext(Dispatchers.IO) {
+                tempFile = File.createTempFile(TRANSFER_FILE_PREFIX, ".tmp", cacheDir)
                 FileOutputStream(tempFile).use { fileOutputStream ->
                     loadSerializedAttachment(
                         fileOutputStream,
@@ -132,8 +129,8 @@ class MeasurementSerializer {
                 }
             }
         } catch (e: IOException) {
-            if (tempFile != null && tempFile.exists()) {
-                Validate.isTrue(tempFile.delete())
+            if (tempFile != null && tempFile!!.exists()) {
+                require(tempFile!!.delete())
             }
             throw IllegalStateException(e)
         }
@@ -141,8 +138,9 @@ class MeasurementSerializer {
     }
 
     /**
-     * Writes the [de.cyface.persistence.model.Measurement] with the provided identifier from the persistence layer serialized and compressed
-     * in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] format, ready to be transferred.
+     * Writes the [de.cyface.persistence.model.Measurement] with the provided identifier from the
+     * persistence layer serialized and compressed in the
+     * [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] format, ready to be transferred.
      *
      * The Deflater ZLIB (RFC-1950) compression is used.
      *

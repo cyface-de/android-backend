@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -23,13 +23,10 @@ package de.cyface.synchronization
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.1
- * @since 2.0.0
  */
 object Constants {
     /**
      * Tag used to identify Logcat messages issued by instances of this package.
      */
     const val TAG = "de.cyface.sync"
-
 }

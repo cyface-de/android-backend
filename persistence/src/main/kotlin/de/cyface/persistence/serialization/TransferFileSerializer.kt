@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Cyface GmbH
+ * Copyright 2019-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -107,7 +107,9 @@ object TransferFileSerializer {
         Validate.isTrue(measurement!!.fileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
         if (accelerationFile.exists()) {
             Log.v(
-                TAG, String.format(
+                TAG,
+                String.format(
+                    Locale.getDefault(),
                     "Serializing %s accelerations for synchronization.",
                     DataSerializable.humanReadableSize(accelerationFile.length(), true)
                 )
@@ -117,7 +119,9 @@ object TransferFileSerializer {
         }
         if (rotationFile.exists()) {
             Log.v(
-                TAG, String.format(
+                TAG,
+                String.format(
+                    Locale.getDefault(),
                     "Serializing %s rotations for synchronization.",
                     DataSerializable.humanReadableSize(rotationFile.length(), true)
                 )
@@ -127,7 +131,9 @@ object TransferFileSerializer {
         }
         if (directionFile.exists()) {
             Log.v(
-                TAG, String.format(
+                TAG,
+                String.format(
+                    Locale.getDefault(),
                     "Serializing %s directions for synchronization.",
                     DataSerializable.humanReadableSize(directionFile.length(), true)
                 )
@@ -152,7 +158,9 @@ object TransferFileSerializer {
             throw IllegalStateException(e)
         }
         Log.d(
-            TAG, String.format(
+            TAG,
+            String.format(
+                Locale.getDefault(),
                 "Serialized %s",
                 DataSerializable.humanReadableSize(
                     (transferFileHeader.size + measurementBytes.size).toLong(),
@@ -302,13 +310,13 @@ object TransferFileSerializer {
         // Currently loading one image per transfer file into memory (~ 2-5 MB / image).
         // - To load add all high-res image data or video data in the future we cannot use the pre-compiled
         // builder but have to stream the data without loading it into memory to avoid an OOM exception.
-        val transferFileHeader = DataSerializable.transferFileHeader()
+        //val transferFileHeader = DataSerializable.transferFileHeader()
         //val uploadBytes = builder.build().toByteArray()
         val uploadBytes = attachment.bytes.toByteArray()
         try {
             // The stream must be closed by the caller in a finally catch
             withContext(Dispatchers.IO) {
-                bufferedOutputStream.write(transferFileHeader)
+                //bufferedOutputStream.write(transferFileHeader)
                 bufferedOutputStream.write(uploadBytes)
                 bufferedOutputStream.flush()
             }
@@ -316,11 +324,12 @@ object TransferFileSerializer {
             throw IllegalStateException(e)
         }
         Log.d(
-            TAG, String.format(
+            TAG,
+            String.format(
                 Locale.getDefault(),
                 "Serialized attachment: %s",
                 DataSerializable.humanReadableSize(
-                    (transferFileHeader.size + uploadBytes.size).toLong(),
+                    (/*transferFileHeader.size +*/ uploadBytes.size).toLong(),
                     true
                 )
             )

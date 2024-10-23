@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Cyface GmbH
+ * Copyright 2018-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -41,8 +41,6 @@ import de.cyface.utils.Validate;
  * support time for all involved.
  *
  * @author Armin Schnabel
- * @version 2.2.0
- * @since 2.2.0
  */
 public class ErrorHandler extends BroadcastReceiver {
 
@@ -121,7 +119,6 @@ public class ErrorHandler extends BroadcastReceiver {
         Validate.notNull(errorCode);
         String errorMessage;
         switch (errorCode) {
-
             case UNAUTHORIZED:
                 errorMessage = context
                         .getString(de.cyface.synchronization.R.string.error_message_credentials_incorrect);
@@ -234,8 +231,6 @@ public class ErrorHandler extends BroadcastReceiver {
      * A list of known Errors which are thrown by the Cyface SDK.
      *
      * @author Armin Schnabel
-     * @version 1.3.0
-     * @since 1.0.0
      */
     public enum ErrorCode {
 
@@ -276,8 +271,6 @@ public class ErrorHandler extends BroadcastReceiver {
      * Interface for listeners receiving errors.
      *
      * @author Armin Schnabel
-     * @version 1.0.0
-     * @since 1.0.0
      */
     public interface ErrorListener {
         /**

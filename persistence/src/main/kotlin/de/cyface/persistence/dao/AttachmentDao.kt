@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -31,8 +31,6 @@ import de.cyface.protos.model.File.FileType
  * Data access object which provides the API to interact with the [Attachment] database table.
  *
  * @author Armin Schnabel
- * @version 1.0.0
- * @since 7.10.0
  */
 @Dao
 interface AttachmentDao {
@@ -57,16 +55,22 @@ interface AttachmentDao {
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
-    @Query("SELECT * FROM ${AttachmentTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY ${BaseColumns.TIMESTAMP} ASC")
+    @Query("SELECT * FROM ${AttachmentTable.URI_PATH} " +
+            "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY ${BaseColumns.TIMESTAMP} ASC")
     suspend fun loadAllByMeasurementId(measurementId: Long): List<Attachment>
 
-    @Query("SELECT * FROM ${AttachmentTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId LIMIT 1")
+    @Query("SELECT * FROM ${AttachmentTable.URI_PATH} " +
+            "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId LIMIT 1")
     suspend fun loadOneByMeasurementId(measurementId: Long): Attachment?
 
-    @Query("SELECT * FROM ${AttachmentTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${AttachmentTable.COLUMN_TYPE} = :type ORDER BY ${BaseColumns.TIMESTAMP} ASC")
+    @Query("SELECT * FROM ${AttachmentTable.URI_PATH} " +
+            "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId " +
+            "AND ${AttachmentTable.COLUMN_TYPE} = :type ORDER BY ${BaseColumns.TIMESTAMP} ASC")
     suspend fun loadOneByMeasurementIdAndType(measurementId: Long, type: FileType): Attachment?
 
-    @Query("SELECT * FROM ${AttachmentTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${AttachmentTable.COLUMN_STATUS} = :status ORDER BY ${BaseColumns.TIMESTAMP} ASC")
+    @Query("SELECT * FROM ${AttachmentTable.URI_PATH} " +
+            "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId " +
+            "AND ${AttachmentTable.COLUMN_STATUS} = :status ORDER BY ${BaseColumns.TIMESTAMP} ASC")
     suspend fun loadAllByMeasurementIdAndStatus(measurementId: Long, status: AttachmentStatus): List<Attachment>
 
     /**
@@ -78,7 +82,8 @@ interface AttachmentDao {
     /**
      * Returns the number of files found for a specific [measurementId] and [type].
      */
-    @Query("SELECT COUNT(*) FROM ${AttachmentTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${AttachmentTable.COLUMN_TYPE} = :type")
+    @Query("SELECT COUNT(*) FROM ${AttachmentTable.URI_PATH} " +
+            "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${AttachmentTable.COLUMN_TYPE} = :type")
     suspend fun countByMeasurementIdAndType(measurementId: Long, type: FileType): Int
 
     @Query("DELETE FROM ${AttachmentTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
@@ -87,9 +92,11 @@ interface AttachmentDao {
     @Query("DELETE FROM ${AttachmentTable.URI_PATH}")
     suspend fun deleteAll(): Int
 
-    @Query("UPDATE ${AttachmentTable.URI_PATH} SET ${AttachmentTable.COLUMN_SIZE} = :size WHERE ${BaseColumns.ID} = :id")
+    @Query("UPDATE ${AttachmentTable.URI_PATH} SET ${AttachmentTable.COLUMN_SIZE} = :size " +
+            "WHERE ${BaseColumns.ID} = :id")
     suspend fun updateSize(id: Long, size: Long)
 
-    @Query("UPDATE ${AttachmentTable.URI_PATH} SET ${AttachmentTable.COLUMN_STATUS} = :status WHERE ${BaseColumns.ID} = :id")
+    @Query("UPDATE ${AttachmentTable.URI_PATH} SET ${AttachmentTable.COLUMN_STATUS} = :status " +
+            "WHERE ${BaseColumns.ID} = :id")
     suspend fun updateStatus(id: Long, status: AttachmentStatus)
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2024 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -65,8 +65,6 @@ import kotlin.math.max
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 19.1.0
- * @since 2.0.0
  * @property persistenceBehaviour The [PersistenceBehaviour] defines how the `Persistence` layer works.
  * We need this behaviour to differentiate if the [DefaultPersistenceLayer] is used for live capturing
  * and or to load existing data.
@@ -319,7 +317,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 .file
             Validate.isTrue(accelerationFile.delete())
         } catch (e: NoSuchFileException) {
-            Log.v(TAG, "markAsSynchronized: No acceleration file found to delete, nothing to do")
+            Log.v(TAG, "markAsSynchronized: No acceleration file found to delete, nothing to do", e)
         }
         try {
             val rotationFile = Point3DFile.loadFile(
@@ -327,7 +325,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             ).file
             Validate.isTrue(rotationFile.delete())
         } catch (e: NoSuchFileException) {
-            Log.v(TAG, "markAsSynchronized: No rotation file found to delete, nothing to do")
+            Log.v(TAG, "markAsSynchronized: No rotation file found to delete, nothing to do", e)
         }
         try {
             val directionFile = Point3DFile.loadFile(
@@ -336,7 +334,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 .file
             Validate.isTrue(directionFile.delete())
         } catch (e: NoSuchFileException) {
-            Log.v(TAG, "markAsSynchronized: No direction file found to delete, nothing to do")
+            Log.v(TAG, "markAsSynchronized: No direction file found to delete, nothing to do", e)
         }
 
         // Also delete syncable attachments binaries when the measurement is skipped or deprecated
@@ -421,8 +419,13 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     private fun markSavedAs(newStatus: AttachmentStatus, attachment: Attachment) {
 
         // The status in the database could be different from the one in the object so load it again
-        Validate.isTrue(attachment.status === AttachmentStatus.SAVED, "Unexpected status: ${attachment.status}")
-        Validate.isTrue(newStatus == AttachmentStatus.SYNCED || newStatus == AttachmentStatus.SKIPPED || newStatus == AttachmentStatus.DEPRECATED, "Unexpected status change from ${attachment.status} to $newStatus")
+        require(attachment.status === AttachmentStatus.SAVED) {
+            "Unexpected status: ${attachment.status}"
+        }
+        require(
+            newStatus == AttachmentStatus.SYNCED || newStatus == AttachmentStatus.SKIPPED ||
+                    newStatus == AttachmentStatus.DEPRECATED
+        ) { "Unexpected status change from ${attachment.status} to $newStatus" }
         runBlocking {
             attachmentDao!!.updateStatus(attachment.id, newStatus)
         }
