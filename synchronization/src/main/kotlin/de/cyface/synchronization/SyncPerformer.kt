@@ -68,7 +68,7 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
      * `deviceIdentifier` need to be globally unique. If they are not the server will probably reject the
      * request.
      *
-     * Sync errors are broadcasted to the [ErrorHandler].
+     * Sync errors are broadcast to the [ErrorHandler].
      *
      * Since this is a synchronous call it can take from seconds to minutes depending on the size of `data`.
      * Never call this on the UI thread. Your users are going to hate you.
