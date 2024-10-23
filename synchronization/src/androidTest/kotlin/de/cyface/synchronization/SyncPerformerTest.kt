@@ -57,6 +57,7 @@ import de.cyface.uploader.exception.UploadFailed
 import de.cyface.uploader.exception.UploadSessionExpired
 import de.cyface.uploader.model.Attachment
 import de.cyface.uploader.model.MeasurementIdentifier
+import de.cyface.uploader.model.Uploadable
 import de.cyface.uploader.model.metadata.ApplicationMetaData
 import de.cyface.uploader.model.metadata.AttachmentMetaData
 import de.cyface.uploader.model.metadata.DeviceMetaData
@@ -309,12 +310,12 @@ class SyncPerformerTest {
 
         // Mock the actual post request
         val mockedUploader = object : Uploader {
-            override fun measurementsEndpoint(): URL {
+            override fun measurementsEndpoint(uploadable: Uploadable): URL {
                 return URL("https://mocked.cyface.de/api/v123/measurements")
             }
 
-            override fun attachmentsEndpoint(deviceId: String, measurementId: Long): URL {
-                return URL("https://mocked.cyface.de/api/v123/measurements/$deviceId/$measurementId/attachments")
+            override fun attachmentsEndpoint(uploadable: Uploadable): URL {
+                return URL("https://mocked.cyface.de/api/v123/measurements/${uploadable.deviceId()}/${uploadable.measurementId()}/attachments")
             }
 
             override fun uploadMeasurement(

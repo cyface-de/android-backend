@@ -23,6 +23,7 @@ import de.cyface.uploader.UploadProgressListener
 import de.cyface.uploader.Uploader
 import de.cyface.uploader.model.Attachment
 import de.cyface.uploader.model.Measurement
+import de.cyface.uploader.model.Uploadable
 import java.io.File
 import java.net.MalformedURLException
 import java.net.URL
@@ -34,7 +35,7 @@ import java.net.URL
  */
 internal class MockedUploader : Uploader {
 
-    override fun measurementsEndpoint(): URL {
+    override fun measurementsEndpoint(uploadable: Uploadable): URL {
         return try {
             URL("https://mocked.cyface.de/api/v123/measurements")
         } catch (e: MalformedURLException) {
@@ -42,7 +43,7 @@ internal class MockedUploader : Uploader {
         }
     }
 
-    override fun attachmentsEndpoint(deviceId: String, measurementId: Long): URL {
+    override fun attachmentsEndpoint(uploadable: Uploadable): URL {
         return try {
             URL("https://mocked.cyface.de/api/v123/measurements/did/mid/attachments")
         } catch (e: MalformedURLException) {
