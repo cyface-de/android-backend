@@ -303,7 +303,7 @@ class SyncAdapter private constructor(
                 for (attachmentIndex in syncableAttachments.indices) {
                     val attachment = syncableAttachments[attachmentIndex]
 
-                    Log.d(TAG, "Preparing to upload attachment (id ${attachment.id}).")
+                    Log.d(TAG, "Preparing to upload attachment (id ${attachment.id} path ${attachment.path}).")
                     validateFileFormat(attachment)
 
                     var transferTempFile: File? = null
