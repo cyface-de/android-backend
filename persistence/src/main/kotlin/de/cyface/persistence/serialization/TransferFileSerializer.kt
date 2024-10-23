@@ -107,7 +107,9 @@ object TransferFileSerializer {
         Validate.isTrue(measurement!!.fileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
         if (accelerationFile.exists()) {
             Log.v(
-                TAG, String.format(
+                TAG,
+                String.format(
+                    Locale.getDefault(),
                     "Serializing %s accelerations for synchronization.",
                     DataSerializable.humanReadableSize(accelerationFile.length(), true)
                 )
@@ -117,7 +119,9 @@ object TransferFileSerializer {
         }
         if (rotationFile.exists()) {
             Log.v(
-                TAG, String.format(
+                TAG,
+                String.format(
+                    Locale.getDefault(),
                     "Serializing %s rotations for synchronization.",
                     DataSerializable.humanReadableSize(rotationFile.length(), true)
                 )
@@ -127,7 +131,9 @@ object TransferFileSerializer {
         }
         if (directionFile.exists()) {
             Log.v(
-                TAG, String.format(
+                TAG,
+                String.format(
+                    Locale.getDefault(),
                     "Serializing %s directions for synchronization.",
                     DataSerializable.humanReadableSize(directionFile.length(), true)
                 )
@@ -152,7 +158,9 @@ object TransferFileSerializer {
             throw IllegalStateException(e)
         }
         Log.d(
-            TAG, String.format(
+            TAG,
+            String.format(
+                Locale.getDefault(),
                 "Serialized %s",
                 DataSerializable.humanReadableSize(
                     (transferFileHeader.size + measurementBytes.size).toLong(),
@@ -316,7 +324,8 @@ object TransferFileSerializer {
             throw IllegalStateException(e)
         }
         Log.d(
-            TAG, String.format(
+            TAG,
+            String.format(
                 Locale.getDefault(),
                 "Serialized attachment: %s",
                 DataSerializable.humanReadableSize(

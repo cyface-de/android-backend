@@ -59,6 +59,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.util.Locale
 import java.util.UUID
 
 /**
@@ -263,7 +264,14 @@ class SyncAdapter private constructor(
                     if (isSyncRequestAborted(account, authority)) return
 
                     val indexWithinMeasurement = 0 // the core file is index 0
-                    val progressListener = DefaultUploadProgressListener(measurementCount, index, measurement.id, attachmentCount, indexWithinMeasurement, progressListeners)
+                    val progressListener = DefaultUploadProgressListener(
+                        measurementCount,
+                        index,
+                        measurement.id,
+                        attachmentCount,
+                        indexWithinMeasurement,
+                        progressListeners
+                    )
                     error = !syncMeasurement(
                         measurement,
                         measurementMeta,
@@ -284,7 +292,11 @@ class SyncAdapter private constructor(
             // The status in the database could have changed due to upload, reload it
             val currentStatus = persistence.measurementRepository!!.loadById(measurement.id)!!.status
             if (currentStatus === MeasurementStatus.SYNCABLE_ATTACHMENTS) {
-                val syncableAttachments = persistence.attachmentDao!!.loadAllByMeasurementIdAndStatus(measurement.id, AttachmentStatus.SAVED)
+                val syncableAttachments =
+                    persistence.attachmentDao!!.loadAllByMeasurementIdAndStatus(
+                        measurement.id,
+                        AttachmentStatus.SAVED
+                    )
                 val totalAttachments = persistence.attachmentDao!!.countByMeasurementId(measurement.id)
                 val syncedAttachments = totalAttachments - syncableAttachments.size
 
@@ -339,7 +351,10 @@ class SyncAdapter private constructor(
         }
     }
 
-    private fun serializeMeasurement(measurement: Measurement, persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>): File? {
+    private fun serializeMeasurement(
+        measurement: Measurement,
+        persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>
+    ): File? {
         var compressedTransferTempFile: File?
         runBlocking {
             compressedTransferTempFile = MeasurementSerializer().writeSerializedCompressed(measurement.id, persistence)
@@ -347,7 +362,10 @@ class SyncAdapter private constructor(
         return compressedTransferTempFile
     }
 
-    private fun serializeAttachment(attachment: de.cyface.persistence.model.Attachment, persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>): File? {
+    private fun serializeAttachment(
+        attachment: de.cyface.persistence.model.Attachment,
+        persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>
+    ): File? {
         var transferTempFile: File?
         runBlocking {
             transferTempFile = MeasurementSerializer().writeSerializedAttachment(attachment, persistence)
@@ -380,7 +398,9 @@ class SyncAdapter private constructor(
                 resultDeferred.complete(false)
             } else {
                 val fileName =
-                    "${uploadable.identifier.deviceIdentifier}_${uploadable.identifier.measurementIdentifier}.${COMPRESSED_TRANSFER_FILE_EXTENSION}"
+                    "${uploadable.identifier.deviceIdentifier}_" +
+                        "${uploadable.identifier.measurementIdentifier}" +
+                        ".${COMPRESSED_TRANSFER_FILE_EXTENSION}"
                 val result = syncPerformer.sendData(
                     uploader,
                     syncResult,
@@ -410,11 +430,15 @@ class SyncAdapter private constructor(
                                     MeasurementStatus.SYNCABLE_ATTACHMENTS,
                                     measurement.id
                                 )
-                                Log.d(TAG, "Measurement marked as ${MeasurementStatus.SYNCABLE_ATTACHMENTS.name.lowercase()}")
+                                Log.d(
+                                    TAG,
+                                    "Measurement marked as ${MeasurementStatus.SYNCABLE_ATTACHMENTS.name.lowercase()}"
+                                )
                             }
                             else -> {
                                 throw IllegalArgumentException(
                                     String.format(
+                                        Locale.getDefault(),
                                         "Unknown result: %s",
                                         result
                                     )
@@ -458,7 +482,9 @@ class SyncAdapter private constructor(
             } else {
                 val attachmentId = attachment.identifier.attachmentIdentifier
                 val fileName =
-                    "${attachment.identifier.deviceIdentifier}_${attachment.identifier.measurementIdentifier}_$attachmentId.${attachmentType.name.lowercase()}"
+                    "${attachment.identifier.deviceIdentifier}_" +
+                        "${attachment.identifier.measurementIdentifier}" +
+                            "_$attachmentId.${attachmentType.name.lowercase()}"
                 val result = syncPerformer.sendData(
                     uploader,
                     syncResult,
@@ -488,6 +514,7 @@ class SyncAdapter private constructor(
                             else -> {
                                 throw IllegalArgumentException(
                                     String.format(
+                                        Locale.getDefault(),
                                         "Unknown result: %s",
                                         result
                                     )
@@ -528,7 +555,9 @@ class SyncAdapter private constructor(
         }
     }
 
-    private fun loadSyncableMeasurements(persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>): List<Measurement> {
+    private fun loadSyncableMeasurements(
+        persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>
+    ): List<Measurement> {
         val partiallyUploaded = persistence.loadMeasurements(MeasurementStatus.SYNCABLE_ATTACHMENTS)
         val finishedMeasurements = persistence.loadMeasurements(MeasurementStatus.FINISHED)
         return partiallyUploaded + finishedMeasurements // Returns the partially uploaded measurements first
@@ -641,7 +670,6 @@ class SyncAdapter private constructor(
                 "Number of unsupported attachments: $unsupportedAttachments"
             }
             val filesSize = if (allAttachments > 0) {
-                // TODO: support multiple attachments by zipping them
                 // (!) we load the CSV file here as the location_metrics.csv should always exist
                 // if not, the upload crashes with an NPE.
                 val attachment = persistence.attachmentDao!!.loadOneByMeasurementIdAndType(measurement.id, FileType.CSV)
