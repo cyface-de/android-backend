@@ -59,6 +59,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.nio.file.Path
 import java.util.Locale
 import java.util.UUID
 
@@ -249,11 +250,14 @@ class SyncAdapter private constructor(
 
             validateMeasurementFormat(measurement)
             val measurementMeta = loadMeasurementMeta(measurement, persistence, deviceId, context)
+            // Attention: the attachmentCount might be too little, if images are still being saved
+            // just after the measurement stopped, if the upload is instantly triggered. Thus,
+            // the imageCount in the metadata might be smaller than the number of images uploaded.
             val attachmentCount = measurementMeta.attachmentMetaData.logCount +
                     measurementMeta.attachmentMetaData.imageCount +
                     measurementMeta.attachmentMetaData.videoCount
 
-            Log.d(TAG, "Preparing to upload Measurement (id ${measurement.id}) with $attachmentCount attachments.")
+            Log.d(TAG, "Preparing to upload Measurement (id ${measurement.id}) with $attachmentCount attachments: ${measurementMeta.attachmentMetaData}")
 
             // Upload measurement binary first
             if (measurement.status === MeasurementStatus.FINISHED) {
@@ -303,7 +307,8 @@ class SyncAdapter private constructor(
                 for (attachmentIndex in syncableAttachments.indices) {
                     val attachment = syncableAttachments[attachmentIndex]
 
-                    Log.d(TAG, "Preparing to upload attachment (id ${attachment.id} path ${attachment.path}).")
+                    val localFileName = attachment.path.fileName
+                    Log.d(TAG, "Preparing to upload attachment (id ${attachment.id}: ${localFileName}).")
                     validateFileFormat(attachment)
 
                     var transferTempFile: File? = null
@@ -325,7 +330,7 @@ class SyncAdapter private constructor(
                         val attachmentMeta = attachmentMeta(measurementMeta, attachment.id)
                         error = !syncAttachment(
                             attachmentMeta,
-                            attachment.type,
+                            localFileName,
                             syncPerformer,
                             transferTempFile,
                             syncResult,
@@ -458,7 +463,7 @@ class SyncAdapter private constructor(
 
     private suspend fun syncAttachment(
         attachment: Attachment,
-        attachmentType: FileType,
+        localFileName: Path,
         syncPerformer: SyncPerformer,
         transferFile: File?,
         syncResult: SyncResult,
@@ -481,10 +486,16 @@ class SyncAdapter private constructor(
                 resultDeferred.complete(false)
             } else {
                 val attachmentId = attachment.identifier.attachmentIdentifier
-                val fileName =
-                    "${attachment.identifier.deviceIdentifier}_" +
-                        "${attachment.identifier.measurementIdentifier}" +
-                            "_$attachmentId.${attachmentType.name.lowercase()}"
+                // This helps to identify the content of the log files, e.g.
+                // "*_image_metrics.csv" or "*_annotations.json`
+                // but also ensures we can generate a `rectId` (image index) from by comparing the
+                // `file_name` in `annotations.json#images` and the `id` used there. [LEIP-272]
+                // Attention: if you change the format, keep in sync with `WebdavUploader`.
+                val prefix = fileNamePrefix(
+                    attachment.identifier.deviceIdentifier.toString(),
+                    attachment.identifier.measurementIdentifier
+                )
+                val fileName = prefix + "${attachmentId}_" + "$localFileName"
                 val result = syncPerformer.sendData(
                     uploader,
                     syncResult,
@@ -780,5 +791,9 @@ class SyncAdapter private constructor(
          */
         @Suppress("SpellCheckingInspection", "RedundantSuppression")
         const val COMPRESSED_TRANSFER_FILE_EXTENSION = "ccyf"
+
+        fun fileNamePrefix(deviceId: String, measurementId: Long): String {
+            return "${deviceId}_" + "${measurementId}_"
+        }
     }
 }
