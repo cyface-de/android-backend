@@ -317,6 +317,12 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
                 Result.UPLOAD_SKIPPED
             }
 
+            is NoLocationData -> {
+                syncResult.stats.numSkippedEntries++
+                Log.d(TAG, e.message!!)
+                Result.UPLOAD_SKIPPED
+            }
+
             is ConflictException -> {
                 syncResult.stats.numSkippedEntries++
                 // We consider the upload successful and mark the measurement as synced
