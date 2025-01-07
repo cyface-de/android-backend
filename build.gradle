@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -48,7 +48,7 @@ ext {
     cyfaceAndroidBackendVersion = "0.0.0" // Automatically overwritten by CI
 
     // Cyface dependencies
-    cyfaceUtilsVersion = "4.0.7"
+    cyfaceUtilsVersion = "4.0.8"
     // (!) Match versions `android-app`, `SDK` and `camera-service`.
     // When `android-app` is checkout out, `rootProject.uploaderVersion` in the submodules will point
     // to `android-app/build.gradle` instead of `submodule/build.gradle`.
@@ -63,7 +63,7 @@ ext {
     // Android dependencies
     desugaringVersion = "2.0.3"
     androidxAnnotationVersion = '1.6.0'
-    androidxAppCompatVersion = "1.6.1"
+    androidxAppCompatVersion = "1.7.0"
     localbroadcastmanagerVersion = '1.1.0'
     roomVersion = "2.6.1"
     // 1.1.0-alpha05: ':persistence:mergeExtDexDebugAndroidTest' fails (transitive dependency)
@@ -77,11 +77,11 @@ ext {
     protobufVersion = '3.22.2' // For Proto Datastore. Maybe keep in sync with other versions.
 
     // Testing
-    junitVersion = "1.1.5"
+    junitVersion = "1.2.1"
     mockitoVersion = '5.7.0'
     mockitoKotlinVersion = '5.2.1'
     hamcrestVersion = "1.3"
-    rulesVersion = "1.5.0"
+    rulesVersion = "1.6.1"
     robolectricVersion = "4.10.2"
     androidxTestCoreVersion = "1.4.0"
 
