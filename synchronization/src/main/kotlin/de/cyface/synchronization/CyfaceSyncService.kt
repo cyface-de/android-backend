@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -22,15 +22,14 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import de.cyface.uploader.DefaultUploader
-import de.cyface.utils.Validate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 /**
  * The synchronisation `Service` used to bind the synchronisation adapter to the Android framework.
  *
- * Further details are described in the [Android
- * documentation](https://developer.android.com/training/sync-adapters/creating-sync-adapter.html#CreateSyncAdapterService).
+ * Further details are described in the [Android documentation]
+ * (https://developer.android.com/training/sync-adapters/creating-sync-adapter.html#CreateSyncAdapterService).
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
@@ -38,9 +37,12 @@ import kotlinx.coroutines.runBlocking
 class CyfaceSyncService : Service() {
 
     override fun onCreate() {
+
         synchronized(LOCK) {
             if (syncAdapter == null) {
-                val collectorApi = collectorApi()
+                // `onBind()` is called directly after `onCreate()` and requires `syncAdapter` (sync)
+                val collectorApi = runBlocking { collectorApi() }
+
                 syncAdapter = SyncAdapter(
                     applicationContext,
                     true,
@@ -60,14 +62,8 @@ class CyfaceSyncService : Service() {
      *
      * @return The URL as string
      */
-    private fun collectorApi(): String {
-        val apiEndpoint =
-            runBlocking { CyfaceAuthenticator.settings.collectorUrlFlow.first() }
-        Validate.notNull(
-            apiEndpoint,
-            "Sync canceled: Server url not available. Please set the applications server url preference."
-        )
-        return apiEndpoint
+    private suspend fun collectorApi(): String {
+        return CyfaceAuthenticator.settings.collectorUrlFlow.first()
     }
 
     companion object {

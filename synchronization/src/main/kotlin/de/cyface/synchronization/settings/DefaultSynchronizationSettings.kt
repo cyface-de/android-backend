@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -32,10 +32,12 @@ import java.io.File
  * Settings used by this library.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 7.8.1
  */
-class DefaultSynchronizationSettings(context: Context, collectorUrl: String, oAuthConfig: JSONObject) : SynchronizationSettings {
+class DefaultSynchronizationSettings(context: Context, collectorUrl: String, oAuthConfig: JSONObject) :
+    SynchronizationSettings
+{
 
     /**
      * This avoids leaking the context when this object outlives the Activity of Fragment.

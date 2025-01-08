@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -44,7 +44,7 @@ import java.security.MessageDigest
  * token endpoint, and redirect URI, among other optional parameters.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 7.8.0
  */
 class Configuration(private val mContext: Context, private val settings: SynchronizationSettings) {
@@ -121,6 +121,7 @@ class Configuration(private val mContext: Context, private val settings: Synchro
 
     @Throws(InvalidConfigurationException::class)
     private fun readConfiguration() {
+        // Read in a blocking way or else the properties won't be initialized when needed
         val oAuthConfigString = runBlocking { settings.oAuthConfigurationFlow.first() }
         try {
             mConfigJson = JSONObject(oAuthConfigString)
@@ -181,8 +182,7 @@ class Configuration(private val mContext: Context, private val settings: Synchro
     @Throws(InvalidConfigurationException::class)
     fun getRequiredConfigUri(propName: String): Uri {
         val uriStr = getRequiredConfigString(propName)
-        val uri: Uri
-        uri = try {
+        val uri: Uri = try {
             Uri.parse(uriStr)
         } catch (ex: Throwable) {
             throw InvalidConfigurationException("$propName could not be parsed", ex)
