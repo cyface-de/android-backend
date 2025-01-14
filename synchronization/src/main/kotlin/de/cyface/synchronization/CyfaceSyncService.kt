@@ -70,8 +70,8 @@ class CyfaceSyncService : Service() {
         /**
          * The synchronisation adapter this service is supposed to call.
          *
-         * Singleton isn't what they call a beauty. Nevertheless this is how it is specified in the documentation. Maybe try
-         * to change this after it runs.
+         * Singleton isn't what they call a beauty. Nevertheless this is how it is specified in the
+         * documentation. Maybe try to change this after it runs.
          */
         private var syncAdapter: SyncAdapter? = null
 

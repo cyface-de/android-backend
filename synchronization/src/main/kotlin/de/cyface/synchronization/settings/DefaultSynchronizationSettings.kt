@@ -28,16 +28,46 @@ import kotlinx.coroutines.flow.map
 import org.json.JSONObject
 import java.io.File
 
+data class SyncConfig(val collectorUrl: String, val oAuthConfig: JSONObject)
+
 /**
  * Settings used by this library.
  *
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 3.0.0
  * @since 7.8.1
  */
-class DefaultSynchronizationSettings(context: Context, collectorUrl: String, oAuthConfig: JSONObject) :
-    SynchronizationSettings
-{
+class DefaultSynchronizationSettings private constructor(
+    context: Context,
+    private val config: SyncConfig
+) : SynchronizationSettings {
+
+    /**
+     * Use Singleton to ensure only one instance per process is created. [LEIP-294]
+     *
+     * It should be okay to use a Singleton as this is also suggested in the documentation:
+     * https://developer.android.com/topic/libraries/architecture/datastore#multiprocess
+     */
+    companion object {
+        @Volatile
+        private var instance: DefaultSynchronizationSettings? = null
+
+        fun getInstance(context: Context, config: SyncConfig):
+                DefaultSynchronizationSettings {
+            return instance ?: synchronized(this) {
+                instance ?: DefaultSynchronizationSettings(
+                    context.applicationContext,
+                    config
+                ).also {
+                    instance = it
+                }
+            }.also {
+                if (it.config != config) {
+                    throw IllegalStateException("Already initialized with different configuration.")
+                }
+            }
+        }
+    }
 
     /**
      * This avoids leaking the context when this object outlives the Activity of Fragment.
@@ -63,17 +93,17 @@ class DefaultSynchronizationSettings(context: Context, collectorUrl: String, oAu
             File("${appContext.filesDir.path}/synchronization.pb")
         },
         migrations = listOf(
-            PreferencesMigrationFactory.create(appContext, collectorUrl, oAuthConfig),
-            StoreMigration(collectorUrl, oAuthConfig)
+            PreferencesMigrationFactory.create(appContext, config.collectorUrl, config.oAuthConfig),
+            StoreMigration(config.collectorUrl, config.oAuthConfig)
         )
     )
 
     init {
-        if (!collectorUrl.startsWith("https://") && !collectorUrl.startsWith("http://")) {
+        if (!config.collectorUrl.startsWith("https://") && !config.collectorUrl.startsWith("http://")) {
             throw SetupException("Invalid URL protocol")
         }
-        if (!oAuthConfig.getString("discovery_uri")
-                .startsWith("https://") && !oAuthConfig.getString("discovery_uri")
+        if (!config.oAuthConfig.getString("discovery_uri")
+                .startsWith("https://") && !config.oAuthConfig.getString("discovery_uri")
                 .startsWith("http://")
         ) {
             throw SetupException("Invalid URL protocol")
