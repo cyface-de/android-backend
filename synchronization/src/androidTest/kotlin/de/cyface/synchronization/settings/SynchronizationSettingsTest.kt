@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -29,7 +29,7 @@ import org.junit.Test
  * Test the inner workings of the [DefaultSynchronizationSettings].
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 7.9.0
  */
 class SynchronizationSettingsTest {
@@ -52,10 +52,9 @@ class SynchronizationSettingsTest {
     @Test(expected = SetupException::class)
     @Throws(SetupException::class)
     fun testConstructor_doesNotAcceptUrlWithoutProtocol() {
-        DefaultSynchronizationSettings(
+        DefaultSynchronizationSettings.getInstance(
             context!!,
-            "localhost:8080/api/v3",
-            JSONObject()
+            SyncConfig("localhost:8080/api/v3", JSONObject())
         )
     }
 }
