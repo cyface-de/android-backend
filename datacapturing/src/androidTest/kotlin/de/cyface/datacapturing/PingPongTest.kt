@@ -37,12 +37,10 @@ import de.cyface.persistence.SetupException
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Modality
 import de.cyface.synchronization.CyfaceAuthenticator
-import de.cyface.synchronization.settings.DefaultSynchronizationSettings
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
-import org.json.JSONObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -208,7 +206,7 @@ class PingPongTest {
         // Stop Capturing
         val shutdownHandler = TestShutdownFinishedHandler(
             lock!!, condition!!,
-            MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
         )
         dcs!!.stop(shutdownHandler)
 

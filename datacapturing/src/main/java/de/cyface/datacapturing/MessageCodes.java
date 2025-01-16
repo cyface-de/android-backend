@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -26,7 +26,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.0
+ * @version 6.0.0
  * @since 2.0.0
  */
 public class MessageCodes {
@@ -92,11 +92,13 @@ public class MessageCodes {
      */
     public static final String GLOBAL_BROADCAST_PONG = "de.cyface.pong";
     /**
-     * Local (i.e. inner process communication) Broadcast action identifier sent by the {@link DataCapturingService}
+     * Global (inter-process) action identifier sent by the {@link DataCapturingService}
      * after it has received a inter-process {@link MessageCodes#SERVICE_STOPPED} from the
      * {@link DataCapturingBackgroundService} that it has successfully stopped.
+     * <p>
+     * Using global broadcast as local broadcast broke ShutdownFinishedHandler. [LEIP-299]
      */
-    public static final String LOCAL_BROADCAST_SERVICE_STOPPED = "de.cyface.service_stopped";
+    public static final String GLOBAL_BROADCAST_SERVICE_STOPPED = "de.cyface.service_stopped";
 
     /**
      * Private constructor for utility class.

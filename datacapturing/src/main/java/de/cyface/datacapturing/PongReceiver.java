@@ -140,7 +140,7 @@ public class PongReceiver extends BroadcastReceiver {
         Handler receiverHandler = new Handler(pongReceiverThread.getLooper());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.get().registerReceiver(this, new IntentFilter(pongActionId), null,
-                    receiverHandler, Context.RECEIVER_EXPORTED);
+                    receiverHandler, Context.RECEIVER_EXPORTED); // Does not work with NOT_EXPORTED
         } else {
             context.get().registerReceiver(this, new IntentFilter(pongActionId), null,
                     receiverHandler);
