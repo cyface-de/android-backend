@@ -94,7 +94,7 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
         shutDownFinished(measurementIdentifier);
 
         try {
-            LocalBroadcastManager.getInstance(context).unregisterReceiver(this);
+            context.unregisterReceiver(this);
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "Probably tried to deregister shut down finished broadcast receiver twice.", e);
         }

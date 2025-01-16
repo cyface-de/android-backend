@@ -226,6 +226,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Allows other parties to ping this service to see if it is running
         pingReceiver = new PingReceiver(GLOBAL_BROADCAST_PING, GLOBAL_BROADCAST_PONG);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Does not work with NOT_EXPORTED
             registerReceiver(pingReceiver, new IntentFilter(GLOBAL_BROADCAST_PING), Context.RECEIVER_EXPORTED);
         } else {
             registerReceiver(pingReceiver, new IntentFilter(GLOBAL_BROADCAST_PING));

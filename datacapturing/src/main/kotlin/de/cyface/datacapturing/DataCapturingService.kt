@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -35,7 +35,6 @@ import android.os.Messenger
 import android.os.RemoteException
 import android.util.Log
 import androidx.core.app.ActivityCompat
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
@@ -78,7 +77,7 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 20.0.0
+ * @version 21.0.0
  * @since 1.0.0
  * @property context The context (i.e. `Activity`) handling this service.
  * @property authority The `ContentProvider` authority required to request a sync operation in the
@@ -742,7 +741,7 @@ abstract class DataCapturingService(
             context!!.registerReceiver(
                 startUpFinishedHandler,
                 IntentFilter(MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED),
-                Context.RECEIVER_NOT_EXPORTED
+                Context.RECEIVER_NOT_EXPORTED // Unsure why this seem to work here
             )
         } else {
             context!!.registerReceiver(
@@ -798,10 +797,19 @@ abstract class DataCapturingService(
             Constants.TAG,
             "Registering finishedHandler for service stop synchronization broadcast."
         )
-        LocalBroadcastManager.getInstance(context!!).registerReceiver(
-            finishedHandler,
-            IntentFilter(MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED)
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context!!.registerReceiver(
+                finishedHandler,
+                IntentFilter(MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED),
+                // Does not work with NOT_EXPORTED or local broadcast [LEIP-299]
+                Context.RECEIVER_EXPORTED,
+            )
+        } else {
+            context!!.registerReceiver(
+                finishedHandler,
+                IntentFilter(MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED),
+            )
+        }
         val serviceWasActive: Boolean
         try {
             // For some reasons we have to call the unbind here.
@@ -836,7 +844,7 @@ abstract class DataCapturingService(
         context: Context?, measurementIdentifier: Long,
         stoppedSuccessfully: Boolean
     ) {
-        val stoppedBroadcastIntent = Intent(MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED)
+        val stoppedBroadcastIntent = Intent(MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED)
         // The measurement id should always be set, also if `stoppedSuccessfully=false` [STAD-333]
         Validate.isTrue(measurementIdentifier > 0L)
         stoppedBroadcastIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, measurementIdentifier)
@@ -844,7 +852,7 @@ abstract class DataCapturingService(
             BundlesExtrasCodes.STOPPED_SUCCESSFULLY,
             stoppedSuccessfully
         )
-        LocalBroadcastManager.getInstance(context!!).sendBroadcast(stoppedBroadcastIntent)
+        context!!.sendBroadcast(stoppedBroadcastIntent)
     }
 
     /**
@@ -1252,7 +1260,10 @@ abstract class DataCapturingService(
                     )
                 )
 
-                MessageCodes.SERVICE_STOPPED, MessageCodes.SERVICE_STOPPED_ITSELF -> listener.onCapturingStopped()
+                // Don't call onCapturingStopped() as this is only intended for self-stopped events
+                MessageCodes.SERVICE_STOPPED -> {}
+                MessageCodes.SERVICE_STOPPED_ITSELF -> listener.onCapturingStopped()
+
                 else -> listener.onErrorState(
                     DataCapturingException(
                         context.getString(R.string.unknown_message_error, messageCode)
@@ -1290,7 +1301,7 @@ abstract class DataCapturingService(
                     val condition = lock.newCondition()
                     val synchronizationReceiver = StopSynchronizer(
                         lock, condition,
-                        MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED
+                        MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
                     )
                     // The background service already received a stopSelf command but as it's still
                     // bound to this service it should be still alive. We unbind it from this service via the

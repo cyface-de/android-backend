@@ -169,7 +169,7 @@ class DataCapturingServiceTest {
             val condition = lock.newCondition()
             val shutDownFinishedHandler = TestShutdownFinishedHandler(
                 lock,
-                condition, MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED
+                condition, MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
             )
             oocut!!.stop(shutDownFinishedHandler)
 
@@ -258,7 +258,7 @@ class DataCapturingServiceTest {
         val condition = lock.newCondition()
         val shutDownFinishedHandler = TestShutdownFinishedHandler(
             lock, condition,
-            MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
         )
         oocut!!.pause(shutDownFinishedHandler)
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier)
@@ -316,7 +316,7 @@ class DataCapturingServiceTest {
         val condition = lock.newCondition()
         val shutDownFinishedHandler = TestShutdownFinishedHandler(
             lock, condition,
-            MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
         )
         oocut!!.stop(shutDownFinishedHandler)
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier)
@@ -489,21 +489,21 @@ We should consider refactoring the code before to use startCommandReceived as in
         val condition4 = lock4.newCondition()
         val shutDownFinishedHandler1 = TestShutdownFinishedHandler(
             lock4, condition4,
-            MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
         )
         // Do not reuse the lock/condition!
         val lock5: Lock = ReentrantLock()
         val condition5 = lock5.newCondition()
         val shutDownFinishedHandler2 = TestShutdownFinishedHandler(
             lock5, condition5,
-            MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
         )
         // Do not reuse the lock/condition!
         val lock6: Lock = ReentrantLock()
         val condition6 = lock6.newCondition()
         val shutDownFinishedHandler3 = TestShutdownFinishedHandler(
             lock6, condition6,
-            MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
         )
 
         // First Start/stop without waiting
@@ -674,7 +674,7 @@ We should consider refactoring the code before to use startCommandReceived as in
             TestShutdownFinishedHandler(
                 lock,
                 condition,
-                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED
+                MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
             )
         )
     }

@@ -19,7 +19,18 @@
         errorLine2="            ^">
         <location
             file="src/main/kotlin/de/cyface/datacapturing/DataCapturingService.kt"
-            line="748"
+            line="747"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnspecifiedRegisterReceiverFlag"
+        message="`finishedHandler` \&#xA;is missing `RECEIVER_EXPORTED` or `RECEIVER_NOT_EXPORTED` flag for unprotected \&#xA;broadcasts registered for de.cyface.service_stopped"
+        errorLine1="            context!!.registerReceiver("
+        errorLine2="            ^">
+        <location
+            file="src/main/kotlin/de/cyface/datacapturing/DataCapturingService.kt"
+            line="807"
             column="13"/>
     </issue>
 
@@ -35,6 +46,17 @@
         message="`checkServerTrusted` is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers">
         <location
             file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/com.google.http-client/google-http-client/1.42.3/e0feb1bd93ad9fb1e064706cff96e32b41a57b9c/google-http-client-1.42.3.jar"/>
+    </issue>
+
+    <issue
+        id="KaptUsageInsteadOfKsp"
+        message="This library supports using KSP instead of kapt, which greatly improves performance. Learn more: https://developer.android.com/studio/build/migrate-to-ksp"
+        errorLine1="    kapt &quot;androidx.room:room-compiler:$rootProject.ext.roomVersion&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle"
+            line="109"
+            column="5"/>
     </issue>
 
 </issues>

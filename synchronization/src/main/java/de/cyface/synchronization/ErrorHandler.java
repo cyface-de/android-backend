@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2024 Cyface GmbH
+ * Copyright 2018-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -85,6 +85,7 @@ public class ErrorHandler extends BroadcastReceiver {
         final Intent intent = new Intent(ERROR_INTENT);
         intent.putExtra(HTTP_CODE_EXTRA, httpCode);
         intent.putExtra(ERROR_CODE_EXTRA, errorCode);
+        // Other than ShutdownFinishedHandler, this seem to work with local broadcast
         LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
         Log.d(TAG, String.format("ErrorHandler (err %s, httpErr %s): %s", errorCode, httpCode, message));
     }
@@ -103,6 +104,7 @@ public class ErrorHandler extends BroadcastReceiver {
         final Intent intent = new Intent(ERROR_INTENT);
         intent.putExtra(ERROR_CODE_EXTRA, errorCode);
         intent.putExtra(ERROR_BACKGROUND_EXTRA, fromBackground);
+        // Other than ShutdownFinishedHandler, this seem to work with local broadcast
         LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
         if (message != null) {
             Log.d(TAG, message);
