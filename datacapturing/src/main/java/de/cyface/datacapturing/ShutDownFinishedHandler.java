@@ -48,7 +48,7 @@ import de.cyface.utils.Validate;
 public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
 
     /**
-     * This is set to <code>true</code> if either a <code>MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED</code> broadcast
+     * This is set to <code>true</code> if either a <code>MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED</code> broadcast
      * has been received or a <code>MessageCodes.SERVICE_STOPPED</code> was issued. It is <code>false</code> otherwise.
      */
     private boolean receivedServiceStopped;
@@ -101,7 +101,7 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
     }
 
     /**
-     * @return This is set to <code>true</code> if either a <code>MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED</code>
+     * @return This is set to <code>true</code> if either a <code>MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED</code>
      *         broadcast has
      *         been received or a <code>MessageCodes.SERVICE_STOPPED</code> was issued. It is <code>false</code>
      *         otherwise.

@@ -625,7 +625,7 @@ public class DataCapturingButton implements DataCapturingListener {
     }
 
     private void stopCapturing() {
-        dataCapturingService.stop(new ShutDownFinishedHandler(MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED) {
+        dataCapturingService.stop(new ShutDownFinishedHandler(MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED) {
             @Override
             public void shutDownFinished(final long measurementIdentifier) {
                 // Your logic, e.g.:
@@ -678,7 +678,7 @@ public class DataCapturingButton implements DataCapturingListener {
     }
 
     private void pauseCapturing() {
-        dataCapturingService.pause(new ShutDownFinishedHandler(MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED) {
+        dataCapturingService.pause(new ShutDownFinishedHandler(MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED) {
             @Override
             public void shutDownFinished(final long measurementIdentifier) {
                 // Your logic, e.g.:
