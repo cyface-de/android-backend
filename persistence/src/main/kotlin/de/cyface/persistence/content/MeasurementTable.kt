@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -22,11 +22,11 @@ import android.net.Uri
 import de.cyface.persistence.model.GeoLocation
 
 /**
- * This class represents the table containing all the [de.cyface.persistence.model.Measurement]s currently
- * stored on this device.
+ * This class represents the table containing all the [de.cyface.persistence.model.Measurement]s
+ * currently stored on this device.
  *
  * @author Armin Schnabel
- * @version 5.0.1
+ * @version 5.1.0
  * @since 1.0.0
  */
 class MeasurementTable : AbstractCyfaceTable(URI_PATH) {
@@ -61,6 +61,11 @@ class MeasurementTable : AbstractCyfaceTable(URI_PATH) {
         const val COLUMN_DISTANCE = "distance"
 
         /**
+         * Column name for the number of bytes of all attachments collected for this measurement.
+         */
+        const val COLUMN_FILES_SIZE = "filesSize"
+
+        /**
          * Returns the URI which identifies the table represented by this class.
          *
          * It's important to provide the authority string as parameter because depending on from where
@@ -75,7 +80,12 @@ class MeasurementTable : AbstractCyfaceTable(URI_PATH) {
 
     override val databaseTableColumns: Array<String>
         get() = arrayOf(
-            BaseColumns.ID, COLUMN_STATUS, COLUMN_MODALITY,
-            COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE, BaseColumns.TIMESTAMP
+            BaseColumns.ID,
+            COLUMN_STATUS,
+            COLUMN_MODALITY,
+            COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
+            COLUMN_DISTANCE,
+            BaseColumns.TIMESTAMP,
+            COLUMN_FILES_SIZE,
         )
 }

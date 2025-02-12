@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.Flow
  * decides which data source to load the data from.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.1.0
  * @since 7.5.0
  * @property dao The object to access data from the local persistence layer.
  */
@@ -93,6 +93,11 @@ class MeasurementRepository(private val dao: MeasurementDao) {
     @WorkerThread
     suspend fun updateDistance(id: Long, distance: Double): Int {
         return dao.updateDistance(id, distance)
+    }
+
+    @WorkerThread
+    suspend fun incrementFilesSize(id: Long, addedBytes: Long): Int {
+        return dao.incrementFilesSize(id, addedBytes)
     }
 
     @WorkerThread

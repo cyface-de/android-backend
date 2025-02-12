@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -31,17 +31,19 @@ import de.cyface.protos.model.File.FileType
  * Data access object which provides the API to interact with the [Attachment] database table.
  *
  * @author Armin Schnabel
+ * @version 1.0.1
+ * @since 7.10.0
  */
 @Dao
 interface AttachmentDao {
+    /**
+     * Inserts a reference to an [Attachment] into the database.
+     *
+     * @param attachment The [Attachment] to create the reference for.
+     * @return The identifier of the [Attachment] reference in the database.
+     */
     @Insert
     suspend fun insert(attachment: Attachment): Long
-
-    // This is just a workaround until we succeed to port JpegSafer to Kotlin. We tried this before
-    // but image capturing got flaky afterwards so we reverted it to do the refactoring separately.
-    // It's hard to handle suspend functions from Java, so we just have this non-suspend sibling.
-    @Insert
-    fun insertJava(attachment: Attachment): Long
 
     @Insert
     suspend fun insertAll(vararg attachments: Attachment)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -31,12 +31,17 @@ import kotlinx.coroutines.flow.Flow
  * Data access object which provides the API to interact with the [Measurement] database table.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.1.0
  * @since 7.5.0
  */
 @Dao
 interface MeasurementDao {
-
+    /**
+     * Inserts a reference to a [Measurement] into the database.
+     *
+     * @param measurement The [Measurement] to create the reference for.
+     * @return The identifier of the [Measurement] reference in the database.
+     */
     @Insert
     suspend fun insert(measurement: Measurement): Long
 
@@ -47,14 +52,18 @@ interface MeasurementDao {
      * Loads all measurements which are not in the [MeasurementStatus.OPEN] or
      * [MeasurementStatus.PAUSED] state starting with the newest measurement.
      */
-    @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${MeasurementTable.COLUMN_STATUS} NOT IN ('OPEN', 'PAUSED') ORDER BY ${BaseColumns.ID} DESC")
+    @Query("SELECT * FROM ${MeasurementTable.URI_PATH} " +
+            "WHERE ${MeasurementTable.COLUMN_STATUS} NOT IN ('OPEN', 'PAUSED') " +
+            "ORDER BY ${BaseColumns.ID} DESC")
     suspend fun loadAllCompleted(): List<Measurement>
 
     /**
      * Loads and observes all measurements which are not in the [MeasurementStatus.OPEN] or
      * [MeasurementStatus.PAUSED] state starting with the newest measurement.
      */
-    @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${MeasurementTable.COLUMN_STATUS} NOT IN ('OPEN', 'PAUSED') ORDER BY ${BaseColumns.ID} DESC")
+    @Query("SELECT * FROM ${MeasurementTable.URI_PATH} " +
+            "WHERE ${MeasurementTable.COLUMN_STATUS} NOT IN ('OPEN', 'PAUSED') " +
+            "ORDER BY ${BaseColumns.ID} DESC")
     fun observeAllCompleted(): Flow<List<Measurement>>
 
     @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
@@ -76,14 +85,40 @@ interface MeasurementDao {
     //@Update
     //fun update(vararg measurements: Measurement)
 
-    @Query("UPDATE ${MeasurementTable.URI_PATH} SET ${MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION} = :fileFormatVersion WHERE ${BaseColumns.ID} = :id")
+    @Query("UPDATE ${MeasurementTable.URI_PATH} " +
+            "SET ${MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION} = :fileFormatVersion " +
+            "WHERE ${BaseColumns.ID} = :id")
     suspend fun updateFileFormatVersion(id: Long, fileFormatVersion: Short): Int
 
-    @Query("UPDATE ${MeasurementTable.URI_PATH} SET ${MeasurementTable.COLUMN_STATUS} = :status WHERE ${BaseColumns.ID} = :id")
+    @Query("UPDATE ${MeasurementTable.URI_PATH} " +
+            "SET ${MeasurementTable.COLUMN_STATUS} = :status " +
+            "WHERE ${BaseColumns.ID} = :id")
     suspend fun update(id: Long, status: MeasurementStatus): Int
 
-    @Query("UPDATE ${MeasurementTable.URI_PATH} SET ${MeasurementTable.COLUMN_DISTANCE} = :distance WHERE ${BaseColumns.ID} = :id")
+    /**
+     * Updates the measurement distance entry of a measurement in the database.
+     *
+     * @param id The device-unique identifier of the measurement to update.
+     * @param distance The measurement distance in meters to write.
+     * @return The number of database entries updated.
+     */
+    @Query("UPDATE ${MeasurementTable.URI_PATH} " +
+            "SET ${MeasurementTable.COLUMN_DISTANCE} = :distance " +
+            "WHERE ${BaseColumns.ID} = :id")
     suspend fun updateDistance(id: Long, distance: Double): Int
+
+    /**
+     * Increments the number of bytes of all attachments collected for a measurement.
+     *
+     * @param id The device-unique identifier of the measurement to update.
+     * @param addedBytes The number of bytes to add to the existing `filesSize` count.
+     * @return The number of database entries updated.
+     */
+    @Query("UPDATE ${MeasurementTable.URI_PATH} " +
+            "SET ${MeasurementTable.COLUMN_FILES_SIZE} = ${MeasurementTable.COLUMN_FILES_SIZE} + :addedBytes " +
+            "WHERE ${BaseColumns.ID} = :id")
+    suspend fun incrementFilesSize(id: Long, addedBytes: Long): Int
+
 
     @Query("DELETE FROM ${MeasurementTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
     suspend fun deleteItemById(id: Long): Int

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Cyface GmbH
+ * Copyright 2019-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -60,7 +60,7 @@ import java.nio.ByteBuffer
  * should be the same as they were in that version to really test the migration as it would happen in real.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.1.0
  * @since 4.0.0
  */
 @RunWith(AndroidJUnit4::class)
@@ -101,6 +101,7 @@ class DatabaseMigratorTest {
             DatabaseMigrator.MIGRATION_16_17,
             migrator!!.MIGRATION_17_18,
             DatabaseMigrator.MIGRATION_18_19,
+            DatabaseMigrator.MIGRATION_19_20,
         )
     }
 

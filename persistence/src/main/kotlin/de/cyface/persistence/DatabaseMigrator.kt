@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -51,7 +51,7 @@ import java.nio.ByteBuffer
  * provide a Migration object to the builder*!
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.2.0
  * @since 7.5.0
  * @property context The `Context` required to import data from a secondary data source.
  */
@@ -92,6 +92,17 @@ class DatabaseMigrator(val context: Context) {
     val MIGRATION_9_10: Migration = migrationFrom9To10()
 
     companion object {
+        /**
+         * Adds the [de.cyface.persistence.model.Measurement.filesSize] column.
+         */
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add the new filesSize column with default value 0 for existing rows
+                // This should be fine as we don't upload attachments in production, yet.
+                database.execSQL("ALTER TABLE Measurement ADD COLUMN filesSize INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         /**
          * Adds the [de.cyface.persistence.model.Attachment] table.
          */
