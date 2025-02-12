@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -71,6 +71,8 @@ import java.util.UUID
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
+ * @version 4.2.0
+ * @since 2.0.0
  * @property authenticator The authenticator to use for synchronization.
  * @property uploader The uploader to use for synchronization.
  */
@@ -680,13 +682,6 @@ class SyncAdapter private constructor(
             require(unsupportedAttachments == 0) {
                 "Number of unsupported attachments: $unsupportedAttachments"
             }
-            val filesSize = if (allAttachments > 0) {
-                // (!) we load the CSV file here as the location_metrics.csv should always exist
-                // if not, the upload crashes with an NPE.
-                val attachment = persistence.attachmentDao!!.loadOneByMeasurementIdAndType(measurement.id, FileType.CSV)
-                val folderPath = File(attachment!!.path.parent.toUri())
-                getFolderSize(folderPath)
-            } else 0
 
 
             // Non location meta data
@@ -710,7 +705,7 @@ class SyncAdapter private constructor(
                     endLocation,
                     measurement.modality.databaseIdentifier,
                 ),
-                AttachmentMetaData(logCount, imageCount, 0, filesSize),
+                AttachmentMetaData(logCount, imageCount, 0, measurement.filesSize),
             )
         }
     }
@@ -727,21 +722,6 @@ class SyncAdapter private constructor(
             measurement.measurementMetaData,
             measurement.attachmentMetaData,
         )
-    }
-
-    private fun getFolderSize(folder: File): Long {
-        var size: Long = 0
-        val files = folder.listFiles()
-        if (files != null) {
-            for (file in files) {
-                size += if (file.isFile) {
-                    file.length()
-                } else {
-                    getFolderSize(file)
-                }
-            }
-        }
-        return size
     }
 
     /**

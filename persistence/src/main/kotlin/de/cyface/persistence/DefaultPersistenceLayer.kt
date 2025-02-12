@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -65,6 +65,8 @@ import kotlin.math.max
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
+ * @version 19.1.1
+ * @since 2.0.0
  * @property persistenceBehaviour The [PersistenceBehaviour] defines how the `Persistence` layer works.
  * We need this behaviour to differentiate if the [DefaultPersistenceLayer] is used for live capturing
  * and or to load existing data.
@@ -179,7 +181,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             modality,
             PERSISTENCE_FILE_FORMAT_VERSION,
             0.0,
-            timestamp
+            timestamp,
+            0,
         )
         runBlocking {
             val measurementId = withContext(scope.coroutineContext) {

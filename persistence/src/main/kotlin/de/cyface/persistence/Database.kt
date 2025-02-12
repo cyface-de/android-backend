@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -50,7 +50,7 @@ import de.cyface.persistence.model.Pressure
  * For this, see: https://developer.android.com/training/data-storage/room/async-queries
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 7.5.0
  */
 @androidx.room.Database(
@@ -64,7 +64,8 @@ import de.cyface.persistence.model.Pressure
     ],
     // version 18 imported data from `v6.1` database into `measures.17` and migrated `measures` to Room
     // version 19 adds the attachments table
-    version = 19
+    // version 20 adds filesSize to the measurement table [RFR-1213]
+    version = 20
     //autoMigrations = [] // test this feature on the next version change
 )
 @TypeConverters(PathTypeConverter::class)
@@ -133,7 +134,8 @@ abstract class Database : RoomDatabase() {
                     DatabaseMigrator.MIGRATION_15_16,
                     DatabaseMigrator.MIGRATION_16_17,
                     migrator.MIGRATION_17_18,
-                    DatabaseMigrator.MIGRATION_18_19
+                    DatabaseMigrator.MIGRATION_18_19,
+                    DatabaseMigrator.MIGRATION_19_20,
                 )
                 .build()
         }

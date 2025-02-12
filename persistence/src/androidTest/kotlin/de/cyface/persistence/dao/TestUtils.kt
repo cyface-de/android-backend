@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -37,7 +37,7 @@ import kotlin.io.path.Path
  * Utility methods used in different [de.cyface.persistence.dao] `androidTest`s.
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 7.5.0
  */
 class TestUtils {
@@ -59,7 +59,8 @@ class TestUtils {
                 Modality.BICYCLE,
                 DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION,
                 0.0,
-                1000L
+                1000L,
+                0,
             )
         }
 
