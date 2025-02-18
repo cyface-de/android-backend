@@ -10,8 +10,9 @@ import android.location.LocationManager
  * @author Klemens Muthmann
  * @version 2.0.2
  * @since 1.0.0
+ * @param locationManager The Android service used to get location status updates.
  */
-internal abstract class GeoLocationDeviceStatusHandler(locationManager: LocationManager?) {
+internal abstract class GeoLocationDeviceStatusHandler(val locationManager: LocationManager) {
     /**
      * `true` if the service has a geo location fix; `false` otherwise.
      */
@@ -26,22 +27,6 @@ internal abstract class GeoLocationDeviceStatusHandler(locationManager: Location
      * The `List` of listeners to inform about geo location updates.
      */
     private val listener: MutableCollection<CapturingProcessListener> = ArrayList()
-
-    /**
-     * The `LocationManager` used to get geo location status updates.
-     */
-    val locationManager: LocationManager
-
-    /**
-     * Creates a new completely initialized `GeoLocationDeviceStatusHandler`.
-     *
-     * @param locationManager The `LocationManager` used to get geo location status updates.
-     */
-    init {
-        requireNotNull(locationManager) { "Illegal argument: locationManager was null!" }
-
-        this.locationManager = locationManager
-    }
 
     /**
      * Adds all the listeners from the provided `List` to this objects list of listeners that are informed
@@ -114,10 +99,10 @@ internal abstract class GeoLocationDeviceStatusHandler(locationManager: Location
 
     companion object {
         /**
-         * Interval in which location updates need to occur for the device to consider itself having a fix. Reasoning behind
-         * this number is the following: Usually the geo location device provides updates every second, give or take a few
-         * milliseconds. According to sampling theorem we could guarantee updates every 2 seconds if a proper fix is
-         * available.
+         * Interval in which location updates need to occur for the device to consider itself
+         * having a fix. Reasoning behind this number is the following: Usually the geo location
+         * device provides updates every second, give or take a few milliseconds. According to
+         * sampling theorem we could guarantee updates every 2 seconds if a proper fix is available.
          */
         private const val MAX_TIME_SINCE_LAST_SATELLITE_UPDATE = 2000
     }

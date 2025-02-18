@@ -29,7 +29,6 @@ import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
-import android.os.HandlerThread
 import android.os.IBinder
 import android.os.Message
 import android.os.Messenger
@@ -334,11 +333,12 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         )
 
         // Load sensor frequency
-        val sensorFrequency = intent.getIntExtra(BundlesExtrasCodes.SENSOR_FREQUENCY, -1)
-        check(sensorFrequency != -1) { "No sensor frequency provided for started service ." }
+        val sensorCapture: SensorCapture? =
+            intent.getParcelableExtra(BundlesExtrasCodes.SENSOR_CAPTURE)
+        requireNotNull(sensorCapture) { "No sensor capture mode provided for started service ." }
 
         // Init capturing process
-        dataCapturing = initializeCapturingProcess(sensorFrequency)
+        dataCapturing = initializeCapturingProcess(sensorCapture)
         dataCapturing.addCapturingProcessListener(this)
 
         // Informs about the service start
@@ -362,28 +362,28 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
     /**
      * Initializes this service
      *
-     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
-     * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
-     * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
-     * @return the [GeoLocationCapturingProcess]
+     * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should
+     * be captured.
      */
-    private fun initializeCapturingProcess(sensorFrequency: Int): GeoLocationCapturingProcess {
+    private fun initializeCapturingProcess(sensorCapture: SensorCapture):
+            GeoLocationCapturingProcess {
         Log.v(TAG, "Initializing capturing process")
+
         val locationManager = this.getSystemService(LOCATION_SERVICE) as LocationManager
-        Validate.notNull(locationManager)
-        val locationStatusHandler = if (Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
-        ) GnssStatusCallback(locationManager)
-        else GeoLocationStatusListener(locationManager)
-        val sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
-        Validate.notNull(sensorManager)
-        // noinspection SpellCheckingInspection
-        val geoLocationEventHandlerThread = HandlerThread("de.cyface.locationhandler")
-        // noinspection SpellCheckingInspection
-        val sensorEventHandlerThread = HandlerThread("de.cyface.sensoreventhandler")
-        return GeoLocationCapturingProcess(
-            locationManager, sensorManager, locationStatusHandler,
-            geoLocationEventHandlerThread, sensorEventHandlerThread, sensorFrequency
-        )
+        val locationCapture = LocationCapture()
+        val statusHandler = if (Build.VERSION_CODES.N <= Build.VERSION.SDK_INT) {
+            GnssStatusCallback(locationManager)
+        } else {
+            GeoLocationStatusListener(locationManager)
+        }
+        locationCapture.setup(locationManager, statusHandler)
+
+        if (sensorCapture is SensorCaptureEnabled) {
+            val sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+            sensorCapture.setup(sensorManager)
+        }
+
+        return GeoLocationCapturingProcess(locationCapture, sensorCapture)
     }
 
     /**

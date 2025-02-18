@@ -23,7 +23,6 @@ import android.hardware.SensorEvent
 import android.hardware.SensorManager
 import android.location.Location
 import android.location.LocationManager
-import android.os.HandlerThread
 import android.os.SystemClock
 import de.cyface.datacapturing.model.CapturedData
 import de.cyface.persistence.model.ParcelableGeoLocation
@@ -72,18 +71,6 @@ class CapturingProcessTest {
     private val locationManager: LocationManager? = null
 
     /**
-     * A mock for the thread handling occurrence of new geo locations.
-     */
-    @Mock
-    private val geoLocationEventHandlerThread: HandlerThread? = null
-
-    /**
-     * A mock for the thread handling the occurrence of new sensor values.
-     */
-    @Mock
-    private val sensorEventHandlerThread: HandlerThread? = null
-
-    /**
      * A listener for the capturing process used to receive test events and assert against those events.
      */
     private var testListener: TestCapturingProcessListener? = null
@@ -93,19 +80,25 @@ class CapturingProcessTest {
      */
     @Before
     fun setUp() {
-        oocut = GeoLocationCapturingProcess(
-            locationManager!!, sensorManager!!,
-            object : GeoLocationDeviceStatusHandler(locationManager) {
-                public override fun shutdown() {}
-                public override fun hasLocationFix(): Boolean {
-                    return true
-                }
-            }, geoLocationEventHandlerThread!!, sensorEventHandlerThread!!, 100
-        )
+        val locationCapture = LocationCapture().also {
+            it.setup(
+                locationManager!!,
+                object : GeoLocationDeviceStatusHandler(locationManager) {
+                    override fun shutdown() { /* Nothing to do */ }
+                    override fun hasLocationFix(): Boolean {
+                        return true
+                    }
+                },
+            )
+        }
+        val sensorCapture = SensorCaptureEnabled(100).also {
+            it.setup(sensorManager!!)
+        }
+        oocut = GeoLocationCapturingProcess(locationCapture, sensorCapture)
         testListener = TestCapturingProcessListener()
-        oocut!!.addCapturingProcessListener(testListener)
+        oocut!!.addCapturingProcessListener(testListener!!)
         val accelerometer = initSensor("accelerometer")
-        Mockito.`when`(sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER))
+        Mockito.`when`(sensorManager!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER))
             .thenReturn(accelerometer)
     }
 

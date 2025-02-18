@@ -20,9 +20,8 @@ package de.cyface.datacapturing
 
 import android.content.Context
 import android.util.Log
-import de.cyface.datacapturing.DataCapturingListener
-import de.cyface.datacapturing.DataCapturingService
-import de.cyface.datacapturing.EventHandlingStrategy
+import de.cyface.datacapturing.backend.SensorCapture
+import de.cyface.datacapturing.backend.SensorCaptureEnabled
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
 import de.cyface.datacapturing.exception.MissingPermissionException
@@ -48,41 +47,44 @@ import de.cyface.utils.Validate
  * @author Armin Schnabel
  * @version 15.0.0
  * @since 2.0.0
+ * @param context The context (i.e. `Activity`) handling this service.
+ * @param authority The `ContentProvider` authority used to identify the content provider used by this
+ * `DataCapturingService`. You should use something world wide unique, like your domain, to
+ * avoid collisions between different apps using the Cyface SDK.
+ * @param accountType The type of the account to use to synchronize data.
+ * @param eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
+ * triggered by the [DataCapturingBackgroundService].
+ * @param distanceCalculationStrategy The [DistanceCalculationStrategy] used to calculate the
+ * [Measurement.getDistance]
+ * @param locationCleaningStrategy The [LocationCleaningStrategy] used to filter the
+ * [ParcelableGeoLocation]s
+ * @param capturingListener A [DataCapturingListener] that is notified of important events during data
+ * capturing.
+ * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should
+ * be captured.
  */
 @Suppress("unused") // Used by SDK implementing apps (CY)
 class CyfaceDataCapturingService private constructor(
     context: Context,
-    authority: String, accountType: String,
+    authority: String,
+    accountType: String,
     eventHandlingStrategy: EventHandlingStrategy,
     distanceCalculationStrategy: DistanceCalculationStrategy,
     locationCleaningStrategy: LocationCleaningStrategy,
-    capturingListener: DataCapturingListener, sensorFrequency: Int,
-    loginActivityProvider: LoginActivityProvider
+    capturingListener: DataCapturingListener,
+    sensorCapture: SensorCapture,
+    loginActivityProvider: LoginActivityProvider,
 ) : DataCapturingService(
-    context, authority, accountType, eventHandlingStrategy,
+    context,
+    authority,
+    accountType,
+    eventHandlingStrategy,
     DefaultPersistenceLayer(context, CapturingPersistenceBehaviour()),
-    distanceCalculationStrategy, locationCleaningStrategy, capturingListener, sensorFrequency
+    distanceCalculationStrategy,
+    locationCleaningStrategy,
+    capturingListener,
+    sensorCapture,
 ) {
-    /**
-     * Creates a new completely initialized [DataCapturingService].
-     *
-     * @param context The context (i.e. `Activity`) handling this service.
-     * @param authority The `ContentProvider` authority used to identify the content provider used by this
-     * `DataCapturingService`. You should use something world wide unique, like your domain, to
-     * avoid collisions between different apps using the Cyface SDK.
-     * @param accountType The type of the account to use to synchronize data.
-     * @param eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
-     * triggered by the [DataCapturingBackgroundService].
-     * @param distanceCalculationStrategy The [DistanceCalculationStrategy] used to calculate the
-     * [Measurement.getDistance]
-     * @param locationCleaningStrategy The [LocationCleaningStrategy] used to filter the
-     * [ParcelableGeoLocation]s
-     * @param capturingListener A [DataCapturingListener] that is notified of important events during data
-     * capturing.
-     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
-     * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
-     * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
-     */
     init {
         checkNotNull(loginActivityProvider.getLoginActivity()) { "No LOGIN_ACTIVITY was set from the SDK using app." }
     }
@@ -107,14 +109,22 @@ class CyfaceDataCapturingService private constructor(
     // Used by SDK implementing apps (CY)
     constructor(
         context: Context,
-        authority: String, accountType: String,
+        authority: String,
+        accountType: String,
         eventHandlingStrategy: EventHandlingStrategy,
-        capturingListener: DataCapturingListener, sensorFrequency: Int,
-        loginActivityProvider: LoginActivityProvider
+        capturingListener: DataCapturingListener,
+        sensorFrequency: Int,
+        loginActivityProvider: LoginActivityProvider,
     ) : this(
-        context, authority, accountType, eventHandlingStrategy,
-        DefaultDistanceCalculation(), DefaultLocationCleaning(), capturingListener,
-        sensorFrequency, loginActivityProvider
+        context,
+        authority,
+        accountType,
+        eventHandlingStrategy,
+        DefaultDistanceCalculation(),
+        DefaultLocationCleaning(),
+        capturingListener,
+        SensorCaptureEnabled(sensorFrequency),
+        loginActivityProvider,
     )
 
     /**

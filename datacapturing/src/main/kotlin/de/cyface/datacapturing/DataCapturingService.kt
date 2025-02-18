@@ -36,6 +36,7 @@ import android.os.RemoteException
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService
+import de.cyface.datacapturing.backend.SensorCapture
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
 import de.cyface.datacapturing.exception.MissingPermissionException
@@ -93,9 +94,8 @@ import java.util.concurrent.locks.ReentrantLock
  * [ParcelableGeoLocation]s
  * @param capturingListener A [DataCapturingListener] that is notified of important events during data
  * capturing.
- * @property sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
- * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
- * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
+ * @property sensorCapture The [SensorCapture] implementation which decides if sensor data should
+ *  be captured.
  */
 abstract class DataCapturingService(
     context: Context,
@@ -106,7 +106,7 @@ abstract class DataCapturingService(
     distanceCalculationStrategy: DistanceCalculationStrategy,
     locationCleaningStrategy: LocationCleaningStrategy,
     capturingListener: DataCapturingListener,
-    sensorFrequency: Int
+    private val sensorCapture: SensorCapture,
 ) {
     /**
      * `true` if data capturing is running; `false` otherwise.
@@ -223,13 +223,6 @@ abstract class DataCapturingService(
      */
     private val locationCleaningStrategy: LocationCleaningStrategy
 
-    /**
-     * The frequency in which sensor data should be captured. If this is higher than the maximum
-     * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
-     * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
-     */
-    private val sensorFrequency: Int
-
     init {
         this.context = WeakReference(context)
         this.authority = authority
@@ -239,7 +232,6 @@ abstract class DataCapturingService(
         this.eventHandlingStrategy = eventHandlingStrategy
         this.distanceCalculationStrategy = distanceCalculationStrategy
         this.locationCleaningStrategy = locationCleaningStrategy
-        this.sensorFrequency = sensorFrequency
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId()
 
         // Mark deprecated measurements
@@ -767,7 +759,7 @@ abstract class DataCapturingService(
             BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID,
             locationCleaningStrategy
         )
-        startIntent.putExtra(BundlesExtrasCodes.SENSOR_FREQUENCY, sensorFrequency)
+        startIntent.putExtra(BundlesExtrasCodes.SENSOR_CAPTURE, sensorCapture)
         val serviceComponentName: ComponentName? =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(startIntent)

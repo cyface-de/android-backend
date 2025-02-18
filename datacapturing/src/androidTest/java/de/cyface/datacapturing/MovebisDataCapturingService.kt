@@ -30,6 +30,7 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
 import androidx.core.app.ActivityCompat
+import de.cyface.datacapturing.backend.SensorCapture
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
 import de.cyface.datacapturing.exception.MissingPermissionException
@@ -80,24 +81,29 @@ import de.cyface.utils.Validate
  * triggered by the [de.cyface.datacapturing.backend.DataCapturingBackgroundService].
  * @param capturingListener A [DataCapturingListener] that is notified of important events during data
  * capturing.
- * @property sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
- * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
- * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
+ * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should
+ * be captured.
  */
 // Used by SDK implementing apps (SR)
 class MovebisDataCapturingService internal constructor(
-    context: Context, authority: String,
-    accountType: String, uiListener: UIListener,
+    context: Context,
+    authority: String,
+    accountType: String,
+    uiListener: UIListener,
     private val locationUpdateRate: Long,
     eventHandlingStrategy: EventHandlingStrategy,
     capturingListener: DataCapturingListener,
-    sensorFrequency: Int
+    sensorCapture: SensorCapture,
 ) : DataCapturingService(
-    context, authority, accountType,
+    context,
+    authority,
+    accountType,
     eventHandlingStrategy,
     DefaultPersistenceLayer(context, CapturingPersistenceBehaviour()),
-    DefaultDistanceCalculation(), DefaultLocationCleaning(), capturingListener,
-    sensorFrequency
+    DefaultDistanceCalculation(),
+    DefaultLocationCleaning(),
+    capturingListener,
+    sensorCapture,
 ) {
     /**
      * A `LocationManager` that is used to provide location updates for the UI even if no capturing is
@@ -147,16 +153,17 @@ class MovebisDataCapturingService internal constructor(
      * triggered by the [de.cyface.datacapturing.backend.DataCapturingBackgroundService].
      * @param capturingListener A [DataCapturingListener] that is notified of important events during data
      * capturing.
-     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
-     * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
-     * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
+     * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should
+     * be captured.
      */
     @Suppress("unused") // Used by SDK implementing apps (SR)
     constructor(
-        context: Context, uiListener: UIListener,
-        locationUpdateRate: Long, eventHandlingStrategy: EventHandlingStrategy,
+        context: Context,
+        uiListener: UIListener,
+        locationUpdateRate: Long,
+        eventHandlingStrategy: EventHandlingStrategy,
         capturingListener: DataCapturingListener,
-        sensorFrequency: Int
+        sensorCapture: SensorCapture,
     ) : this(
         context,
         "de.cyface.provider",
@@ -165,7 +172,7 @@ class MovebisDataCapturingService internal constructor(
         locationUpdateRate,
         eventHandlingStrategy,
         capturingListener,
-        sensorFrequency
+        sensorCapture,
     )
 
     init {

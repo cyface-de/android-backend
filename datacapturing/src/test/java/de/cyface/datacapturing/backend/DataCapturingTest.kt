@@ -64,18 +64,6 @@ class DataCapturingTest {
     private val listener: CapturingProcessListener? = null
 
     /**
-     * A mocked `HandlerThread` for events occurring on new locations.
-     */
-    @Mock
-    private val locationEventHandler: HandlerThread? = null
-
-    /**
-     * A mocked `HandlerThread` for events occurring on new sensor values.
-     */
-    @Mock
-    private val sensorEventHandler: HandlerThread? = null
-
-    /**
      * A mocked [BuildVersionProvider] for version check in [CapturingProcess].
      */
     @Mock
@@ -87,15 +75,28 @@ class DataCapturingTest {
     private var locationStatusHandler: GeoLocationDeviceStatusHandler? = null
 
     /**
+     * An object of the class under test.
+     */
+    private lateinit var oocut: CapturingProcess
+
+    /**
      * Initializes mocks and the status handler.
      */
     @Before
     fun setUp() {
         MockitoAnnotations.initMocks(this)
-        locationStatusHandler = object : GeoLocationDeviceStatusHandler(mockedLocationManager) {
-            override fun shutdown() {
-            }
+        val locationCapture = LocationCapture().also {
+            it.setup(
+                mockedLocationManager!!,
+                object : GeoLocationDeviceStatusHandler(mockedLocationManager) {
+                    override fun shutdown() { /* Nothing to do */ }
+                },
+            )
         }
+        val sensorCapture = SensorCaptureEnabled(100).also {
+            it.setup(mockedSensorService!!)
+        }
+        oocut = GeoLocationCapturingProcess(locationCapture, sensorCapture)
     }
 
     /**
@@ -113,14 +114,7 @@ class DataCapturingTest {
         Mockito.`when`(location.accuracy).thenReturn(5f)
         Mockito.`when`(location.hasVerticalAccuracy()).thenReturn(true)
         Mockito.`when`(location.verticalAccuracyMeters).thenReturn(20f)
-        GeoLocationCapturingProcess(
-            mockedLocationManager,
-            mockedSensorService,
-            locationStatusHandler,
-            locationEventHandler,
-            sensorEventHandler,
-            100
-        ).use { dataCapturing ->
+        oocut.use { dataCapturing ->
             dataCapturing.setBuildVersionProvider(mockedBuildVersionProvider)
             dataCapturing.addCapturingProcessListener(listener!!)
             locationStatusHandler!!.handleFirstFix()
@@ -143,14 +137,7 @@ class DataCapturingTest {
         Mockito.`when`(location.longitude).thenReturn(1.0)
         Mockito.`when`(location.speed).thenReturn(0.0f)
         Mockito.`when`(location.accuracy).thenReturn(0.0f)
-        GeoLocationCapturingProcess(
-            mockedLocationManager,
-            mockedSensorService,
-            locationStatusHandler,
-            locationEventHandler,
-            sensorEventHandler,
-            100
-        ).use { dataCapturing ->
+        oocut.use { dataCapturing ->
             dataCapturing.addCapturingProcessListener(listener!!)
             dataCapturing.onLocationChanged(location)
             dataCapturing.onLocationChanged(location)

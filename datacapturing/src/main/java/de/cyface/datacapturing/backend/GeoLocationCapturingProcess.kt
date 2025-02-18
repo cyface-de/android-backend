@@ -18,44 +18,23 @@
  */
 package de.cyface.datacapturing.backend
 
-import android.hardware.SensorManager
 import android.location.Location
-import android.location.LocationManager
-import android.os.HandlerThread
 
 /**
- * An implementation of a `CapturingProcess` getting all data from the geolocation provider.
+ * An implementation of a [CapturingProcess] receiving location and sensor updates.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
  * @version 4.0.1
  * @since 1.0.0
+ * @param locationCapture The [LocationCapture] which sets up location capturing.
+ * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should
+ * be captured and sets it up if requested.
  */
-class GeoLocationCapturingProcess
-/**
- * Creates a new completely initialized `GeoLocationCapturingProcess` receiving location and sensor
- * updates.
- *
- * @param locationManager The Android `LocationManager` that provides updates about location changes from
- * the location provider.
- * @param sensorService The Android `SensorManager` used to access the systems accelerometer, gyroscope
- * and magnetometer.
- * @param locationStatusHandler Status handler, that informs listeners about geo location device (in this case
- * location provider) fix status changes.
- * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
- * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
- * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
- */
-internal constructor(
-    locationManager: LocationManager,
-    sensorService: SensorManager,
-    locationStatusHandler: GeoLocationDeviceStatusHandler,
-    geoLocationEventHandlerThread: HandlerThread,
-    sensorEventHandlerThread: HandlerThread, sensorFrequency: Int
-) : CapturingProcess(
-    locationManager, sensorService, locationStatusHandler, geoLocationEventHandlerThread,
-    sensorEventHandlerThread, sensorFrequency
-) {
+class GeoLocationCapturingProcess internal constructor(
+    locationCapture: LocationCapture,
+    sensorCapture: SensorCapture,
+) : CapturingProcess(locationCapture, sensorCapture) {
     override fun getCurrentSpeed(location: Location): Double {
         return location.speed.toDouble()
     }

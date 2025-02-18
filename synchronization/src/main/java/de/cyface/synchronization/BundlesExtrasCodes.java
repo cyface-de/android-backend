@@ -63,9 +63,10 @@ public class BundlesExtrasCodes {
      */
     public final static String SYNC_PERCENTAGE_ID = TAG + ".percentage";
     /**
-     * Code that identifies the extra transmitted to the background service to tell it which sensor frequency to use.
+     * Code that identifies the extra transmitted to the background service to tell it if sensor
+     * data should be captured and at which frequency.
      */
-    public final static String SENSOR_FREQUENCY = "de.cyface.extra.sensor_frequency";
+    public final static String SENSOR_CAPTURE = "de.cyface.extra.sensor_capture";
 
     /**
      * Constructor is private to prevent creation of utility class.

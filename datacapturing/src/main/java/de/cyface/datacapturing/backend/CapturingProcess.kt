@@ -18,17 +18,13 @@
  */
 package de.cyface.datacapturing.backend
 
-import android.annotation.SuppressLint
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
-import android.hardware.SensorManager
 import android.location.Location
 import android.location.LocationListener
-import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
 import android.os.HandlerThread
 import android.os.SystemClock
 import android.util.Log
@@ -48,60 +44,48 @@ import kotlin.math.abs
 import kotlin.math.min
 
 /**
- * Implements the data capturing functionality for Cyface. This class implements the SensorEventListener to listen to
- * acceleration sensor events as well as the LocationListener to listen to location updates.
+ * Implements the data capturing functionality for Cyface.
+ *
+ * This class implements the SensorEventListener to listen to acceleration sensor events as well as
+ * the LocationListener to listen to location updates. - FIXME: Sensor event listener should be optional
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
  * @version 3.2.2
  * @since 1.0.0
+ * @param locationCapture The [LocationCapture] which sets up the location capturing.
+ * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should
+ * be captured and sets up the capturing if requested.
+ * @throws `SecurityException` If user did not provide permission to access geo location.
  */
-@SuppressLint("MissingPermission") // UI has to handle permission request before starting this
 abstract class CapturingProcess internal constructor(
-    locationManager: LocationManager, sensorService: SensorManager,
-    geoLocationDeviceStatusHandler: GeoLocationDeviceStatusHandler,
-    locationEventHandlerThread: HandlerThread,
-    sensorEventHandlerThread: HandlerThread, sensorFrequency: Int
+    private val locationCapture: LocationCapture,
+    private val sensorCapture: SensorCapture,
 ) : SensorEventListener, LocationListener, Closeable {
     /**
      * Cache for captured but not yet processed points from the accelerometer.
      */
-    private val accelerations: MutableList<ParcelablePoint3D>
+    private val accelerations: MutableList<ParcelablePoint3D> = Vector(30)
 
     /**
      * Cache for captured but not yet processed points from the gyroscope.
      */
-    private val rotations: MutableList<ParcelablePoint3D>
+    private val rotations: MutableList<ParcelablePoint3D> = Vector(30)
 
     /**
      * Cache for captured but not yet processed points from the compass.
      */
-    private val directions: MutableList<ParcelablePoint3D>
+    private val directions: MutableList<ParcelablePoint3D> = Vector(30)
 
     /**
      * Cache for captured but not yet processed points from the barometer.
      */
-    private val pressures: MutableList<ParcelablePressure>
+    private val pressures: MutableList<ParcelablePressure> = Vector(30)
 
     /**
      * A `List` of listeners we need to inform about captured data.
      */
-    private val listener: MutableCollection<CapturingProcessListener>
-
-    /**
-     * The Android `LocationManager` used to get geo location updates.
-     */
-    private val locationManager: LocationManager
-
-    /**
-     * The Android `SensorManager` used to get update from the accelerometer, gyroscope and magnetometer.
-     */
-    private val sensorService: SensorManager
-
-    /**
-     * Status handler watching the geo location device for fix status updates (basically fix or no-fix).
-     */
-    private val locationStatusHandler: GeoLocationDeviceStatusHandler
+    private val listener: MutableCollection<CapturingProcessListener> = HashSet()
 
     /**
      * Time offset used to move event time on devices measuring that time in milliseconds since device activation and
@@ -121,84 +105,13 @@ abstract class CapturingProcess internal constructor(
     private var lastNoGeoLocationFixUpdateTime: Long = 0
 
     /**
-     * A `HandlerThread` to handle new sensor events in the background. This is based on information from
-     * [StackOverflow](https://stackoverflow.com/questions/6069485/sensormanager-registerlistener-handler-handler-example-please/6769218?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa).
-     */
-    private val sensorEventHandlerThread: HandlerThread
-    private val locationEventHandlerThread: HandlerThread
-
-    /**
      * The provider to use to check the build version of the system.
      */
-    private var buildVersionProvider: BuildVersionProvider
+    private var buildVersionProvider: BuildVersionProvider = BuildVersionProviderImpl()
 
-    /**
-     * Creates a new completely initialized `DataCapturing` object receiving updates from the provided
-     * [LocationManager] as well as the [SensorManager].
-     *
-     * @param locationManager The [LocationManager] used to get updates about the devices location.
-     * @param sensorService The [SensorManager] used to get updates from the devices Accelerometer, Gyroscope and
-     * Compass.
-     * @param geoLocationDeviceStatusHandler Handler that is notified if there is a geo location fix or not.
-     * @param locationEventHandlerThread A `HandlerThread` to handle new locations in the background without
-     * blocking the calling thread.
-     * @param sensorEventHandlerThread A `HandlerThread` to handle new sensor events in the background
-     * without blocking the calling thread. This is based on information from
-     * [StackOverflow](https://stackoverflow.com/questions/6069485/sensormanager-registerlistener-handler-handler-example-please).
-     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
-     * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
-     * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
-     * @throws SecurityException If user did not provide permission to access geo location.
-     */
     init {
-        Validate.notNull(locationManager, "Illegal argument: locationManager was null!")
-        Validate.notNull(sensorService, "Illegal argument: sensorService was null!")
-        Validate.notNull(
-            geoLocationDeviceStatusHandler,
-            "Illegal argument: geoLocationDeviceStatusHandler was null!"
-        )
-        Validate.notNull(
-            locationEventHandlerThread,
-            "Illegal argument: locationEventHandlerThread was null!"
-        )
-        Validate.notNull(
-            sensorEventHandlerThread,
-            "Illegal argument: sensorEventHandlerThread was null!"
-        )
-
-        this.accelerations = Vector(30)
-        this.rotations = Vector(30)
-        this.directions = Vector(30)
-        this.pressures = Vector(30)
-        this.listener = HashSet()
-        this.locationManager = locationManager
-        this.sensorService = sensorService
-        this.locationStatusHandler = geoLocationDeviceStatusHandler
-        this.locationEventHandlerThread = locationEventHandlerThread
-        this.sensorEventHandlerThread = sensorEventHandlerThread
-        this.buildVersionProvider = BuildVersionProviderImpl()
-
-        locationEventHandlerThread.start()
-        this.locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER, 0L, 0f, this,
-            locationEventHandlerThread.looper
-        )
-
-        // Registering Sensors
-        val accelerometer = sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        val gyroscope = sensorService.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
-        val magnetometer = sensorService.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
-        val barometer = sensorService.getDefaultSensor(Sensor.TYPE_PRESSURE)
-        sensorEventHandlerThread.start()
-        val sensorEventHandler = Handler(sensorEventHandlerThread.looper)
-        // A delay used to reduce capturing of sensor events, to reduce data size. E.g.: 10 k = 100 Hz
-        val delayBetweenSensorEventsInMicroseconds = 1000000 / sensorFrequency
-        registerSensor(accelerometer, sensorEventHandler, delayBetweenSensorEventsInMicroseconds)
-        registerSensor(gyroscope, sensorEventHandler, delayBetweenSensorEventsInMicroseconds)
-        registerSensor(magnetometer, sensorEventHandler, delayBetweenSensorEventsInMicroseconds)
-        // The lowest possible frequency is ~5-10 Hz, which is also the normal frequency. We average the
-        // data to 1 Hz to decrease database usage and to support barometers like in the Pixel 6 [STAD-400].
-        registerSensor(barometer, sensorEventHandler, SensorManager.SENSOR_DELAY_NORMAL)
+        locationCapture.register(listener = this)
+        sensorCapture.register(listener = this)
     }
 
     /**
@@ -208,13 +121,13 @@ abstract class CapturingProcess internal constructor(
      */
     fun addCapturingProcessListener(listener: CapturingProcessListener) {
         this.listener.add(listener)
-        locationStatusHandler.setDataCapturingListener(this.listener)
+        this.locationCapture.setDataCapturingListener(this.listener)
     }
 
     override fun onLocationChanged(location: Location) {
-        locationStatusHandler.setTimeOfLastLocationUpdate(System.currentTimeMillis())
+        locationCapture.setTimeOfLastLocationUpdate(System.currentTimeMillis())
 
-        if (locationStatusHandler.hasLocationFix()) {
+        if (locationCapture.hasLocationFix()) {
             val latitude = location.latitude
             val longitude = location.longitude
             // Don't write default value `0.0` when no value is available
@@ -315,9 +228,8 @@ abstract class CapturingProcess internal constructor(
         val thisSensorEventTime = event.timestamp / 1000000L + eventTimeOffsetMillis!!
 
         // Notify client about sensor update & bulkInsert data into database even without location fix
-        if (!locationStatusHandler.hasLocationFix() && (lastNoGeoLocationFixUpdateTime == 0L
-                    || (thisSensorEventTime - lastNoGeoLocationFixUpdateTime > 1000))
-        ) {
+        if (!locationCapture.hasLocationFix() && (lastNoGeoLocationFixUpdateTime == 0L ||
+            (thisSensorEventTime - lastNoGeoLocationFixUpdateTime > 1000))) {
             try {
                 for (listener in this.listener) {
                     val capturedData = CapturedData(accelerations, rotations, directions, pressures)
@@ -337,16 +249,21 @@ abstract class CapturingProcess internal constructor(
         }
 
         // Get sensor values from event
-        if (event.sensor == sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)) {
-            // Check if there are irregular gaps between sensor events (e.g. no location fix or data loss)
-            logIrregularSensorValues(thisSensorEventTime)
-            saveSensorValue(event, accelerations)
-        } else if (event.sensor == sensorService.getDefaultSensor(Sensor.TYPE_GYROSCOPE)) {
-            saveSensorValue(event, rotations)
-        } else if (event.sensor == sensorService.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)) {
-            saveSensorValue(event, directions)
-        } else if (event.sensor == sensorService.getDefaultSensor(Sensor.TYPE_PRESSURE)) {
-            savePressureValue(event, pressures)
+        when (event.sensor) {
+            sensorCapture.defaultSensor(Sensor.TYPE_ACCELEROMETER) -> {
+                // Check if there are irregular gaps between sensor events (e.g. no location fix or data loss)
+                logIrregularSensorValues(thisSensorEventTime)
+                saveSensorValue(event, accelerations)
+            }
+            sensorCapture.defaultSensor(Sensor.TYPE_GYROSCOPE) -> {
+                saveSensorValue(event, rotations)
+            }
+            sensorCapture.defaultSensor(Sensor.TYPE_MAGNETIC_FIELD) -> {
+                saveSensorValue(event, directions)
+            }
+            sensorCapture.defaultSensor(Sensor.TYPE_PRESSURE) -> {
+                savePressureValue(event, pressures)
+            }
         }
     }
 
@@ -454,11 +371,8 @@ abstract class CapturingProcess internal constructor(
      */
     @Throws(SecurityException::class)
     override fun close() {
-        locationManager.removeUpdates(this)
-        locationStatusHandler.shutdown()
-        sensorService.unregisterListener(this)
-        sensorEventHandlerThread.quitSafely()
-        locationEventHandlerThread.quitSafely()
+        locationCapture.cleanup(this)
+        sensorCapture.cleanup(this)
     }
 
     /**
@@ -492,37 +406,15 @@ abstract class CapturingProcess internal constructor(
     /**
      * Converts the event time a supported format.
      *
+     * Different vendors and Android versions store different timestamps in the `event.timestamp`
+     * (e.g. uptimeNano, sysTimeNano). To standardize we use an offset from the first sample
+     * to match the expected timestamp format.
      *
-     * As different vendors and Android versions store different timestamps in the `event.ts`
-     * (e.g. uptimeNano, sysTimeNano) we use an offset from the first sample captures to get the same
-     * timestamp format.
-     *
-     * @param eventTimestamp The `SensorEvent#timestamp` to convert.
+     * @param eventTimestamp The `SensorEvent#timestamp` in nanoseconds.
      * @return The converted timestamp in milliseconds.
      */
     private fun timestampMillis(eventTimestamp: Long): Long {
-        return eventTimestamp / 1000000L + eventTimeOffsetMillis!!
-    }
-
-    /**
-     * Registers the provided `Sensor` with this object as a listener, if the sensor is not
-     * `null`. If the sensor is `null` nothing will happen.
-     *
-     * @param sensor The Android `Sensor` to register.
-     * @param sensorEventHandler The `Handler` to run the `onSensorEvent` method on.
-     * @param delayMicros The desired delay between two consecutive events in microseconds. This is
-     * only a hint to the system. Events may be received faster or slower than the
-     * specified rate. Usually events are received faster. Can be one of `SENSOR_DELAY_NORMAL`,
-     * `SENSOR_DELAY_UI`, `SENSOR_DELAY_GAME`, `SENSOR_DELAY_FASTEST` or the delay in
-     * microseconds.
-     */
-    private fun registerSensor(sensor: Sensor?, sensorEventHandler: Handler, delayMicros: Int) {
-        if (sensor != null) {
-            sensorService.registerListener(
-                this, sensor, delayMicros,
-                SENSOR_VALUE_DELAY_IN_MICROSECONDS, sensorEventHandler
-            )
-        }
+        return eventTimestamp / NANOS_PER_MILLI + eventTimeOffsetMillis!!
     }
 
     /**
@@ -531,7 +423,7 @@ abstract class CapturingProcess internal constructor(
      * @param location The location for which a speed update is requested.
      * @return The speed in m/s.
      */
-    protected abstract fun getCurrentSpeed(location: Location?): Double
+    protected abstract fun getCurrentSpeed(location: Location): Double
 
     /**
      * @param buildVersionProvider The provider to be used to check the build version.
@@ -547,8 +439,8 @@ abstract class CapturingProcess internal constructor(
         private const val TAG = Constants.BACKGROUND_TAG
 
         /**
-         * A delay used to bundle capturing of sensor events, to reduce power consumption.
+         * The number of nanoseconds per millisecond.
          */
-        private const val SENSOR_VALUE_DELAY_IN_MICROSECONDS = 500000
+        private const val NANOS_PER_MILLI = 1_000_000L
     }
 }
