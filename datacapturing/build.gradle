@@ -31,12 +31,12 @@ plugins {
     // Keep version in sync with other modules!
     id 'de.cyface.android-publish' version '1.1.0'
     id 'kotlin-android'
-    id 'kotlin-kapt'
+    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Upgrade together with `kotlin_version`
 }
 
 android {
     namespace "de.cyface.datacapturing"
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    compileSdk = rootProject.ext.compileSdkVersion
 
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
@@ -106,7 +106,7 @@ dependencies {
     // `Room` API used to access database
     // Further room libraries and Kotlin support see Room guide.
     implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
-    kapt "androidx.room:room-compiler:$rootProject.ext.roomVersion"
+    ksp "androidx.room:room-compiler:$rootProject.ext.roomVersion"
 
     // Kotlin components
     //implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
