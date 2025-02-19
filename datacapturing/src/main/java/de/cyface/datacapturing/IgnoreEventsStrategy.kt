@@ -22,7 +22,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.os.Build
 import android.os.Parcel
 import android.os.Parcelable.Creator
 import android.util.Log
@@ -52,6 +51,7 @@ class IgnoreEventsStrategy : EventHandlingStrategy {
      *
      * @param in A `Parcel` that is a serialized version of a `IgnoreEventsStrategy`.
      */
+    @Suppress("UNUSED_PARAMETER") // Required by Parcelable
     private constructor(@Suppress("unused") `in`: Parcel)
 
     override fun handleSpaceWarning(dataCapturingBackgroundService: DataCapturingBackgroundService) {
@@ -69,9 +69,7 @@ class IgnoreEventsStrategy : EventHandlingStrategy {
         val notificationManager = context
             .getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notNull(notificationManager)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-            && notificationManager.getNotificationChannel(channelId) == null
-        ) {
+        if (notificationManager.getNotificationChannel(channelId) == null) {
             val channel = NotificationChannel(
                 channelId, "Cyface Data Capturing",
                 NotificationManager.IMPORTANCE_LOW
@@ -99,10 +97,13 @@ class IgnoreEventsStrategy : EventHandlingStrategy {
     companion object {
         /**
          * The `Parcelable` creator as required by the Android Parcelable specification.
+         *
+         * `cannot use '<>' with anonymous inner classes`
          */
-        // `cannot use '<>' with anonymous inner classes`
-        val CREATOR: Creator<IgnoreEventsStrategy> = object : Creator<IgnoreEventsStrategy?> {
-            override fun createFromParcel(`in`: Parcel): IgnoreEventsStrategy? {
+        @Suppress("unused") // Required by Parcelable
+        @JvmField
+        val CREATOR: Creator<IgnoreEventsStrategy> = object : Creator<IgnoreEventsStrategy> {
+            override fun createFromParcel(`in`: Parcel): IgnoreEventsStrategy {
                 return IgnoreEventsStrategy(`in`)
             }
 
