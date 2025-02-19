@@ -21,7 +21,6 @@ package de.cyface.datacapturing.backend
 import android.hardware.SensorManager
 import android.location.Location
 import android.location.LocationManager
-import android.os.HandlerThread
 import de.cyface.persistence.model.ParcelableGeoLocation
 import org.junit.Before
 import org.junit.Test
@@ -85,13 +84,11 @@ class DataCapturingTest {
     @Before
     fun setUp() {
         MockitoAnnotations.initMocks(this)
+        this.locationStatusHandler = object : GeoLocationDeviceStatusHandler(mockedLocationManager!!) {
+            override fun shutdown() { /* Nothing to do */ }
+        }
         val locationCapture = LocationCapture().also {
-            it.setup(
-                mockedLocationManager!!,
-                object : GeoLocationDeviceStatusHandler(mockedLocationManager) {
-                    override fun shutdown() { /* Nothing to do */ }
-                },
-            )
+            it.setup(mockedLocationManager, locationStatusHandler!!)
         }
         val sensorCapture = SensorCaptureEnabled(100).also {
             it.setup(mockedSensorService!!)
