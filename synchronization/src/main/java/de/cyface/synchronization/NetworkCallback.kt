@@ -21,7 +21,6 @@ package de.cyface.synchronization
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.os.Build
 import android.util.Log
 import de.cyface.utils.Validate.isTrue
 
@@ -33,37 +32,22 @@ import de.cyface.utils.Validate.isTrue
  * @author Armin Schnabel
  * @version 3.0.0
  * @since 3.0.0
+ * @property surveyor The object which registered this callback, to access some of it's methods.
  */
-class NetworkCallback
-/**
- * Creates a fully initialized instance of this class.
- *
- * @param wiFiSurveyor The [WiFiSurveyor] which registered this callback used to access some of it's methods.
- */ internal constructor(
-    /**
-     * The [WiFiSurveyor] which registered this callback used to access some of it's methods.
-     */
+class NetworkCallback internal constructor(
     private val surveyor: WiFiSurveyor
 ) : ConnectivityManager.NetworkCallback() {
     override fun onLost(network: Network) {
-        // This is required for < MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG or else we are not informed about a lost wifi
-        // connection e.g. on Android 6.0.1 (MOV-650, possibly also MOV-645)
-
+        // This is required for < MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG or else we are not
+        // informed about a lost wifi connection e.g. on Android 6.0.1 (MOV-650, and maybe MOV-645)
         Log.v(WiFiSurveyor.TAG, "NetworkCallback.onLost: setConnected to false.")
         surveyor.setConnected(false)
     }
 
     override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
-        // Ensure this event is only triggered for not metered connections when syncOnUnMeteredNetworkOnly
-
+        // Ensures event is only triggered for un-metered connections (syncOnUnMeteredNetworkOnly)
         if (surveyor.isSyncOnUnMeteredNetworkOnly()) {
-            val isUsingUnMeteredCheckInsteadOfWifi =
-                Build.VERSION.SDK_INT >= WiFiSurveyor.MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG
-            if (isUsingUnMeteredCheckInsteadOfWifi) {
-                isTrue(capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED))
-            } else {
-                isTrue(capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
-            }
+            isTrue(capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED))
         }
 
         // Syncable ("not metered") filter is already included
