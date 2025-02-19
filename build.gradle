@@ -56,7 +56,7 @@ ext {
     cyfaceUploaderVersion = "1.5.1"
 
     // Android SDK versions
-    minSdkVersion = 21 // device support
+    minSdkVersion = 26 // device support
     targetSdkVersion = 34 // behavioral changes, follow migration guide & test the app against this
     compileSdkVersion = 34 // allows newest APIs to be used and to see deprecations, use latest
 
