@@ -59,6 +59,7 @@ import de.cyface.synchronization.ConnectionStatusReceiver
 import de.cyface.synchronization.WiFiSurveyor
 import de.cyface.utils.Validate
 import java.lang.ref.WeakReference
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
@@ -236,7 +237,8 @@ abstract class DataCapturingService(
 
         // Mark deprecated measurements
         for (m in persistenceLayer.loadMeasurements()) {
-            if (m.fileFormatVersion < DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION && m.status != MeasurementStatus.DEPRECATED) {
+            if (m.fileFormatVersion < DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION &&
+                m.status != MeasurementStatus.DEPRECATED) {
                 try {
                     markDeprecated(m.id, m.status)
                 } catch (e: NoSuchMeasurementException) {
@@ -244,6 +246,7 @@ abstract class DataCapturingService(
                 }
             } else require(m.fileFormatVersion <= DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION) {
                 String.format(
+                    Locale.getDefault(),
                     "Invalid format version: %d",
                     m.fileFormatVersion
                 )
@@ -503,7 +506,7 @@ abstract class DataCapturingService(
     private fun handleStopFailed(currentlyCapturedMeasurement: Measurement) {
         isRunning(IS_RUNNING_CALLBACK_TIMEOUT, TimeUnit.MILLISECONDS, object : IsRunningCallback {
             override fun isRunning() {
-                throw IllegalStateException("Capturing is still running.")
+                error("Capturing is still running.")
             }
 
             override fun timedOut() {
@@ -558,7 +561,7 @@ abstract class DataCapturingService(
     private fun handlePauseFailed(currentlyCapturedMeasurement: Measurement) {
         isRunning(IS_RUNNING_CALLBACK_TIMEOUT, TimeUnit.MILLISECONDS, object : IsRunningCallback {
             override fun isRunning() {
-                throw IllegalStateException("Capturing is still running.")
+                error("Capturing is still running.")
             }
 
             override fun timedOut() {
@@ -673,7 +676,7 @@ abstract class DataCapturingService(
                     Log.v(Constants.TAG, "ReconnectCallback.onSuccess(): Binding to service!")
                     bind()
                 } catch (e: DataCapturingException) {
-                    throw IllegalStateException("Illegal state: unable to bind to background service!")
+                    error("Illegal state: unable to bind to background service!")
                 }
             }
         }
@@ -760,15 +763,8 @@ abstract class DataCapturingService(
             locationCleaningStrategy
         )
         startIntent.putExtra(BundlesExtrasCodes.SENSOR_CAPTURE, sensorCapture)
-        val serviceComponentName: ComponentName? =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(startIntent)
-            } else {
-                context.startService(startIntent)
-            }
-        if (serviceComponentName == null) {
-            throw DataCapturingException("DataCapturingBackgroundService failed to start!")
-        }
+        context.startForegroundService(startIntent)
+            ?: throw DataCapturingException("DataCapturingBackgroundService failed to start!")
         bind()
     }
 
@@ -814,10 +810,18 @@ abstract class DataCapturingService(
             // We probably catch this silently as we only try to unbind and the stopService call follows
             Log.w(
                 Constants.TAG,
-                "Service was either paused or already stopped, so I was unable to unbind from it."
+                "Service was either paused or already stopped, so I was unable to unbind from it.",
+                e
             )
         } finally {
-            Log.v(Constants.TAG, String.format("Stopping using Intent with context %s", context))
+            Log.v(
+                Constants.TAG,
+                String.format(
+                    Locale.getDefault(),
+                    "Stopping using Intent with context %s",
+                    context
+                )
+            )
             val stopIntent = Intent(context, DataCapturingBackgroundService::class.java)
             serviceWasActive = context.stopService(stopIntent)
         }
@@ -862,8 +866,11 @@ abstract class DataCapturingService(
         ) == PackageManager.PERMISSION_GRANTED
         return if (!permissionAlreadyGranted && uiListener != null) {
             uiListener!!.onRequirePermission(
-                Manifest.permission.ACCESS_FINE_LOCATION, Reason(
-                    "This app uses the GNSS (GPS) receiver to display your position. If you would like your position to be shown as exactly as possible please allow access to the GNSS (GPS) sensors."
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Reason(
+                    "This app uses the GNSS (GPS) receiver to display your position. " +
+                            "If you would like your position to be shown as exactly as possible" +
+                            "please allow access to the GNSS (GPS) sensors."
                 )
             )
         } else {
@@ -915,7 +922,8 @@ abstract class DataCapturingService(
      *
      * We offer this API through the [DataCapturingService] to allow the SDK implementor to load the
      * currentlyCapturedMeasurement from the cache as the [de.cyface.persistence.DefaultPersistenceBehaviour]
-     * does not have a cache which is the only [de.cyface.persistence.PersistenceBehaviour] the implementor may use directly.
+     * does not have a cache which is the only [de.cyface.persistence.PersistenceBehaviour] the
+     * implementor may use directly.
      *
      * @return the currently captured [Measurement]
      * @throws NoSuchMeasurementException If this method has been called while no `Measurement` was active. To
@@ -1000,9 +1008,8 @@ abstract class DataCapturingService(
     /**
      * Unregisters the [ConnectionStatusReceiver] when no more needed.
      */
-    fun  // Used by implementing apps (CY)
-            shutdownConnectionStatusReceiver() {
-        connectionStatusReceiver.shutdown(getContext())
+    fun shutdownConnectionStatusReceiver() { // Used by implementing apps (CY)
+        getContext()?.let { connectionStatusReceiver.shutdown(it) }
     }
 
     /**
@@ -1076,8 +1083,8 @@ abstract class DataCapturingService(
      * Called when the user switches the [Modality] via UI.
      *
      * In order to record multi-`Modality` `Measurement`s this method records `Modality` switches as
-     * [de.cyface.persistence.model.Event]s when this occurs during an ongoing [Measurement]. Does nothing when no capturing
-     * [.isRunning].
+     * [de.cyface.persistence.model.Event]s when this occurs during an ongoing [Measurement]. Does
+     * nothing when no capturing [.isRunning].
      *
      * @param newModality the identifier of the new [Modality]
      */
@@ -1134,6 +1141,7 @@ abstract class DataCapturingService(
         Log.d(
             Constants.TAG,
             String.format(
+                Locale.getDefault(),
                 "markDeprecated(): Updating measurement %d: %s -> %s",
                 measurementIdentifier,
                 status,
@@ -1153,7 +1161,8 @@ abstract class DataCapturingService(
                 measurementIdentifier
             )
 
-            MeasurementStatus.SKIPPED, MeasurementStatus.SYNCED ->                 // No need to clean the measurement using `markFinishedAs`
+            // No need to clean the measurement using `markFinishedAs`
+            MeasurementStatus.SKIPPED, MeasurementStatus.SYNCED ->
                 persistenceLayer.setStatus(
                     measurementIdentifier,
                     MeasurementStatus.DEPRECATED,
@@ -1197,7 +1206,14 @@ abstract class DataCapturingService(
         }
 
         override fun handleMessage(msg: Message) {
-            Log.v(Constants.TAG, String.format("Service facade received message: %d", msg.what))
+            Log.v(
+                Constants.TAG,
+                String.format(
+                    Locale.getDefault(),
+                    "Service facade received message: %d",
+                    msg.what
+                )
+            )
             val parcel: Bundle = msg.data
             parcel.classLoader = javaClass.classLoader
             if (msg.what == MessageCodes.SERVICE_STOPPED || msg.what == MessageCodes.SERVICE_STOPPED_ITSELF) {
@@ -1247,8 +1263,10 @@ abstract class DataCapturingService(
                 MessageCodes.GEOLOCATION_FIX -> listener.onFixAcquired()
                 MessageCodes.NO_GEOLOCATION_FIX -> listener.onFixLost()
                 MessageCodes.ERROR_PERMISSION -> listener.onRequiresPermission(
-                    Manifest.permission.ACCESS_FINE_LOCATION, Reason(
-                        "Data capturing requires permission to access geo location via satellite. Was not granted or revoked!"
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Reason(
+                        "Data capturing requires permission to access geo location via" +
+                                "satellite. Was not granted or revoked!"
                     )
                 )
 
