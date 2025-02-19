@@ -41,28 +41,23 @@ import java.lang.ref.WeakReference
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
+ * @param context FIXME
+ * @property connectivityManager The Android service to check the device connection status.
+ * @property authority The `ContentProvider` authority used by this service to store and read data.
+ * See https://developer.android.com/guide/topics/providers/content-providers.html
+ * @property accountType Identifier for the account type to use for data synchronization.
  */
 class WiFiSurveyor(
     context: Context,
-    /**
-     * The Android `ConnectivityManager` used to check the device's current connection status.
-     */
-    val connectivityManager: ConnectivityManager,
-    /**
-     * The `ContentProvider` authority used by this service to store and read data. See the
-     * [Android documentation](https://developer.android.com/guide/topics/providers/content-providers.html)
-     * for further information.
-     */
+    private val connectivityManager: ConnectivityManager,
     private val authority: String,
-    /**
-     * A `String` identifying the account type of the accounts to use for data synchronization.
-     */
     private val accountType: String
 ) : BroadcastReceiver() {
     /**
      * The `Account` currently used for data synchronization or `null` if no such
      * `Account` has been set.
      */
+    @JvmField
     var currentSynchronizationAccount: Account? = null
 
     /**
@@ -125,19 +120,8 @@ class WiFiSurveyor(
         // Robolectric is currently only testing the deprecated code, see class documentation
         val requestBuilder = NetworkRequest.Builder()
         if (syncOnUnMeteredNetworkOnly) {
-            val isUsingUnMeteredCheckInsteadOfWifi =
-                Build.VERSION.SDK_INT >= MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG
-
-            if (isUsingUnMeteredCheckInsteadOfWifi) {
-                requestBuilder.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
-            } else {
-                requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-            }
-            Log.v(
-                TAG,
-                "startSurveillance for " + (if (isUsingUnMeteredCheckInsteadOfWifi) "unMetered" else "wifi")
-                        + " networks only"
-            )
+            requestBuilder.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+            Log.v(TAG, "startSurveillance for unMetered networks only")
         }
         networkCallback = NetworkCallback(this)
         connectivityManager.registerNetworkCallback(requestBuilder.build(), networkCallback!!)
@@ -244,11 +228,7 @@ class WiFiSurveyor(
         ContentResolver.removePeriodicSync(account, authority, Bundle.EMPTY)
 
         synchronized(this) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
-                accountManager.removeAccount(account, null, null)
-            } else {
-                accountManager.removeAccountExplicitly(account)
-            }
+            accountManager.removeAccountExplicitly(account)
             currentSynchronizationAccount = null
         }
     }
@@ -322,15 +302,15 @@ class WiFiSurveyor(
     val account: Account
         /**
          * This method retrieves an `Account` from the Android account system. If the `Account`
-         * does not exist it throws an IllegalStateException as we require the default SDK using apps to have exactly one
-         * account created in advance.
+         * does not exist it throws an `IllegalStateException` as we require the default SDK using
+         * apps to have exactly one account created in advance.
          *
          * @return The only `Account` existing
          */
         get() {
             val accountManager = AccountManager.get(context.get())
             val cyfaceAccounts = accountManager.getAccountsByType(accountType)
-            check(cyfaceAccounts.size != 0) { "No cyface account exists." }
+            check(cyfaceAccounts.isNotEmpty()) { "No cyface account exists." }
             check(cyfaceAccounts.size <= 1) { "More than one cyface account exists." }
             return cyfaceAccounts[0]
         }
@@ -355,25 +335,18 @@ class WiFiSurveyor(
             notNull(connectivityManager)
             val activeNetworkInfo = connectivityManager.activeNetworkInfo
 
-            // We use the new code only on Android 8 and above as Wifi networks are seen as metered in 6.0.1 (MOV-568)
-            val isUnMeteredNetwork: Boolean
-            if (Build.VERSION.SDK_INT >= MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG) {
-                val activeNetwork = connectivityManager.activeNetwork
-                val networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
-                if (networkCapabilities == null) {
-                    Log.w(
-                        TAG,
-                        "isConnectedToSyncableNetwork: returning false as networkCapabilities is null"
-                    )
-                    // This happened on Xiaomi Mi A2 Android 9.0 in the morning after capturing during the night
-                    return false
-                }
-                isUnMeteredNetwork =
-                    networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
-            } else {
-                isUnMeteredNetwork = (activeNetworkInfo != null
-                        && activeNetworkInfo.type == ConnectivityManager.TYPE_WIFI)
+            val activeNetwork = connectivityManager.activeNetwork
+            val networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+            if (networkCapabilities == null) {
+                Log.w(
+                    TAG,
+                    "isConnectedToSyncableNetwork: returning false as networkCapabilities is null"
+                )
+                // This happened on Xiaomi Mi A2 Android 9.0 in the morning after capturing during the night
+                return false
             }
+            val isUnMeteredNetwork =
+                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
 
             val isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected
             val isSyncableConnection =
@@ -381,12 +354,10 @@ class WiFiSurveyor(
 
             var networkType = "unconnected"
             if (isConnected) {
-                val isUsingUnMeteredCheckInsteadWifi =
-                    Build.VERSION.SDK_INT >= MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG
                 networkType = if (isUnMeteredNetwork) {
-                    if (isUsingUnMeteredCheckInsteadWifi) "unMetered" else "wifi"
+                    "unMetered"
                 } else {
-                    if (isUsingUnMeteredCheckInsteadWifi) "metered" else "mobileData"
+                    "metered"
                 }
             }
             Log.v(
@@ -557,6 +528,7 @@ class WiFiSurveyor(
          *
          * SuppressWarnings because SDK implementing app (CY) uses this.
          */
+        @JvmField
         @Suppress("unused")
         val TAG: String = Constants.TAG + ".surveyor"
 
@@ -584,7 +556,6 @@ class WiFiSurveyor(
         /**
          * A flag which shows if the code is using the `NetworkCapabilities#NET_CAPABILITY_NOT_METERED` flag instead
          * of `NetworkCapabilities#TRANSPORT_WIFI` to determine if we are connected to a syncable network.
-         *
          *
          * This should work starting with `Build.VERSION_CODES#M` but in our tests wifi networks where identifies as
          * "metered" on lower APIs (e.g. Android 6.0.1).
