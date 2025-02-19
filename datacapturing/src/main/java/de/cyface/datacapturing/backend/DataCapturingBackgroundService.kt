@@ -205,6 +205,8 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         // Allows other parties to ping this service to see if it is running
         pingReceiver =
             PingReceiver(MessageCodes.GLOBAL_BROADCAST_PING, MessageCodes.GLOBAL_BROADCAST_PONG)
+
+        @SuppressWarnings("UnspecifiedRegisterReceiverFlag")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             // Does not work with NOT_EXPORTED
             registerReceiver(
