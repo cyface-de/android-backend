@@ -26,6 +26,7 @@
 buildscript {
     ext.gradle_version = "8.2.2"
     ext.kotlin_version = "2.0.21" // Upgrade together with `com.google.devtools.ksp`
+    ext.room_version = "2.6.1" // Keep in Sync with version in `plugins` section below
 
     repositories {
         google()
@@ -35,12 +36,19 @@ buildscript {
     dependencies {
         classpath "com.android.tools.build:gradle:$gradle_version"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "androidx.room:room-gradle-plugin:$room_version"
     }
 }
 
 plugins {
     // To generate Proto DataStore
     id 'com.google.protobuf' version '0.9.4' apply false // Maybe keep in sync with other usages
+
+    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Upgrade together with `kotlin_version`
+
+    // Replaces manual Room schema configuration
+    // Keep in Sync with version in `buildscript` section above
+    id 'androidx.room' version '2.6.1' apply false
 }
 
 ext {

@@ -25,6 +25,7 @@ plugins {
     id 'com.android.library'
     id 'kotlin-android'
     id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Upgrade together with `kotlin_version`
+    id 'androidx.room'
 }
 
 android {
@@ -36,6 +37,11 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionName rootProject.ext.cyfaceAndroidBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+    }
+
+    room {
+        // Write Room database schema to file to record database schema changes in version control
+        schemaDirectory("$projectDir/schemas")
     }
 
     buildTypes {

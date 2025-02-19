@@ -32,6 +32,7 @@ plugins {
     id 'de.cyface.android-publish' version '1.1.0'
     id 'kotlin-android'
     id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Upgrade together with `kotlin_version`
+    id 'androidx.room'
 }
 
 android {
@@ -43,13 +44,11 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionName rootProject.ext.cyfaceAndroidBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+    }
 
+    room {
         // Write Room database schema to file to record database schema changes in version control
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += ["room.schemaLocation": "$projectDir/schemas".toString()]
-            }
-        }
+        schemaDirectory("$projectDir/schemas")
     }
 
     buildTypes {
