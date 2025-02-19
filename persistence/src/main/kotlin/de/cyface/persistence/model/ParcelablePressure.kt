@@ -32,20 +32,15 @@ import java.util.Objects
  * @author Armin Schnabel
  * @version 2.0.1
  * @since 6.3.0
+ * @param timestamp The time at which this data point was captured in milliseconds since 1.1.1970.
+ * @param pressure The atmospheric pressure of this data point in hPa (millibar).
  */
-open class ParcelablePressure : DataPoint {
-    /**
-     * The atmospheric pressure of this data point in hPa (millibar).
-     */
+open class ParcelablePressure(
+    timestamp: Long,
     open val pressure: Double
+) : DataPoint(timestamp) {
 
-    /**
-     * Creates a new completely initialized instance of this class.
-     *
-     * @param timestamp The timestamp at which this data point was captured in milliseconds since 1.1.1970.
-     * @param pressure The atmospheric pressure of this data point in hPa (millibar).
-     */
-    constructor(timestamp: Long, pressure: Double) : super(timestamp) {
+    init {
         require(timestamp >= 0L) { "Illegal argument: timestamp was less than 0L!" }
         // Lowest/highest pressure on earth with a bounding box because of inaccuracy and weather. We only support
         // measuring between death see and mt. everest, no flying, diving and caves are supported.
@@ -56,7 +51,6 @@ open class ParcelablePressure : DataPoint {
                 pressure
             )
         }
-        this.pressure = pressure
     }
     /*
      * MARK: Parcelable Interface
@@ -66,13 +60,9 @@ open class ParcelablePressure : DataPoint {
      *
      * @param in A `Parcel` that is a serialized version of a data point.
      */
-    protected constructor(`in`: Parcel) : super(`in`) {
-        pressure = `in`.readDouble()
-    }
+    protected constructor(`in`: Parcel) : this(`in`.readLong(), `in`.readDouble())
 
-    override fun describeContents(): Int {
-        return 0
-    }
+    override fun describeContents(): Int = 0
 
     override fun writeToParcel(dest: Parcel, flags: Int) {
         super.writeToParcel(dest, flags)
