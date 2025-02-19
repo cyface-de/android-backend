@@ -18,6 +18,7 @@
  */
 package de.cyface.synchronization
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -53,6 +54,8 @@ class ConnectionStatusReceiver(context: Context) : BroadcastReceiver() {
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED)
         filter.addAction(CyfaceConnectionStatusListener.SYNC_PROGRESS)
         filter.addAction(CyfaceConnectionStatusListener.SYNC_STARTED)
+
+        @SuppressLint("UnspecifiedRegisterReceiverFlag")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.registerReceiver(this, filter, Context.RECEIVER_EXPORTED)
         } else {

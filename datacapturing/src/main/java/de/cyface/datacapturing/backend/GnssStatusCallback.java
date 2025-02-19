@@ -11,7 +11,6 @@ import android.os.Build;
  * @author Klemens Muthmann
  * @version 1.0.3
  * @since 1.0.0
- * @see GeoLocationStatusListener
  */
 @TargetApi(Build.VERSION_CODES.N)
 public class GnssStatusCallback extends GeoLocationDeviceStatusHandler {
