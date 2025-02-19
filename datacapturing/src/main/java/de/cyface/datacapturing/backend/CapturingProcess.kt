@@ -25,7 +25,6 @@ import android.location.Location
 import android.location.LocationListener
 import android.os.Build
 import android.os.Bundle
-import android.os.HandlerThread
 import android.os.SystemClock
 import android.util.Log
 import de.cyface.datacapturing.BuildConfig
@@ -38,6 +37,7 @@ import de.cyface.persistence.model.ParcelablePressure
 import de.cyface.utils.TestEnvironment
 import de.cyface.utils.Validate
 import java.io.Closeable
+import java.util.Locale
 import java.util.Vector
 import java.util.stream.Collectors
 import kotlin.math.abs
@@ -47,7 +47,7 @@ import kotlin.math.min
  * Implements the data capturing functionality for Cyface.
  *
  * This class implements the SensorEventListener to listen to acceleration sensor events as well as
- * the LocationListener to listen to location updates. - FIXME: Sensor event listener should be optional
+ * the LocationListener to listen to location updates.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -142,32 +142,30 @@ abstract class CapturingProcess internal constructor(
                     if (location.hasVerticalAccuracy()) location.verticalAccuracyMeters.toDouble() else null
             }
             if (BuildConfig.DEBUG
-                && (TestEnvironment.isEmulator() || (Build.FINGERPRINT != null && Build.FINGERPRINT.startsWith(
+                && (TestEnvironment.isEmulator || (Build.FINGERPRINT != null && Build.FINGERPRINT.startsWith(
                     "google/sdk_"
                 )))
             ) {
                 accuracy = Math.random() * 30.0
                 verticalAccuracyMeters = accuracy * 2.5
                 altitude = 400.0 + Math.random() * 2 - Math.random()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    val copy = ArrayList(pressures)
-                    pressures.clear()
-                    pressures.addAll(
-                        copy.stream().map { p: ParcelablePressure ->
-                            ParcelablePressure(
-                                p.timestamp,
-                                p.pressure + Math.random() * 2 - Math.random()
-                            )
-                        }
-                            .collect(Collectors.toList()))
-                } else {
-                    throw NotImplementedError("We don't support older emulators right now")
-                }
+                val copy = ArrayList(pressures)
+                pressures.clear()
+                pressures.addAll(
+                    copy.stream().map { p: ParcelablePressure ->
+                        ParcelablePressure(
+                            p.timestamp,
+                            p.pressure + Math.random() * 2 - Math.random()
+                        )
+                    }
+                        .collect(Collectors.toList()))
                 Log.d(
                     TAG,
                     String.format(
+                        Locale.getDefault(),
                         "Emulator detected, Accuracy overwritten with %f and vertical accuracy with %f",
-                        accuracy, verticalAccuracyMeters
+                        accuracy,
+                        verticalAccuracyMeters,
                     )
                 )
             }
@@ -201,6 +199,7 @@ abstract class CapturingProcess internal constructor(
         }
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {
         // Nothing to do here.
     }
