@@ -12,7 +12,7 @@ import android.location.LocationManager
  * @since 1.0.0
  * @param locationManager The Android service used to get location status updates.
  */
-internal abstract class GeoLocationDeviceStatusHandler(val locationManager: LocationManager) {
+abstract class GeoLocationDeviceStatusHandler(val locationManager: LocationManager) {
     /**
      * `true` if the service has a geo location fix; `false` otherwise.
      */
