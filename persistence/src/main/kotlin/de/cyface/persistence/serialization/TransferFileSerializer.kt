@@ -21,11 +21,15 @@ package de.cyface.persistence.serialization
 import android.database.Cursor
 import android.os.RemoteException
 import android.util.Log
+import androidx.sqlite.db.SimpleSQLiteQuery
 import com.google.protobuf.ByteString
 import de.cyface.persistence.Constants.TAG
+import de.cyface.persistence.Database
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.content.AbstractCyfaceTable.Companion.DATABASE_QUERY_LIMIT
+import de.cyface.persistence.content.BaseColumns
+import de.cyface.persistence.content.LocationTable
 import de.cyface.persistence.model.Attachment
 import de.cyface.persistence.model.Measurement
 import de.cyface.protos.model.Event
@@ -187,11 +191,12 @@ object TransferFileSerializer {
             var startIndex = 0
             while (startIndex < count) {
                 persistence.eventRepository!!.selectAllByMeasurementId(
+                    persistence.database!!,
                     measurementId,
                     startIndex,
                     DATABASE_QUERY_LIMIT
                 ).use { cursor ->
-                    if (cursor == null) throw CursorIsNullException()
+                    //if (cursor == null) throw CursorIsNullException()
                     serializer.readFrom(cursor)
                 }
                 startIndex += DATABASE_QUERY_LIMIT
@@ -219,13 +224,13 @@ object TransferFileSerializer {
             val count = persistence.locationDao!!.countByMeasurementId(measurementId)
             var startIndex = 0
             while (startIndex < count) {
-                cursor =
-                    persistence.locationDao!!.selectAllByMeasurementId(
-                        measurementId,
-                        startIndex,
-                        DATABASE_QUERY_LIMIT
-                    )
-                if (cursor == null) throw CursorIsNullException()
+                cursor = getLocationCursor(
+                    persistence.database!!,
+                    measurementId,
+                    startIndex,
+                    DATABASE_QUERY_LIMIT,
+                )
+                //if (cursor == null) throw CursorIsNullException()
                 serializer.readFrom(cursor)
                 startIndex += DATABASE_QUERY_LIMIT
             }
@@ -235,6 +240,36 @@ object TransferFileSerializer {
             cursor?.close()
         }
         return@runBlocking serializer.result()
+    }
+
+    /**
+     * Returns a `Cursor` which points to a specific page defined by [limit] and [offset] of all
+     * locations of a measurement with a specified the [measurementId].
+     *
+     * This way we can reuse the code in `SyncAdapter` > `TransferFileSerializer` which queries and
+     * serializes only 10_000 entries at a time which fixed performance issues with large
+     * measurements. This could be replaced by room-paging, but it's not straight forward.
+     *
+     * The locations are ordered by timestamp.
+     */
+    internal fun getLocationCursor(
+        database: Database,
+        measurementId: Long,
+        offset: Int,
+        limit: Int
+    ): Cursor {
+        val query = SimpleSQLiteQuery(
+            "SELECT * FROM ${LocationTable.URI_PATH} " +
+                    "WHERE ${BaseColumns.MEASUREMENT_ID} = ? " +
+                    "ORDER BY ${BaseColumns.TIMESTAMP} ASC " +
+                    "LIMIT ? " +
+                    "OFFSET ?",
+            arrayOf(measurementId, limit, offset)
+        )
+        // Executing `Cursor` based query directly on the `database` without `dao` layer as Room
+        // does not support `Cursor` return types with `KSP` properly.
+        // This way we are not be forced to change the currently working code.
+        return database.query(query)
     }
 
     /**

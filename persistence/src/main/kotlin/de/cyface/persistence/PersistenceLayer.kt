@@ -40,7 +40,8 @@ import de.cyface.persistence.strategy.LocationCleaningStrategy
 import java.io.File
 
 /**
- * Interface for [DefaultPersistenceLayer] created to be able to mock [DefaultPersistenceLayer] in `DataCapturingLocalTest`.
+ * Interface for [DefaultPersistenceLayer] created to be able to mock [DefaultPersistenceLayer] in
+ * `DataCapturingLocalTest`.
  *
  * @author Armin Schnabel
  * @version 1.2.0
@@ -48,6 +49,7 @@ import java.io.File
  * @property context The [Context] required to locate the app's internal storage directory.
  * @property fileIOHandler The [FileIOHandler] used to interact with files.
  * **ATTENTION:** This should not be used by SDK implementing apps.
+ * @property database The database to execute raw queries on, see `Cursor` usages in the code.
  * @property identifierDao The repository to load the [Identifier] data from.
  * @property measurementRepository The source to load the [Measurement] data from.
  * @property eventRepository The source to load the [Event] data from.
@@ -58,6 +60,7 @@ import java.io.File
 interface PersistenceLayer<B : PersistenceBehaviour?> {
     val context: Context?
     val fileIOHandler: FileIOHandler
+    val database: Database?
     val identifierDao: IdentifierDao?
     val measurementRepository: MeasurementRepository?
     val eventRepository: EventRepository?
@@ -131,9 +134,9 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
     /**
      * Loads the [Track]s for the provided [Measurement].
      *
-     * @param measurementIdentifier The id of the `Measurement` to load the track for.
-     * @return The [Track]s associated with the `Measurement`. If no [de.cyface.persistence.model.ParcelableGeoLocation]s exists, an
-     * empty list is returned.
+     * @param measurementIdentifier The id of the [Measurement] to load the track for.
+     * @return The [Track]s associated with the [Measurement]. If no
+     * [de.cyface.persistence.model.ParcelableGeoLocation]s exists, an empty list is returned.
      */
     // May be used by SDK implementing app
     fun loadTracks(measurementIdentifier: Long): List<Track>

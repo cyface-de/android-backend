@@ -55,6 +55,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import java.util.Locale
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.max
@@ -81,6 +82,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         private set
 
     override val fileIOHandler: FileIOHandler
+
+    override val database: Database?
 
     override val identifierDao: IdentifierDao?
 
@@ -114,6 +117,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     constructor() {
         context = null
+        database = null
         identifierDao = null
         measurementRepository = null
         eventRepository = null
@@ -142,7 +146,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     constructor(context: Context, persistenceBehaviour: B, fileIOHandler: FileIOHandler) {
         this.context = context
-        val database = Database.build(context.applicationContext)
+        this.database = Database.build(context.applicationContext)
         this.identifierDao = database.identifierDao()
         this.measurementRepository = MeasurementRepository(database.measurementDao())
         this.eventRepository = EventRepository(database.eventDao())
@@ -514,7 +518,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     }
 
     /**
-     * Removes the [de.cyface.persistence.model.ParcelablePoint3D]s for one [Measurement] from the local persistent data storage.
+     * Removes the [de.cyface.persistence.model.ParcelablePoint3D]s for one [Measurement] from the
+     * local persistent data storage.
      *
      * @param measurementIdentifier The `Measurement` id of the data to remove.
      */
@@ -615,12 +620,14 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     }
 
     /**
-     * Returns the sum of the positive altitude changes of the measurement with the provided measurement identifier.
+     * Returns the sum of the positive altitude changes of the measurement with the provided
+     * measurement identifier.
      *
-     * To calculate the ascend, the [ParcelablePressure] values are loaded from the database if such values are
-     * available, otherwise the the [Track]s with the [de.cyface.persistence.model.ParcelableGeoLocation] are loaded from the database to
-     * calculate the metric on the fly [STAD-384]. In case no altitude information is available, `null` is
-     * returned.
+     * To calculate the ascend, the [ParcelablePressure] values are loaded from the database if
+     * such values are available, otherwise the the [Track]s with the
+     * [de.cyface.persistence.model.ParcelableGeoLocation] are loaded from the database to
+     * calculate the metric on the fly [STAD-384]. In case no altitude information is available,
+     * `null` is returned.
      *
      * @param measurementIdentifier The id of the `Measurement` to load the track for.
      * @param forceGnssAscend `true` if the ascend calculated based on GNSS data should be returned regardless if
@@ -655,10 +662,11 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     /**
      * Returns the altitudes for each sub-track of a specified measurement.
      *
-     * To calculate the altitudes, the [ParcelablePressure] values are loaded from the database if such values are
-     * available, otherwise the the [Track]s with the [de.cyface.persistence.model.ParcelableGeoLocation] are loaded from the database to
-     * calculate the metric on the fly [STAD-384]. In case no altitude information is available, `null` is
-     * returned.
+     * To calculate the altitudes, the [ParcelablePressure] values are loaded from the database if
+     * such values are available, otherwise the the [Track]s with the
+     * [de.cyface.persistence.model.ParcelableGeoLocation] are loaded from the database to
+     * calculate the metric on the fly [STAD-384]. In case no altitude information is available,
+     * `null` is returned.
      *
      * @param measurementIdentifier The id of the `Measurement` to load the track for.
      * @param forceGnssAltitudes `true` if the altitudes calculated based on GNSS data should be returned regardless if
@@ -709,8 +717,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             val averagePressures = averages(pressures, slidingWindowSize) ?: continue
             val altitudes = ArrayList<Double>()
             for (pressure in averagePressures) {
-                // As we're only interested in ascend and elevation profile, using a static reference pressure is
-                // sufficient [STAD-385] [STAD-391]
+                // As we're only interested in ascend and elevation profile, using a static
+                // reference pressure is sufficient [STAD-385] [STAD-391]
                 val altitude = SensorManager.getAltitude(
                     SensorManager.PRESSURE_STANDARD_ATMOSPHERE,
                     pressure.toFloat()
@@ -839,7 +847,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         val lifecycleEvents: MutableList<Event?> = ArrayList()
         for (event in loadEvents(measurementIdentifier)) {
             val type = event!!.type
-            if (type == EventType.LIFECYCLE_START || type == EventType.LIFECYCLE_PAUSE || type == EventType.LIFECYCLE_RESUME || type == EventType.LIFECYCLE_STOP) {
+            if (type == EventType.LIFECYCLE_START || type == EventType.LIFECYCLE_PAUSE ||
+                type == EventType.LIFECYCLE_RESUME || type == EventType.LIFECYCLE_STOP) {
                 lifecycleEvents.add(event)
             }
         }
@@ -853,7 +862,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             val event = lifecycleEvents[i]
             val isLast = i == lifecycleEvents.size - 1
             val isOngoing = loadMeasurementStatus(measurementIdentifier) == MeasurementStatus.OPEN
-            if (isLast && isOngoing && (event!!.type === EventType.LIFECYCLE_START || event!!.type === EventType.LIFECYCLE_RESUME)) {
+            if (isLast && isOngoing && (event!!.type === EventType.LIFECYCLE_START ||
+                        event!!.type === EventType.LIFECYCLE_RESUME)) {
                 val newDuration = System.currentTimeMillis() - event!!.timestamp
                 Validate.isTrue(newDuration >= 0, "Invalid duration: $newDuration")
                 duration += newDuration
@@ -906,8 +916,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param locations The locations to build the tracks from.
      * @param events The events to build the tracks from.
      * @param pressures The pressures to build the track from.
-     * @return The [Track]s build from the provided data. If no [de.cyface.persistence.model.ParcelableGeoLocation]s exists, an
-     * empty list is returned.
+     * @return The [Track]s build from the provided data. If no
+     * [de.cyface.persistence.model.ParcelableGeoLocation]s exists, an empty list is returned.
      */
     private fun loadTracks(
         locations: List<ParcelableGeoLocation?>?, events: List<Event?>?,
@@ -1116,7 +1126,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         if (openMeasurements.isEmpty() && pausedMeasurements.isEmpty()) {
             throw NoSuchMeasurementException("No currently captured measurement found!")
         }
-        check(openMeasurements.size + pausedMeasurements.size <= 1) { "More than one currently captured measurement found!" }
+        check(openMeasurements.size + pausedMeasurements.size <= 1) {
+            "More than one currently captured measurement found!"
+        }
         return (if (openMeasurements.size == 1) openMeasurements else pausedMeasurements)[0]
     }
 
@@ -1150,14 +1162,17 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         when (newStatus) {
             MeasurementStatus.OPEN -> Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED))
             MeasurementStatus.PAUSED -> Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN))
-            MeasurementStatus.FINISHED ->                 // Because of MOV-790 we don't check this when cleaning up corrupted measurement*s*
+            // Because of MOV-790 we don't check this when cleaning up corrupted measurements
+            MeasurementStatus.FINISHED ->
                 if (!allowCorruptedState) {
                     Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN))
                     Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED))
                 }
             MeasurementStatus.SYNCABLE_ATTACHMENTS,
             MeasurementStatus.SYNCED, MeasurementStatus.SKIPPED, MeasurementStatus.DEPRECATED -> {}
-            else -> throw IllegalArgumentException(String.format("Unknown status: %s", newStatus))
+            else -> throw IllegalArgumentException(
+                String.format(Locale.getDefault(), "Unknown status: %s", newStatus)
+            )
         }
         Log.d(TAG, "Set measurement $measurementIdentifier to $newStatus")
     }

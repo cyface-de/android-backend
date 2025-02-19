@@ -30,6 +30,7 @@ import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.serialization.LocationSerializer
+import de.cyface.persistence.serialization.TransferFileSerializer.getLocationCursor
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
@@ -125,12 +126,12 @@ class LocationSerializerTest {
             assertThat(count, equalTo(numberOfTestEntries))
             var startIndex = 0
             while (startIndex < count) {
-                cursor =
-                    persistence.locationDao!!.selectAllByMeasurementId(
-                        measurementId!!,
-                        startIndex,
-                        AbstractCyfaceTable.DATABASE_QUERY_LIMIT
-                    )
+                cursor = getLocationCursor(
+                    persistence.locationDao!!,
+                    measurementId!!,
+                    startIndex,
+                    AbstractCyfaceTable.DATABASE_QUERY_LIMIT,
+                )
                 if (cursor == null) throw CursorIsNullException()
                 oocut!!.readFrom(cursor)
                 startIndex += AbstractCyfaceTable.DATABASE_QUERY_LIMIT
