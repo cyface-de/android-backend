@@ -919,7 +919,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     private fun loadTracks(
         locations: List<GeoLocation?>?, events: List<Event?>?,
-        pressures: List<ParcelablePressure?>?
+        pressures: List<Pressure?>?
     ): List<Track> {
         if (locations!!.isEmpty()) {
             return emptyList()
@@ -962,7 +962,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             mutableLocations =
                 mutableLocations.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<GeoLocation?>
             mutablePressures =
-                mutablePressures.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<ParcelablePressure?>
+                mutablePressures.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<Pressure?>
         }
 
         // Return if there is no tail (sub track ending at LIFECYCLE_STOP instead of LIFECYCLE_PAUSE)
@@ -1050,7 +1050,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     fun collectNextSubTrack(
         locations: MutableList<GeoLocation?>,
-        pressures: MutableList<ParcelablePressure?>, pauseEventTime: Long?
+        pressures: MutableList<Pressure?>, pauseEventTime: Long?
     ): Track {
         val track = Track()
         var location = if (locations.isNotEmpty()) locations[0] else null

@@ -52,9 +52,11 @@ open class ParcelablePressure(
             )
         }
     }
+
     /*
      * MARK: Parcelable Interface
      */
+
     /**
      * Constructor as required by `Parcelable` implementation.
      *

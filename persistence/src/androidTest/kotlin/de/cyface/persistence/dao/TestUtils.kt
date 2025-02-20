@@ -69,11 +69,11 @@ class TestUtils {
             speed: Double = 1.01,
             accuracy: Double = 5.0
         ): GeoLocation {
-            return GeoLocation(1000L, 13.0, 51.0, 400.0, speed, accuracy, 20.0, measurementId)
+            return GeoLocation(0, 1000L, 13.0, 51.0, 400.0, speed, accuracy, 20.0, measurementId)
         }
 
         fun pressureFixtures(measurementId: Long = 1L): Pressure {
-            return Pressure(1000L, 1013.0, measurementId)
+            return Pressure(0, 1000L, 1013.0, measurementId)
         }
 
         fun eventFixture(measurementId: Long, type: EventType = EventType.LIFECYCLE_START): Event {

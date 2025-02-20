@@ -37,6 +37,7 @@ class PressureTest {
 
         // Act
         Pressure(
+            0L,
             timestamp = 1740046993L,
             pressure = 1013.0,
             measurementId = 1L,

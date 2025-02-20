@@ -22,7 +22,6 @@ import android.hardware.SensorManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import de.cyface.persistence.model.GeoLocation
-import de.cyface.persistence.model.ParcelablePressure
 import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.model.Track
 import org.hamcrest.CoreMatchers
@@ -101,24 +100,24 @@ class PersistenceLayerTest {
         val p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE
         val track = Track()
         // noise around 0 (+-1)
-        track.addPressure(Pressure(1L, pressure(0.0, p0).toDouble(), 1L))
-        track.addPressure(Pressure(2L, pressure(1.0, p0).toDouble(), 1L))
-        track.addPressure(Pressure(3L, pressure(-1.0, p0).toDouble(), 1L))
-        track.addPressure(Pressure(4L, pressure(0.0, p0).toDouble(), 1L))
-        track.addPressure(Pressure(5L, pressure(1.0, p0).toDouble(), 1L))
+        track.addPressure(Pressure(0, 1L, pressure(0.0, p0).toDouble(), 1L))
+        track.addPressure(Pressure(0, 2L, pressure(1.0, p0).toDouble(), 1L))
+        track.addPressure(Pressure(0, 3L, pressure(-1.0, p0).toDouble(), 1L))
+        track.addPressure(Pressure(0, 4L, pressure(0.0, p0).toDouble(), 1L))
+        track.addPressure(Pressure(0, 5L, pressure(1.0, p0).toDouble(), 1L))
         // ascend 1 => +3
         // 3.03 as pressure to altitude calculation is not 100% accurate and would
         // fail because the ascend would be slightly below the threshold
-        track.addPressure(Pressure(6L, pressure(3.01, p0).toDouble(), 1L))
+        track.addPressure(Pressure(0, 6L, pressure(3.01, p0).toDouble(), 1L))
         // descend => lastAltitude -= 2
-        track.addPressure(Pressure(7L, pressure(1.0, p0).toDouble(), 1L))
+        track.addPressure(Pressure(0, 7L, pressure(1.0, p0).toDouble(), 1L))
         // ascend 2 => +2
-        track.addPressure(Pressure(8L, pressure(3.01, p0).toDouble(), 1L))
+        track.addPressure(Pressure(0, 8L, pressure(3.01, p0).toDouble(), 1L))
         // Track without ascend but with data should return 0.0 not null
         val track2 = Track()
-        track2.addPressure(Pressure(1L, pressure(0.0, p0).toDouble(), 1L))
-        track2.addPressure(Pressure(2L, pressure(1.0, p0).toDouble(), 1L))
-        track2.addPressure(Pressure(3L, pressure(-1.0, p0).toDouble(), 1L))
+        track2.addPressure(Pressure(0, 1L, pressure(0.0, p0).toDouble(), 1L))
+        track2.addPressure(Pressure(0, 2L, pressure(1.0, p0).toDouble(), 1L))
+        track2.addPressure(Pressure(0, 3L, pressure(-1.0, p0).toDouble(), 1L))
 
         // Act
         val altitudes = oocut!!.altitudesFromPressures(listOf(track), 1)
@@ -172,12 +171,12 @@ class PersistenceLayerTest {
         locations.add(GeoLocation(0, 2L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
         locations.add(GeoLocation(0, 10L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
         locations.add(GeoLocation(0, 11L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
-        val pressures = ArrayList<ParcelablePressure?>()
+        val pressures = ArrayList<Pressure?>()
         val p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE
-        pressures.add(ParcelablePressure(1L, pressure(0.0, p0).toDouble()))
-        pressures.add(ParcelablePressure(2L, pressure(0.0, p0).toDouble()))
-        pressures.add(ParcelablePressure(10L, pressure(0.0, p0).toDouble()))
-        pressures.add(ParcelablePressure(11L, pressure(0.0, p0).toDouble()))
+        pressures.add(Pressure(0, 1L, pressure(0.0, p0).toDouble(), 1L))
+        pressures.add(Pressure(0, 2L, pressure(0.0, p0).toDouble(), 1L))
+        pressures.add(Pressure(0, 10L, pressure(0.0, p0).toDouble(), 1L))
+        pressures.add(Pressure(0, 11L, pressure(0.0, p0).toDouble(), 1L))
         val pauseEventTime = 3L
 
         // Act
