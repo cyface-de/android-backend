@@ -25,6 +25,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle/caches
+          # Only update cache on hash change (gradle build files and the wrapper properties)
+          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
       - name: Add gradle.properties
         run: |
           # Use a personal read token to install the Cyface Utils package
