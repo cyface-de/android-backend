@@ -29,9 +29,9 @@ import android.os.Bundle
 import androidx.test.core.app.ApplicationProvider
 import de.cyface.uploader.exception.SynchronisationException
 import de.cyface.utils.Validate.isTrue
-import de.cyface.utils.Validate.notNull
-import org.hamcrest.MatcherAssert
-import org.hamcrest.Matchers
+import org.hamcrest.CoreMatchers.equalTo
+import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,11 +46,10 @@ import org.robolectric.shadows.ShadowNetworkInfo
 /**
  * Tests the correct functionality of [WiFiSurveyor].
  *
- * We execute these test on multiple SDKs as we have different production code depending on the SDK:
- * - MARSHMALLOW (i.e. SDK < OREO) to test [NetworkCallback] with
- * `NetworkCapabilities#NET_WIFI_TRANSPORT`. Adding this should prevent bug MOV-650 from reoccurring.
- * - PIE (i.e. SDK >= OREO) to test [NetworkCallback] with `NetworkCapabilities#NET_CAPABILITY_NOT_METERED`.
- * TODO [MOV-699]: add this as soon as ShadowNetworkCapabilities support adding NET_CAPABILITY_NOT_METERED
+ * Disabled: When this test was written, it tested code written for now unsupported Android
+ * versions. The code used in SDK >= OREO was not tested at the time when this test was written as
+ * `ShadowNetworkCapabilities` did not yet support `NET_CAPABILITY_NOT_METERED`. [MOV-699]
+ * FIXME: remove the comment above when this works
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -58,7 +57,7 @@ import org.robolectric.shadows.ShadowNetworkInfo
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [VERSION_CODES.M /* , P */])
+@Config(sdk = [VERSION_CODES.O]) // FIXME: See if we really need to define a version
 class WiFiSurveyorTest {
     /**
      * The Robolectric shadow used for the Android `ConnectivityManager`.
@@ -101,58 +100,58 @@ class WiFiSurveyorTest {
     /**
      * Tests that WiFi connectivity is detected correctly.
      *
-     * @throws SynchronisationException This should not happen in the test environment. Occurs if no Android
-     * `Context` is available.
+     * @throws SynchronisationException This should not happen in the test environment. Occurs if
+     * no Android `Context` is available.
      */
     @Test
     @Throws(SynchronisationException::class)
     fun testWifiConnectivity() {
         // Arrange
-
         val account = oocut!!.createAccount("test", null)
         oocut!!.startSurveillance(account)
-        // PeriodicSync and syncAutomatically should be disabled by default
-        // Checking getPeriodicSyncs only works without waiting in robolectric as addPeriodicSync seems to be async
-        isTrue(ContentResolver.getPeriodicSyncs(account, TestUtils.AUTHORITY).size == 0)
-        isTrue(!ContentResolver.getSyncAutomatically(account, TestUtils.AUTHORITY))
+        // `PeriodicSync` and `syncAutomatically` should be disabled by default.
+        // Checking `getPeriodicSyncs` only works without waiting in robolectric as
+        // `addPeriodicSync` seems to be async
+        require(ContentResolver.getPeriodicSyncs(account, TestUtils.AUTHORITY).size == 0)
+        require(!ContentResolver.getSyncAutomatically(account, TestUtils.AUTHORITY))
 
         // Scenario 1: with active mobile connection
         setMobileConnectivity(true, oocut!!)
 
         // Act & Assert 1a - don't change the order within this block
         setWiFiConnectivity(false, oocut!!)
-        MatcherAssert.assertThat(
+        assertThat(
             oocut!!.isConnectedToSyncableNetwork,
-            Matchers.`is`(Matchers.equalTo(false))
+            `is`(equalTo(false))
         )
-        MatcherAssert.assertThat(oocut!!.isConnected, Matchers.`is`(Matchers.equalTo(false)))
+        assertThat(oocut!!.isConnected, `is`(equalTo(false)))
 
         // Act & Assert 1b - don't change the order within this block
         setWiFiConnectivity(true, oocut!!)
-        MatcherAssert.assertThat(
+        assertThat(
             oocut!!.isConnectedToSyncableNetwork,
-            Matchers.`is`(Matchers.equalTo(true))
+            `is`(equalTo(true))
         )
-        MatcherAssert.assertThat(oocut!!.isConnected, Matchers.`is`(Matchers.equalTo(true)))
+        assertThat(oocut!!.isConnected, `is`(equalTo(true)))
 
         // Scenario 2: with inactive mobile connection
         setMobileConnectivity(true, oocut!!)
 
         // Act & Assert 2a - don't change the order within this block
         setWiFiConnectivity(false, oocut!!)
-        MatcherAssert.assertThat(
+        assertThat(
             oocut!!.isConnectedToSyncableNetwork,
-            Matchers.`is`(Matchers.equalTo(false))
+            `is`(equalTo(false))
         )
-        MatcherAssert.assertThat(oocut!!.isConnected, Matchers.`is`(Matchers.equalTo(false)))
+        assertThat(oocut!!.isConnected, `is`(equalTo(false)))
 
         // Act & Assert 2b - don't change the order within this block
         setWiFiConnectivity(true, oocut!!)
-        MatcherAssert.assertThat(
+        assertThat(
             oocut!!.isConnectedToSyncableNetwork,
-            Matchers.`is`(Matchers.equalTo(true))
+            `is`(equalTo(true))
         )
-        MatcherAssert.assertThat(oocut!!.isConnected, Matchers.`is`(Matchers.equalTo(true)))
+        assertThat(oocut!!.isConnected, `is`(equalTo(true)))
 
         // Cleanup
         ContentResolver.removePeriodicSync(account, TestUtils.AUTHORITY, Bundle.EMPTY)
@@ -176,19 +175,19 @@ class WiFiSurveyorTest {
         setMobileConnectivity(false, oocut!!)
         setWiFiConnectivity(false, oocut!!)
         oocut!!.setSyncOnUnMeteredNetworkOnly(false)
-        MatcherAssert.assertThat(
+        assertThat(
             oocut!!.isConnectedToSyncableNetwork,
-            Matchers.`is`(Matchers.equalTo(false))
+            `is`(equalTo(false))
         )
-        MatcherAssert.assertThat(oocut!!.isConnected, Matchers.`is`(Matchers.equalTo(false)))
+        assertThat(oocut!!.isConnected, `is`(equalTo(false)))
 
         // Act & Assert 2 - don't change the order within this block
         setMobileConnectivity(true, oocut!!)
-        MatcherAssert.assertThat(
+        assertThat(
             oocut!!.isConnectedToSyncableNetwork,
-            Matchers.`is`(Matchers.equalTo(true))
+            `is`(equalTo(true))
         )
-        MatcherAssert.assertThat(oocut!!.isConnected, Matchers.`is`(Matchers.equalTo(true)))
+        assertThat(oocut!!.isConnected, `is`(equalTo(true)))
 
         // Cleanup
         ContentResolver.removePeriodicSync(account, TestUtils.AUTHORITY, Bundle.EMPTY)
@@ -237,58 +236,59 @@ class WiFiSurveyorTest {
         surveyor: WiFiSurveyor
     ) {
         // Determine Parameters
-
         val connectionType =
-            if (wifiNotMobile) ConnectivityManager.TYPE_WIFI else ConnectivityManager.TYPE_MOBILE
-        val transportType = if (wifiNotMobile) NetworkCapabilities.TRANSPORT_WIFI
-        else NetworkCapabilities.TRANSPORT_CELLULAR
+            if (wifiNotMobile) ConnectivityManager.TYPE_WIFI
+            else ConnectivityManager.TYPE_MOBILE
+        val transportType =
+            if (wifiNotMobile) NetworkCapabilities.TRANSPORT_WIFI
+            else NetworkCapabilities.TRANSPORT_CELLULAR
         val networkState =
-            if (connected) NetworkInfo.State.CONNECTED else NetworkInfo.State.DISCONNECTED
-        val detailedState = if (connected) DetailedState.CONNECTED
-        else DetailedState.DISCONNECTED
+            if (connected) NetworkInfo.State.CONNECTED
+            else NetworkInfo.State.DISCONNECTED
+        val detailedState =
+            if (connected) DetailedState.CONNECTED
+            else DetailedState.DISCONNECTED
 
         // Set NetworkInfo and ActiveNetworkInfo with the correct connectionType and networkState
         val testNetworkInfo = ShadowNetworkInfo.newInstance(
-            detailedState, connectionType, 0, true,
-            networkState
+            detailedState,
+            connectionType,
+            0,
+            true,
+            networkState,
         )
         shadowConnectivityManager!!.setNetworkInfo(connectionType, testNetworkInfo)
-        shadowConnectivityManager!!.setActiveNetworkInfo(if (connected) testNetworkInfo else null)
         if (connected) {
+            shadowConnectivityManager!!.setActiveNetworkInfo(testNetworkInfo)
             val activeInfo = connectivityManager!!.activeNetworkInfo
-            notNull(activeInfo)
-            // noinspection ConstantConditions - for semantics / readability
-            MatcherAssert.assertThat(
-                activeInfo!!.isConnected,
-                Matchers.`is`(Matchers.equalTo(connected))
-            )
-            MatcherAssert.assertThat(
-                activeInfo.type,
-                Matchers.`is`(Matchers.equalTo(connectionType))
-            )
+            requireNotNull(activeInfo)
+            assertThat(activeInfo.isConnected, `is`(equalTo(connected)))
+            assertThat(activeInfo.type, `is`(equalTo(connectionType)))
+        } else {
+            shadowConnectivityManager!!.setActiveNetworkInfo(null)
         }
 
         // Send NetworkCallbacks
-        // We need to set the transportType (for SDK M) and networkCapability (not_metered) for SDK P
         val networkCapabilities = ShadowNetworkCapabilities.newInstance()
         val shadowNetworkCapabilities = Shadows.shadowOf(networkCapabilities)
+        shadowNetworkCapabilities.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
         shadowNetworkCapabilities.addTransportType(transportType)
         val testNetId = 123
         val testNetwork = ShadowNetwork.newInstance(testNetId)
         shadowConnectivityManager!!.setNetworkCapabilities(testNetwork, networkCapabilities)
         val loadedNetworkCapabilities = connectivityManager!!.getNetworkCapabilities(testNetwork)
-        MatcherAssert.assertThat(
+        assertThat(
             loadedNetworkCapabilities,
-            Matchers.`is`(Matchers.equalTo(networkCapabilities))
+            `is`(equalTo(networkCapabilities))
         )
 
         // Now we can call the NetworkCallbacks with the correct networkCapabilities (registration is ok)
         // Only call the networkCallback for wifi connections as we only register those in production code
         if (wifiNotMobile || !surveyor.isSyncOnUnMeteredNetworkOnly()) {
             val isAccountRegistered = oocut!!.currentSynchronizationAccount != null
-            MatcherAssert.assertThat(
+            assertThat(
                 shadowConnectivityManager!!.networkCallbacks.size,
-                Matchers.`is`(Matchers.equalTo(if (isAccountRegistered) 1 else 0))
+                `is`(equalTo(if (isAccountRegistered) 1 else 0))
             )
 
             if (!isAccountRegistered) {

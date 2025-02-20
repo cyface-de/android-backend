@@ -35,8 +35,9 @@ import de.cyface.utils.Validate.notNull
 import java.lang.ref.WeakReference
 
 /**
- * An instance of this class is responsible for surveying the state of the devices WiFi connection. If WiFi is active,
- * data is going to be synchronized continuously.
+ * This class is responsible for surveying the state of the devices WiFi connection.
+ *
+ * If WiFi is active, data is going to be synchronized continuously.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -176,21 +177,15 @@ class WiFiSurveyor(
 
     override fun onReceive(context: Context, intent: Intent) {
         notNull(intent.action)
-        val connectivityChanged = intent.action == ConnectivityManager.CONNECTIVITY_ACTION
-        isTrue(connectivityChanged) // We registered only this action so this should always be true
-
+        require(intent.action == ConnectivityManager.CONNECTIVITY_ACTION) // only action registered
         if (currentSynchronizationAccount == null) {
-            Log.e(
-                TAG,
-                "No account for data synchronization registered with this service. Aborting synchronization."
-            )
+            Log.e(TAG, "No data synchronization account registered. Aborting synchronization.")
             return
         }
 
         // Syncable ("not metered") filter is already included
         val syncableConnectionLost = isConnected && !isConnectedToSyncableNetwork
         val syncableConnectionEstablished = !isConnected && isConnectedToSyncableNetwork
-
         if (syncableConnectionEstablished) {
             Log.v(TAG, "connectionEstablished: setConnected to true")
             setConnected(true)

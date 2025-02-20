@@ -22,6 +22,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.util.Log
+import de.cyface.synchronization.WiFiSurveyor.Companion.TAG
 import de.cyface.utils.Validate.isTrue
 
 /**
@@ -38,32 +39,31 @@ class NetworkCallback internal constructor(
     private val surveyor: WiFiSurveyor
 ) : ConnectivityManager.NetworkCallback() {
     override fun onLost(network: Network) {
-        // This is required for < MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG or else we are not
-        // informed about a lost wifi connection e.g. on Android 6.0.1 (MOV-650, and maybe MOV-645)
-        Log.v(WiFiSurveyor.TAG, "NetworkCallback.onLost: setConnected to false.")
+        // This was required for < MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG(= Build.VERSION_CODES.O)
+        // or else we were not informed about a lost wifi connection on old Android versions,
+        // e.g. on Android 6.0.1 (MOV-650, and maybe MOV-645). This might not be necessary anymore.
+
+        Log.v(TAG, "NetworkCallback.onLost: setConnected to false.")
         surveyor.setConnected(false)
     }
 
     override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
         // Ensures event is only triggered for un-metered connections (syncOnUnMeteredNetworkOnly)
         if (surveyor.isSyncOnUnMeteredNetworkOnly()) {
-            isTrue(capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED))
+            require(capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED))
         }
 
         // Syncable ("not metered") filter is already included
-        val syncableConnectionLost = surveyor.isConnected && !surveyor.isConnectedToSyncableNetwork
-        val syncableConnectionEstablished = (!surveyor.isConnected
-                && surveyor.isConnectedToSyncableNetwork)
-
+        val isConnected = surveyor.isConnected
+        val isConnectedToSyncableNetwork = surveyor.isConnectedToSyncableNetwork
+        val syncableConnectionLost = isConnected && !isConnectedToSyncableNetwork
+        val syncableConnectionEstablished = !isConnected && isConnectedToSyncableNetwork
         if (syncableConnectionEstablished) {
-            Log.v(
-                WiFiSurveyor.TAG,
-                "onCapabilitiesChanged.connectionEstablished: setConnected to true"
-            )
+            Log.v(TAG, "onCapabilitiesChanged.connectionEstablished: setConnected to true")
             surveyor.setConnected(true)
         } else if (syncableConnectionLost) {
             // This should not be necessary as we have onLost() but we keep it as a safety net for now
-            Log.v(WiFiSurveyor.TAG, "onCapabilitiesChanged.connectionLost: setConnected to false.")
+            Log.v(TAG, "onCapabilitiesChanged.connectionLost: setConnected to false.")
             surveyor.setConnected(false)
         }
     }
