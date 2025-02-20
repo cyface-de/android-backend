@@ -19,7 +19,7 @@
 package de.cyface.persistence.model
 
 /**
- * A [Track] consists of [ParcelableGeoLocation]s and [ParcelablePressure]s (data points) collected
+ * A [Track] consists of [GeoLocation]s and [ParcelablePressure]s (data points) collected
  * for a [Measurement]. Its data points are ordered by time.
  *
  * A [Track] begins with the first data point of each type collected after start or resume was triggered
@@ -29,11 +29,11 @@ package de.cyface.persistence.model
  * @author Armin Schnabel
  * @version 2.0.0
  * @since 4.0.0
- * @property geoLocations The [ParcelableGeoLocation]s collected for this [Track].
+ * @property geoLocations The [GeoLocation]s collected for this [Track].
  * @property pressures The [ParcelablePressure]s collected for this [Track].
  */
 data class Track(
-    val geoLocations: MutableList<ParcelableGeoLocation?>,
+    val geoLocations: MutableList<GeoLocation?>,
     val pressures: MutableList<ParcelablePressure?>
 ) {
     /**
@@ -42,9 +42,9 @@ data class Track(
     constructor() : this(ArrayList(), ArrayList())
 
     /**
-     * @param location The [ParcelableGeoLocation] to be added at the end of the [Track].
+     * @param location The [GeoLocation] to be added at the end of the [Track].
      */
-    fun addLocation(location: ParcelableGeoLocation) {
+    fun addLocation(location: GeoLocation) {
         geoLocations.add(location)
     }
 

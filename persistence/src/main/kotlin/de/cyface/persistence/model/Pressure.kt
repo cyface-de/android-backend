@@ -51,7 +51,7 @@ data class Pressure(
     override val timestamp: Long,
     override val pressure: Double,
     @ColumnInfo(index = true) val measurementId: Long
-) : ParcelablePressure(timestamp, pressure) {
+) : ParcelablePressure(timestamp, pressure) { // If inheritance issue, see GeoLocation
 
     /**
      * Creates a new instance of this class which was not yet persisted and has [id] set to `0`.

@@ -21,13 +21,16 @@ package de.cyface.persistence.model
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
-import androidx.room.Ignore
 import androidx.room.PrimaryKey
 
 /**
  * An `@Entity` which represents a persisted [ParcelableGeoLocation], usually captured by a GNSS.
  *
  * An instance of this class represents one row in a database table containing the location data.
+ *
+ * We hat to decouple [GeoLocation] from [ParcelableGeoLocation] as `accuracy` was `null` in the
+ * superclass `init` block with Kotlin (after an upgrade) and Room w/ksp (just switched). This
+ * should anyway be cleaner, as parcel is for capturing and the entity for the persistence layer.
  *
  * @author Armin Schnabel
  * @version 2.0.0
@@ -51,50 +54,16 @@ data class GeoLocation(
     @ColumnInfo(name = "_id") // The CursorAdapter requires a column with the name `_id`
     @PrimaryKey(autoGenerate = true)
     var id: Long = 0,
-    override val timestamp: Long,
-    override val lat: Double,
-    override val lon: Double,
-    override val altitude: Double?,
-    override val speed: Double,
-    override val accuracy: Double?,
-    override val verticalAccuracy: Double?,
-    @Ignore
-    override var isValid: Boolean = true,
+    val timestamp: Long,
+    val lat: Double,
+    val lon: Double,
+    val altitude: Double?,
+    val speed: Double,
+    val accuracy: Double?,
+    val verticalAccuracy: Double?,
     @ColumnInfo(index = true)
     val measurementId: Long
-) : ParcelableGeoLocation(timestamp, lat, lon, altitude, speed, accuracy, verticalAccuracy) {
-
-    /**
-     * Creates a new instance of this class which was not yet persisted and has [id] set to `0`.
-     *
-     * @param timestamp The timestamp at which this data point was captured in milliseconds since
-     * 1.1.1970.
-     * @param lat The captured latitude of this data point in decimal coordinates as a value between -90.0 (south
-     * pole) and 90.0 (north pole).
-     * @param lon The captured longitude of this data point in decimal coordinates as a value between -180.0
-     * and 180.0.
-     * @param altitude The captured altitude of this data point in meters above WGS 84.
-     * @param speed The current speed of the measuring device according to its location sensor in meters per second.
-     * @param accuracy The current accuracy of the measuring device in meters.
-     * @param verticalAccuracy The current vertical accuracy of the measuring device in meters.
-     * @param measurementId The device-unique id of the measurement this data point belongs to.
-     */
-    constructor(
-        timestamp: Long, lat: Double, lon: Double, altitude: Double?,
-        speed: Double, accuracy: Double?, verticalAccuracy: Double?, measurementId: Long
-    ) : this(
-        0,
-        timestamp,
-        lat,
-        lon,
-        altitude,
-        speed,
-        accuracy,
-        verticalAccuracy,
-        true,
-        measurementId
-    )
-
+) {
     /**
      * Creates a new instance of this class which was not yet persisted and has [id] set to `0`.
      *
@@ -102,8 +71,15 @@ data class GeoLocation(
      * @param measurementId The device-unique id of the measurement this data point belongs to.
      */
     constructor(location: ParcelableGeoLocation, measurementId: Long) : this(
-        location.timestamp, location.lat, location.lon, location.altitude,
-        location.speed, location.accuracy, location.verticalAccuracy, measurementId
+        id = 0,
+        timestamp = location.timestamp,
+        lat = location.lat,
+        lon = location.lon,
+        altitude = location.altitude,
+        speed = location.speed,
+        accuracy = location.accuracy,
+        verticalAccuracy = location.verticalAccuracy,
+        measurementId = measurementId
     )
 
     override fun equals(other: Any?): Boolean {
@@ -121,7 +97,6 @@ data class GeoLocation(
         if (speed != other.speed) return false
         if (accuracy != other.accuracy) return false
         if (verticalAccuracy != other.verticalAccuracy) return false
-        if (isValid != other.isValid) return false
         if (measurementId != other.measurementId) return false
 
         return true

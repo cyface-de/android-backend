@@ -60,6 +60,7 @@ data class Attachment(
     override val lon: Double?,
     override val locationTimestamp: Long?,
     @ColumnInfo(index = true) val measurementId: Long
+    // If inheritance issue, see GeoLocation
 ) : ParcelableAttachment(timestamp, status, type, fileFormatVersion, size, path, lat, lon, locationTimestamp) {
 
     /**

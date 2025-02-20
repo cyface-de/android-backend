@@ -120,6 +120,7 @@ object SharedTestUtils {
      * each other. In this case (1, 5) = 4m distance and (1, 3) or (3, 5) = 2m distance.
      * @return the generated `GeoLocation`
      */
+    @SuppressWarnings("MagicNumber") // This is a test method
     @JvmStatic
     fun generateGeoLocation(distanceFromBase: Int): ParcelableGeoLocation {
         return generateGeoLocation(distanceFromBase, 1000000000L)
@@ -137,6 +138,7 @@ object SharedTestUtils {
      * each other. In this case (1, 5) = 4m distance and (1, 3) or (3, 5) = 2m distance.
      * @return the generated `GeoLocation`
      */
+    @SuppressWarnings("MagicNumber") // This is a test method
     @JvmStatic
     fun generateGeoLocation(distanceFromBase: Int, timestamp: Long): ParcelableGeoLocation {
         val salt = Math.random()
@@ -145,14 +147,17 @@ object SharedTestUtils {
             BASE_LAT + distanceFromBase * LAT_CONSTANT,
             BASE_LON + distanceFromBase * LON_CONSTANT,
             400.0,
-            DefaultLocationCleaning.LOWER_SPEED_THRESHOLD.coerceAtLeast(salt * DefaultLocationCleaning.UPPER_SPEED_THRESHOLD),
+            DefaultLocationCleaning.LOWER_SPEED_THRESHOLD.coerceAtLeast(
+                salt * DefaultLocationCleaning.UPPER_SPEED_THRESHOLD,
+            ),
             salt * (DefaultLocationCleaning.UPPER_ACCURACY_THRESHOLD - 1),
             20.0
         )
     }
 
     /**
-     * Inserts a test [de.cyface.persistence.model.ParcelablePoint3D] into the database content provider accessed by the test.
+     * Inserts a test [de.cyface.persistence.model.ParcelablePoint3D] into the database content
+     * provider accessed by the test.
      *
      * @param point3DFile existing file to append the data to
      * @param timestamp A fake test timestamp of the `Point3D`.
@@ -180,15 +185,15 @@ object SharedTestUtils {
      * @param point3DFile existing file to append the data to
      * @param point3Ds Test fake `Point3D`s.
      */
+    @SuppressWarnings("MagicNumber") // This is a test method
     private fun insertPoint3Ds(point3DFile: Point3DFile, point3Ds: List<Point3DImpl?>) {
-
         // Avoid OOM when adding too much data at once
         val insertLimit = 100000
         var nextInsertedIndex = 0
         while (nextInsertedIndex < point3Ds.size) {
             val sublist = point3Ds.subList(
                 nextInsertedIndex,
-                Math.min(nextInsertedIndex + insertLimit, point3Ds.size)
+                (nextInsertedIndex + insertLimit).coerceAtMost(point3Ds.size)
             )
             point3DFile.append(sublist)
             nextInsertedIndex += sublist.size
@@ -328,6 +333,7 @@ object SharedTestUtils {
      */
     @JvmStatic
     @Throws(NoSuchMeasurementException::class)
+    @SuppressWarnings("MagicNumber") // This is a test method
     suspend fun insertSampleMeasurementWithData(
         context: Context,
         status: MeasurementStatus,
@@ -415,7 +421,8 @@ object SharedTestUtils {
         insertPoint3Ds(accelerationsFile, aPoints)
         insertPoint3Ds(rotationsFile, rPoints)
         insertPoint3Ds(directionsFile, dPoints)
-        if (status === MeasurementStatus.FINISHED || status === MeasurementStatus.SYNCED || status === MeasurementStatus.SKIPPED) {
+        if (status === MeasurementStatus.FINISHED || status === MeasurementStatus.SYNCED ||
+            status === MeasurementStatus.SKIPPED) {
             persistence.storePersistenceFileFormatVersion(
                 DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION,
                 measurementId
@@ -464,11 +471,18 @@ object SharedTestUtils {
         return if (endIndex <= files.size) {
             files.subList(startingIndex, endIndex)
         } else {
-            throw IllegalArgumentException("Expected $count but found ${files.size}")
+            error("Expected $count but found ${files.size}")
         }
     }
 
-    private fun files(count: Int, type: FileType, location: ParcelableGeoLocation?, sampleFiles: List<Path>, measurementId: Long): List<ParcelableAttachment> {
+    @SuppressWarnings("MagicNumber") // This is a test method
+    private fun files(
+        count: Int,
+        type: FileType,
+        location: ParcelableGeoLocation?,
+        sampleFiles: List<Path>,
+        measurementId: Long,
+    ): List<ParcelableAttachment> {
         require(sampleFiles.size == count) {"Expected $count files but found ${sampleFiles.size}"}
         val files: MutableList<de.cyface.persistence.model.Attachment> = ArrayList()
         for (j in 0 until count) {
@@ -519,14 +533,27 @@ object SharedTestUtils {
     // Used by the cyface flavour tests
     @JvmStatic
     suspend fun insertGeoLocation(
-        dao: LocationDao, measurementIdentifier: Long,
-        timestamp: Long, lat: Double, lon: Double, altitude: Double, speed: Double,
-        accuracy: Double, verticalAccuracy: Double
+        dao: LocationDao,
+        measurementIdentifier: Long,
+        timestamp: Long,
+        lat: Double,
+        lon: Double,
+        altitude: Double,
+        speed: Double,
+        accuracy: Double,
+        verticalAccuracy: Double,
     ) {
         dao.insertAll(
             GeoLocation(
-                timestamp, lat, lon, altitude, speed, accuracy,
-                verticalAccuracy, measurementIdentifier
+                id = 0,
+                timestamp,
+                lat,
+                lon,
+                altitude,
+                speed,
+                accuracy,
+                verticalAccuracy,
+                measurementIdentifier,
             )
         )
     }

@@ -39,7 +39,6 @@ import de.cyface.persistence.model.Identifier
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
-import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.model.ParcelablePressure
 import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.model.Track
@@ -703,7 +702,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param slidingWindowSize The window size to use to average the pressure values.
      * @return The altitudes in meters as list of lists, each representing a sub-track.
      */
-    protected fun altitudesFromPressures(tracks: List<Track>, slidingWindowSize: Int): List<List<Double>> {
+    fun altitudesFromPressures(tracks: List<Track>, slidingWindowSize: Int): List<List<Double>> {
         val allAltitudes = ArrayList<List<Double>>()
         for (track in tracks) {
 
@@ -738,7 +737,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param tracks The tracks to calculate the altitudes for.
      * @return The altitudes in meters as list of lists, each representing a sub-track.
      */
-    protected fun altitudesFromGNSS(tracks: List<Track>): List<List<Double>> {
+    fun altitudesFromGNSS(tracks: List<Track>): List<List<Double>> {
         val allAltitudes = ArrayList<List<Double>>()
         for (track in tracks) {
             val altitudes = ArrayList<Double>()
@@ -764,7 +763,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param altitudes The list of altitudes to calculate the ascend for.
      * @return The ascend in meters.
      */
-    protected fun totalAscend(altitudes: List<List<Double>>): Double? {
+    fun totalAscend(altitudes: List<List<Double>>): Double? {
         var totalAscend: Double? = null
         for (trackAltitudes in altitudes) {
             // Tracks without much altitude should return 0 not null
@@ -916,11 +915,10 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param locations The locations to build the tracks from.
      * @param events The events to build the tracks from.
      * @param pressures The pressures to build the track from.
-     * @return The [Track]s build from the provided data. If no
-     * [de.cyface.persistence.model.ParcelableGeoLocation]s exists, an empty list is returned.
+     * @return The [Track]s built or an empty `List` if no [GeoLocation]s exist.
      */
     private fun loadTracks(
-        locations: List<ParcelableGeoLocation?>?, events: List<Event?>?,
+        locations: List<GeoLocation?>?, events: List<Event?>?,
         pressures: List<ParcelablePressure?>?
     ): List<Track> {
         if (locations!!.isEmpty()) {
@@ -962,7 +960,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             // Pause reached: Move geoLocationCursor to the first data point of the next sub-track
             // We do this to ignore data points between pause and resume event (STAD-140)
             mutableLocations =
-                mutableLocations.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<ParcelableGeoLocation?>
+                mutableLocations.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<GeoLocation?>
             mutablePressures =
                 mutablePressures.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<ParcelablePressure?>
         }
@@ -1051,7 +1049,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return The sub `Track`.
      */
     fun collectNextSubTrack(
-        locations: MutableList<ParcelableGeoLocation?>,
+        locations: MutableList<GeoLocation?>,
         pressures: MutableList<ParcelablePressure?>, pauseEventTime: Long?
     ): Track {
         val track = Track()

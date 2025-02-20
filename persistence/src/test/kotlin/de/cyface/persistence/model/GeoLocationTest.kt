@@ -36,7 +36,17 @@ class GeoLocationTest {
         // Arrange
 
         // Act
-        GeoLocation(1740046993L, 51.0, 13.0, 0.0, 1.0, 5.0, 2.0, 1L)
+        GeoLocation(
+            id = 0,
+            timestamp = 1740046993L,
+            lat = 51.0,
+            lon = 13.0,
+            altitude = 0.0,
+            speed = 1.0,
+            accuracy = 5.0,
+            verticalAccuracy = 2.0,
+            measurementId = 1L,
+        )
 
         // Assert
     }

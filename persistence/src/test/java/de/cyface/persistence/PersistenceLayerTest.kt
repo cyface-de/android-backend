@@ -22,7 +22,6 @@ import android.hardware.SensorManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import de.cyface.persistence.model.GeoLocation
-import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.model.ParcelablePressure
 import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.model.Track
@@ -33,6 +32,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.math.pow
 
 /**
  * Tests the inner workings of the [DefaultPersistenceLayer].
@@ -138,22 +138,22 @@ class PersistenceLayerTest {
 
         val track = Track()
         // noise around 0 (+-1)
-        track.addLocation(GeoLocation(1L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
-        track.addLocation(GeoLocation(2L, 0.0, 0.0, 1.0, 1.0, 5.0, 5.0, 1L))
-        track.addLocation(GeoLocation(3L, 0.0, 0.0, -1.0, 1.0, 5.0, 5.0, 1L))
-        track.addLocation(GeoLocation(4L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
-        track.addLocation(GeoLocation(5L, 0.0, 0.0, 1.0, 1.0, 5.0, 5.0, 1L))
+        track.addLocation(GeoLocation(0, 1L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
+        track.addLocation(GeoLocation(0, 2L, 0.0, 0.0, 1.0, 1.0, 5.0, 5.0, 1L))
+        track.addLocation(GeoLocation(0, 3L, 0.0, 0.0, -1.0, 1.0, 5.0, 5.0, 1L))
+        track.addLocation(GeoLocation(0, 4L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
+        track.addLocation(GeoLocation(0, 5L, 0.0, 0.0, 1.0, 1.0, 5.0, 5.0, 1L))
         // ascend 1 => +3
-        track.addLocation(GeoLocation(6L, 0.0, 0.0, 3.0, 1.0, 5.0, 5.0, 1L))
+        track.addLocation(GeoLocation(0, 6L, 0.0, 0.0, 3.0, 1.0, 5.0, 5.0, 1L))
         // descend => lastAltitude -= 2
-        track.addLocation(GeoLocation(7L, 0.0, 0.0, 1.0, 1.0, 5.0, 5.0, 1L))
+        track.addLocation(GeoLocation(0, 7L, 0.0, 0.0, 1.0, 1.0, 5.0, 5.0, 1L))
         // ascend 2 => +2
-        track.addLocation(GeoLocation(8L, 0.0, 0.0, 3.0, 1.0, 5.0, 5.0, 1L))
+        track.addLocation(GeoLocation(0, 8L, 0.0, 0.0, 3.0, 1.0, 5.0, 5.0, 1L))
         // Track without ascend but with data should return 0.0 not null
         val track2 = Track()
-        track2.addLocation(GeoLocation(1L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
-        track2.addLocation(GeoLocation(2L, 0.0, 0.0, 1.0, 1.0, 5.0, 5.0, 1L))
-        track2.addLocation(GeoLocation(3L, 0.0, 0.0, -1.0, 1.0, 5.0, 5.0, 1L))
+        track2.addLocation(GeoLocation(0, 1L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
+        track2.addLocation(GeoLocation(0, 2L, 0.0, 0.0, 1.0, 1.0, 5.0, 5.0, 1L))
+        track2.addLocation(GeoLocation(0, 3L, 0.0, 0.0, -1.0, 1.0, 5.0, 5.0, 1L))
 
         // Act
         val altitudes = oocut!!.altitudesFromGNSS(listOf(track))
@@ -169,12 +169,11 @@ class PersistenceLayerTest {
     @Test
     fun testCollectNextSubTrack() {
         // Arrange
-
-        val locations = ArrayList<ParcelableGeoLocation?>()
-        locations.add(ParcelableGeoLocation(1L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0))
-        locations.add(ParcelableGeoLocation(2L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0))
-        locations.add(ParcelableGeoLocation(10L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0))
-        locations.add(ParcelableGeoLocation(11L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0))
+        val locations = ArrayList<GeoLocation?>()
+        locations.add(GeoLocation(0, 1L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
+        locations.add(GeoLocation(0, 2L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
+        locations.add(GeoLocation(0, 10L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
+        locations.add(GeoLocation(0, 11L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
         val pressures = ArrayList<ParcelablePressure?>()
         val p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE
         pressures.add(ParcelablePressure(1L, pressure(0.0, p0).toDouble()))
@@ -209,7 +208,7 @@ class PersistenceLayerTest {
      * @param p0 The pressure at sea level for the specific weather condition.
      * @return The atmospheric pressure in hPa.
      */
-    private fun pressure(altitude: Double, p0: Float): Float {
-        return p0 * (1.0f - altitude / 44330.0f).pow(5.255) as Float
+    private fun pressure(altitude: Double, @Suppress("SameParameterValue") p0: Float): Float {
+        return p0 * (1.0f - altitude / 44330.0f).pow(5.255).toFloat()
     }
 }
