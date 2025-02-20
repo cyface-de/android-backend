@@ -175,7 +175,17 @@ class WiFiSurveyor(
         ContentResolver.requestSync(currentSynchronizationAccount, authority, params)
     }
 
+    /**
+     * FIXME: It seems like we do not register WiFiSurveyor anywhere as a BroadcastReceiver for
+     * CONNECTIVITY - is onResume really ever called? The class extends BroadcastReceiver
+     * but it would also need to register to receive the CONNECTIVITY_ACTION or similar.
+     *
+     * There are two handlers for network status changes:
+     * - onReceive (was this written for newer APIs oder older APIs?
+     * - NetworkCallback (was this written for newer APIs oder older APIs?)
+     */
     override fun onReceive(context: Context, intent: Intent) {
+        Log.d(TAG, "onReceive called with action: ${intent.action}")
         notNull(intent.action)
         require(intent.action == ConnectivityManager.CONNECTIVITY_ACTION) // only action registered
         if (currentSynchronizationAccount == null) {
