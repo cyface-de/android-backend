@@ -98,7 +98,6 @@ class PersistenceLayerTest {
     @Test
     fun testLoadAscendFromPressures() {
         // Arrange
-
         val p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE
         val track = Track()
         // noise around 0 (+-1)
@@ -135,7 +134,6 @@ class PersistenceLayerTest {
     @Test
     fun testLoadAscendFromGnss() {
         // Arrange
-
         val track = Track()
         // noise around 0 (+-1)
         track.addLocation(GeoLocation(0, 1L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
@@ -200,7 +198,6 @@ class PersistenceLayerTest {
 
     /**
      * Calculates the pressure expected for a specific altitude and weather condition.
-     *
      *
      * Based on the formula from `android.hardware.SensorManager#getAltitude(float, float)`.
      *
