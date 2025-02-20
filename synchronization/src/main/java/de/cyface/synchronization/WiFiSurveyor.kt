@@ -27,7 +27,6 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import de.cyface.uploader.exception.SynchronisationException
@@ -41,7 +40,7 @@ import java.lang.ref.WeakReference
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @param context FIXME
+ * @param context The current Android context (i.e. Activity or Service).
  * @property connectivityManager The Android service to check the device connection status.
  * @property authority The `ContentProvider` authority used by this service to store and read data.
  * See https://developer.android.com/guide/topics/providers/content-providers.html
@@ -78,24 +77,19 @@ class WiFiSurveyor(
     private var networkCallback: NetworkCallback? = null
 
     /**
-     * Starts the connection status surveillance. If a syncable connection is active data synchronization is started.
-     * If the connection goes back down synchronization is deactivated.
+     * Starts the connection status surveillance.
      *
+     * If a syncable connection is active data synchronization is started. If the connection goes
+     * back down synchronization is deactivated.
      *
-     * You can allow metered connections as syncable by setting [.setSyncOnUnMeteredNetworkOnly] to
-     * false. The default value is true.
+     * You can allow metered connections as syncable by setting [setSyncOnUnMeteredNetworkOnly] to
+     * `false`. The default value is `true`.
      *
+     * The method also schedules an immediate synchronization run after the syncable connection
+     * has been connected.
      *
-     * The method also schedules an immediate synchronization run after the syncable connection has been connected.
-     *
-     *
-     * **ATTENTION:** If you use this method do not forget to call [.stopSurveillance], at some time in the
-     * future or you will waste system resources.
-     *
-     *
-     * **ATTENTION:** Starting at [.MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG] we use
-     * `NetworkCapabilities#NET_CAPABILITY_NOT_METERED` instead of `NetworkCapabilities#TRANSPORT_WIFI`
-     * to determine if a connection is syncable.
+     * **ATTENTION:** If you use this method do not forget to call [stopSurveillance], at some time
+     * in the future or you will waste system resources.
      *
      * @param account Starts surveillance of the WiFi connection status for this account.
      * @throws SynchronisationException If no current Android `Context` is available.
@@ -130,12 +124,12 @@ class WiFiSurveyor(
     /**
      * Stops surveillance of the devices connection status. This frees up all used system resources.
      *
-     *
      * PeriodicSync does not have to be removed in here.
-     * - setSyncOnUnMeteredNetworkOnly removes the periodic sync itself
-     * - UI.onDestroyView does not expect periodic sync to be removed (tested in MOV-619).
-     * This way synchronization also works after onDestroyView was called when there is still syncable connection.
-     * If the syncable connection is lost after onDestroyView is called sync does not happen.
+     * - [setSyncOnUnMeteredNetworkOnly] removes the periodic sync itself
+     * - `UI.onDestroyView` does not expect periodic sync to be removed (tested in MOV-619).
+     * This way synchronization also works after onDestroyView was called when there is still
+     * syncable connection. If the syncable connection is lost after `onDestroyView` is called sync
+     * does not happen.
      *
      * @throws SynchronisationException If no current Android `Context` is available.
      */
@@ -153,14 +147,14 @@ class WiFiSurveyor(
         connectivityManager.unregisterNetworkCallback(networkCallback!!)
         networkCallback = null
 
-        // This interrupts ongoing synchronization or else it may crash because required data is missing (token,
-        // account)
+        // This interrupts ongoing synchronization or else it may crash because required data is
+        // missing (token, account)
         ContentResolver.cancelSync(currentSynchronizationAccount, authority)
     }
 
     /**
-     * Schedules data synchronization for right now. This does not mean synchronization is going to start immediately.
-     * The Android system still decides when it is convenient.
+     * Schedules data synchronization for right now. This does not mean synchronization is going to
+     * start immediately. The Android system still decides when it is convenient.
      */
     fun scheduleSyncNow() {
         if (currentSynchronizationAccount == null) {
@@ -210,13 +204,11 @@ class WiFiSurveyor(
      * Deletes a Cyface account from the Android `Account` system. Does silently nothing if no such
      * `Account` exists.
      *
-     *
-     * **Attention:** You need to call [.stopSurveillance] before calling this method as the
+     * **Attention:** You need to call [stopSurveillance] before calling this method as the
      * [WiFiSurveyor] surveillance expects a registered account to work.
      *
-     *
-     * **ATTENTION:** SDK implementing apps which cannot use this method to remove an account need to call
-     * `ContentResolver#removePeriodicSync()` themselves.
+     * **ATTENTION:** SDK implementing apps which cannot use this method to remove an account need
+     * to call `ContentResolver#removePeriodicSync()` themselves.
      *
      * @param username The username of the account to delete.
      */
@@ -237,8 +229,9 @@ class WiFiSurveyor(
      * Creates a new `Account` which is required for the [WiFiSurveyor] to work.
      *
      * @param username The username of the account to be created.
-     * @param password The password of the account to be created. May be null if a custom [CyfaceAuthenticator] is
-     * used instead of a LoginActivity to return tokens as in `MovebisDataCapturingService`.
+     * @param password The password of the account to be created. May be null if a custom
+     * [CyfaceAuthenticator] is used instead of a `LoginActivity` to return tokens as in
+     * `MovebisDataCapturingService`.
      * @return The created `Account`
      */
     @Suppress("unused") // Is used by MovebisDataCapturingService
@@ -260,32 +253,29 @@ class WiFiSurveyor(
     /**
      * Sets up an already existing `Account` to work with the [WiFiSurveyor].
      *
-     *
      * **Attention:** SDK implementing apps need to use this method if they cannot use
      * [WiFiSurveyor.createAccount].
      *
-     *
-     * **Attention:** Read the following before you change how we mark accounts as syncable or how we mark that a
-     * syncable connection is available!
-     *
+     * **Attention:** Read the following before you change how we mark accounts as syncable or how
+     * we mark that a syncable connection is available!
      *
      * **Mark connection as syncable**
      * - Both, `ContentResolver#addPeriodicSync()` and `ContentResolver#setSyncAutomatically()`,
      * are automatically added or removed via [NetworkCallback] or
      * [WiFiSurveyor.onReceive], depending on the API level.
+     * FIXME
      * - The state of `ContentResolver#addPeriodicSync()` and `ContentResolver#setSyncAutomatically()`
-     * define if a syncable connection is available (depending on [.setSyncOnUnMeteredNetworkOnly]).
+     * define if a syncable connection is available (depending on [setSyncOnUnMeteredNetworkOnly]).
      * - never *update only _one_ of both*, `ContentResolver#addPeriodicSync()` and
      * `ContentResolver#setSyncAutomatically()`, as this produced MOV-535, MOV-609 and MOV-635.
      * - `WiFiSurveyorTest#testSetConnected()` showed that addPeriodicSync does not happen instantly
-     * which is why that test checks that both flags are set identically and for the same reason we can only
-     * check `ContentResolver#getSyncAutomatically()` in [.isConnected].
-     *
+     * which is why that test checks that both flags are set identically and for the same reason we
+     * can only check `ContentResolver#getSyncAutomatically()` in [isConnected].
      *
      * **Disabled synchronization completely**
      * - Synchronization is enabled by default.
-     * - To disable synchronization *completely*, use [.setSyncEnabled]} which uses
-     * the `ContentResolver#setIsSyncable()` flag.
+     * - To disable synchronization *completely*, use [setSyncEnabled]} which uses the
+     * `ContentResolver#setIsSyncable()` flag.
      *
      * @param account The `Account` to be used for synchronization
      * @param enabled True if the synchronization should be enabled
@@ -319,17 +309,15 @@ class WiFiSurveyor(
         /**
          * This method must only be used internally from the [NetworkCallback] and
          * [WiFiSurveyor.onReceive] on connection status changes and when instant synchronization is
-         * requested using [.scheduleSyncNow] .
+         * requested using [scheduleSyncNow] .
          *
+         * Depending on the result of this method those callers allow and schedule or disallow and
+         * de-schedule synchronization.
          *
-         * Depending on the result of this method those callers allow and schedule or disallow and de-schedule
-         * synchronization.
-         *
-         *
-         * All other interested parties must use [.isConnected] instead.
+         * All other interested parties must use [isConnected] instead.
          *
          * @return `true` if a "syncable" connection is available, depending on the
-         * [.setSyncOnUnMeteredNetworkOnly] settings.
+         * [setSyncOnUnMeteredNetworkOnly] settings.
          */
         get() {
             notNull(connectivityManager)
@@ -370,27 +358,19 @@ class WiFiSurveyor(
 
     /**
      * Sets whether synchronization should happen only on
-     * `android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED`
-     * networks or on all networks.
+     * `android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED` networks or on all networks.
      *
-     *
-     * **ATTENTION:** Starting at version [.MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG] we use the
-     * `NetworkCapabilities#NET_CAPABILITY_NOT_METERED` flag instead of
-     * `NetworkCapabilities#TRANSPORT_WIFI` as suggested by Android.
-     *
-     *
-     * This method must be called after [.startSurveillance] is called.
+     * This method must be called after [startSurveillance] is called.
      *
      * @param newState If `true` the [WiFiSurveyor] synchronizes data only if connected to a
      * `android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED` network; if
-     * `false` it synchronizes as soon as a data connection is available. The second option might use
-     * up the users data plan rapidly so use it sparingly. The default value is `true`.
+     * `false` it synchronizes as soon as a data connection is available. The second option might
+     * use up the users data plan rapidly so use it sparingly. The default value is `true`.
      * @throws SynchronisationException If no current Android `Context` is available.
      */
     @Throws(SynchronisationException::class)
     fun setSyncOnUnMeteredNetworkOnly(newState: Boolean) {
         // In case the restrictions got hardened (disallow metered networks) remove activated syncs
-
         val mobileDataIsNotAllowedAnymore = !syncOnUnMeteredNetworkOnly && newState
         if (mobileDataIsNotAllowedAnymore) {
             Log.d(
@@ -407,23 +387,23 @@ class WiFiSurveyor(
     }
 
     /**
-     * Updates the settings for the sync account to indicate if there is currently a syncable connections or not.
+     * Updates the settings for the sync account to indicate if there is currently a syncable
+     * connections or not.
      *
+     * Do not call this method before [startSurveillance] linked a [currentSynchronizationAccount].
      *
-     * Do not call this method before [.startSurveillance] linked a currentSynchronizationAccount.
+     * **Attention:** Before you change the account flags usage, read [makeAccountSyncable].
      *
-     *
-     * **Attention:** Before you change the account flags usage, read [.makeAccountSyncable].
-     *
-     * @param enable True if `ContentResolver#addPeriodicSync()` should be activated or false if it
+     * @param enable `true if `ContentResolver#addPeriodicSync()` should be activated or false if it
      * should be removed from the sync account.
-     * @return `True` if the sync setting were changed successfully, `False` if there is currently no
-     * `#currentSynchronizationAccount` registered.
+     * @return `true` if the sync setting were changed successfully, `false` if there is currently
+     * no [currentSynchronizationAccount] registered.
      */
     fun setConnected(enable: Boolean): Boolean {
-        // For some reasons callers such as NetworkCallback.onLost can still called even though we unregister
-        // NetworkCallbacks before we call WifiSurveyor.deleteAccount(). So theoretically currentSynchronizationAccount
-        // should not be null, but it happened anyway (MOV-764). Thus, we catch this softly.
+        // For some reasons callers such as `NetworkCallback.onLost` can still called even though
+        // we unregister `NetworkCallback`s before we call `WifiSurveyor.deleteAccount()`. So
+        // theoretically `currentSynchronizationAccount` should not be null, but it happened
+        // anyway (MOV-764). Thus, we catch this softly.
         if (currentSynchronizationAccount == null) {
             Log.w(TAG, "setConnected ignored as currentSynchronizationAccount is null")
             return false
@@ -454,49 +434,46 @@ class WiFiSurveyor(
 
     val isConnected: Boolean
         /**
-         * This method must not be called before [.startSurveillance] linked a currentSynchronizationAccount.
-         *
+         * This method must not be called before [startSurveillance] linked a
+         * [currentSynchronizationAccount].
          *
          * If you change the implementation of this method, make sure you adjust
          * `SyncAdapter#isConnected(Account, String)` accordingly.
          *
+         * This method allows implementing apps (CY) to only trigger sync manually when connected
+         * or else show an info.
          *
-         * This method allows implementing apps (CY) to only trigger sync manually when connected or else show an info.
+         * We cannot instantly check `addPeriodicSync` as this seems to be async. For this reason
+         * we have a test to ensure it's set to the same state as `syncAutomatically`:
+         * `WifiSurveyorTest.testSetConnected()`
          *
-         * @return True if the device is connected to a syncable connection.
+         * @return `true` if the device is connected to a syncable connection.
          */
-        get() =// We cannot instantly check addPeriodicSync as this seems to be async. For this reason we have a test to ensure
-            // it's set to the same state as syncAutomatically: WifiSurveyorTest.testSetConnected()
-            ContentResolver.getSyncAutomatically(currentSynchronizationAccount, authority)
+        get() = ContentResolver.getSyncAutomatically(currentSynchronizationAccount, authority)
 
     @get:Suppress("unused")
-    @set:Suppress("unused")
     var isSyncEnabled: Boolean
         /**
          * Checks if the synchronization is enabled or disabled *completely* for the sync account.
          *
-         *
          * **Attention:**
-         * If you want to check if periodic ("auto") sync is enabled which is automatically set when the network state
-         * changes, see [.isConnected].
+         * If you want to check if periodic ("auto") sync is enabled which is automatically set
+         * when the network state changes, see [isConnected].
          *
+         * This method must be called after [startSurveillance] is called.
          *
-         * This method must be called after [.startSurveillance] is called.
-         *
-         * @return True if synchronization is enabled
+         * @return `true` if synchronization is enabled
          */
         get() = ContentResolver.getIsSyncable(currentSynchronizationAccount, authority) == 1
         /**
          * Allows to enable or disable synchronization completely.
          *
+         * This method must not be called before [startSurveillance] was called. You can also use
+         * the [setSyncEnabled] which does not have this requirement.
          *
-         * This method must not be called before [.startSurveillance] was called. You can also use the
-         * [.setSyncEnabled] which does not have this requirement.
+         * Make sure you have read the documentation of [makeAccountSyncable].
          *
-         *
-         * Make sure you have read the documentation of [.makeAccountSyncable].
-         *
-         * @param enabled True if synchronization should be enabled
+         * @param enabled `true` if synchronization should be enabled
          */
         set(enabled) {
             setSyncEnabled(currentSynchronizationAccount!!, enabled)
@@ -505,13 +482,12 @@ class WiFiSurveyor(
     /**
      * Allows to enable or disable synchronization completely.
      *
-     *
-     * This second interface for setSyncEnabled() with the account parameter is required as
+     * This second interface for [setSyncEnabled] with the account parameter is required as
      * `MovebisDataCapturingService#registerJwtAuthToken()` just activate the account before
-     * the account is linked as currentSynchronizationAccount by [.startSurveillance].
+     * the account is linked as [currentSynchronizationAccount] by [startSurveillance].
      *
      * @param account The `Account` to update.
-     * @param enabled True if synchronization should be enabled
+     * @param enabled `true` if synchronization should be enabled
      */
     fun setSyncEnabled(account: Account, enabled: Boolean) {
         ContentResolver.setIsSyncable(account, authority, if (enabled) 1 else 0)
@@ -525,41 +501,30 @@ class WiFiSurveyor(
         /**
          * Logging TAG to identify logs associated with the [WiFiSurveyor].
          *
-         *
-         * SuppressWarnings because SDK implementing app (CY) uses this.
+         * `SuppressWarnings` because SDK implementing app (CY) uses this.
          */
-        @JvmField
-        @Suppress("unused")
-        val TAG: String = Constants.TAG + ".surveyor"
+        @SuppressWarnings("unused")
+        const val TAG: String = Constants.TAG + ".surveyor"
 
         /**
-         * The number of seconds in one minute. This value is used to calculate the data synchronisation interval.
+         * The number of seconds in one minute. This value is used to calculate the data
+         * synchronisation interval.
          */
         private const val SECONDS_PER_MINUTE = 60L
 
         /**
          * The data synchronisation interval in minutes.
          *
-         *
-         * **Attention:** Before you change this make sure you don't use a value lower than the minimum defined by
-         * `ContentResolver#addPeriodicSync()`. So far the highest minimum of all APIs was 60 minutes
-         * which is why we did choose this default value.
+         * **Attention:** Before you change this make sure you don't use a value lower than the
+         * minimum defined by `ContentResolver#addPeriodicSync()`. So far the highest minimum of
+         * all APIs was 60 minutes which is why we did choose this default value.
          */
         private const val SYNC_INTERVAL_IN_MINUTES = 60L
 
         /**
-         * Since we need to specify the sync interval in seconds, this constant transforms the interval in minutes to
-         * seconds using [.SECONDS_PER_MINUTE].
+         * Since we need to specify the sync interval in seconds, this constant transforms the
+         * interval in minutes to seconds using [SECONDS_PER_MINUTE].
          */
         const val SYNC_INTERVAL: Long = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE
-
-        /**
-         * A flag which shows if the code is using the `NetworkCapabilities#NET_CAPABILITY_NOT_METERED` flag instead
-         * of `NetworkCapabilities#TRANSPORT_WIFI` to determine if we are connected to a syncable network.
-         *
-         * This should work starting with `Build.VERSION_CODES#M` but in our tests wifi networks where identifies as
-         * "metered" on lower APIs (e.g. Android 6.0.1).
-         */
-        const val MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG: Int = Build.VERSION_CODES.O
     }
 }

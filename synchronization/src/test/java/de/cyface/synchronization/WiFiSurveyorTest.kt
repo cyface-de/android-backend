@@ -44,8 +44,7 @@ import org.robolectric.shadows.ShadowNetworkCapabilities
 import org.robolectric.shadows.ShadowNetworkInfo
 
 /**
- * Tests the correct functionality of the `WiFiSurveyor` class.
- *
+ * Tests the correct functionality of [WiFiSurveyor].
  *
  * We execute these test on multiple SDKs as we have different production code depending on the SDK:
  * - MARSHMALLOW (i.e. SDK < OREO) to test [NetworkCallback] with
