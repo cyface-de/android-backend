@@ -57,7 +57,10 @@ import org.robolectric.shadows.ShadowNetworkInfo
  * @version 2.1.1
  * @since 2.0.0
  */
-@Ignore("Temporarily disabled") // FIXME: Try if we can get this test to work with >= Android 8. If not this is okay, too, as we did not run this until now, but we should then add a manual test and document what needs to be tested and how
+// FIXME: Try if we can get this test to work with >= Android 8. If not this is okay, too, as we
+//  did not run this until now, but we should then add a manual test and document what needs to be
+//  tested and how
+@Ignore("Temporarily disabled")
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [VERSION_CODES.O]) // Using minSdkVersion for now // FIXME: See if we really need to define a version
 class WiFiSurveyorTest {
