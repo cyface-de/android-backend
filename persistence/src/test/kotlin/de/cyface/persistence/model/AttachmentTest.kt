@@ -42,6 +42,7 @@ class AttachmentTest {
 
         // Act
         Attachment(
+            0L,
             1000L,
             AttachmentStatus.SAVED,
             de.cyface.protos.model.File.FileType.CSV,
