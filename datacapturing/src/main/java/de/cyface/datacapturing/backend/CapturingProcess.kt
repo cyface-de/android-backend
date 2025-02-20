@@ -136,10 +136,10 @@ abstract class CapturingProcess internal constructor(
             val speed = getCurrentSpeed(location)
             var accuracy = location.accuracy.toDouble()
             // Don't write default value `0.0` when no value is available
-            var verticalAccuracyMeters: Double? = null
-            if (buildVersionProvider.isOreoAndAbove) {
-                verticalAccuracyMeters =
-                    if (location.hasVerticalAccuracy()) location.verticalAccuracyMeters.toDouble() else null
+            var verticalAccuracyMeters = if (location.hasVerticalAccuracy()) {
+                location.verticalAccuracyMeters.toDouble()
+            } else {
+                null
             }
             if (BuildConfig.DEBUG
                 && (TestEnvironment.isEmulator || (Build.FINGERPRINT != null && Build.FINGERPRINT.startsWith(

@@ -22,7 +22,6 @@ import android.accounts.Account
 import android.accounts.AccountManager
 import android.content.ContentResolver
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.annotation.MainThread
@@ -190,11 +189,7 @@ class OAuth2(context: Context, settings: SynchronizationSettings, caller: String
 
             // Delete unused Cyface accounts
             for (existingAccount in existingAccounts) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-                    accountManager.removeAccountExplicitly(existingAccount)
-                } else {
-                    accountManager.removeAccount(account, null, null)
-                }
+                accountManager.removeAccountExplicitly(existingAccount)
                 Log.d(TAG, "Removed existing account: $existingAccount")
             }
             createAccount(context, username, accessToken, refreshToken, accountType, authority)

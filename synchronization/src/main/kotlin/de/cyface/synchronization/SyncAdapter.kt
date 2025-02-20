@@ -171,12 +171,7 @@ class SyncAdapter private constructor(
         for (listener in progressListeners) {
             listener.onSyncFinished()
         }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            provider.close()
-        } else {
-            provider.release()
-        }
+        provider.close()
     }
 
     private fun handleSyncExceptions(

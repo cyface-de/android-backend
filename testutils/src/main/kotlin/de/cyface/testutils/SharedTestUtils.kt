@@ -21,7 +21,6 @@ package de.cyface.testutils
 import android.accounts.AccountManager
 import android.content.ContentResolver
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import com.google.protobuf.ByteString
@@ -103,11 +102,7 @@ object SharedTestUtils {
         // To make these tests reproducible make sure we don't reuse old sync accounts
         for (account in accountManager.getAccountsByType(accountType)) {
             ContentResolver.removePeriodicSync(account, authority, Bundle.EMPTY)
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
-                accountManager.removeAccount(account, null, null)
-            } else {
-                Validate.isTrue(accountManager.removeAccountExplicitly(account))
-            }
+            require(accountManager.removeAccountExplicitly(account))
         }
         // To ensure reproducibility make sure there is no old account registered
         val oldAccounts = accountManager.getAccountsByType(accountType)

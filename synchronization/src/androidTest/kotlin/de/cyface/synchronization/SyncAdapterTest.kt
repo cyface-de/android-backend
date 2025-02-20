@@ -24,10 +24,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.SyncResult
 import android.database.Cursor
-import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
@@ -108,23 +105,7 @@ class SyncAdapterTest {
         if (oldAccounts.isNotEmpty()) {
             for (oldAccount in oldAccounts) {
                 ContentResolver.removePeriodicSync(oldAccount, TestUtils.AUTHORITY, Bundle.EMPTY)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-                    Validate.isTrue(accountManager?.removeAccountExplicitly(oldAccount) == true)
-                } else {
-                    val handler = Handler(Looper.getMainLooper())
-                    accountManager?.removeAccount(oldAccount, null, { future ->
-                        try {
-                            val bundle = future.result
-                            val accountRemoved =
-                                bundle.getBoolean(AccountManager.KEY_BOOLEAN_RESULT)
-                            if (!accountRemoved) {
-                                throw IllegalStateException("Unable to remove account")
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }, handler)
-                }
+                require(accountManager?.removeAccountExplicitly(oldAccount) == true)
             }
         }
         contentResolver = null
