@@ -19,37 +19,39 @@
 package de.cyface.persistence.model
 
 import org.junit.Test
+import kotlin.io.path.Path
 
 /**
- * Tests the inner workings of the [GeoLocation].
+ * Tests the inner workings of the [Attachment].
  *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 7.13.0
  */
-class GeoLocationTest {
+class AttachmentTest {
     /**
      * Ensures instantiation works.
      *
-     * This was a reproducing test for a bug where `accuracy` was `null` in the
-     * `ParcelableGeoLocation` `init`-block as the overwritten attributes where not yet initialized.
-     * We solved this by decoupling `ParcelableGeoLocation` from `GeoLocation`. [STAD-561]
+     * This was a reproducing test for a bug where `fileFormatVersion` was `0` in the
+     * `ParcelableAttachment` `init`-block as the overwritten attributes where not yet initialized.
+     * We solved this by decoupling `ParcelableAttachment` from `Attachment`. [STAD-561]
      */
     @Test
     fun test_happyPath() {
         // Arrange
 
         // Act
-        GeoLocation(
-            id = 0,
-            timestamp = 1740046993L,
-            lat = 51.0,
-            lon = 13.0,
-            altitude = 0.0,
-            speed = 1.0,
-            accuracy = 5.0,
-            verticalAccuracy = 2.0,
-            measurementId = 1L,
+        Attachment(
+            1000L,
+            AttachmentStatus.SAVED,
+            de.cyface.protos.model.File.FileType.CSV,
+            1,
+            1234L,
+            Path("./some/test/file.ext"),
+            null,
+            null,
+            999L,
+            1L,
         )
 
         // Assert

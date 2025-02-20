@@ -29,7 +29,11 @@ import org.junit.Test
  */
 class PressureTest {
     /**
-     * Ensures instantiation works. This reproduced an error "pressure=0.0" due to inheritance.
+     * Ensures instantiation works.
+     *
+     * This was a reproducing test for a bug where `pressure` was `0.0` in the `ParcelablePressure`
+     * `init`-block as the overwritten attributes where not yet initialized. We solved this by
+     * decoupling `ParcelablePressure` from `Pressure`. [STAD-561]
      */
     @Test
     fun test_happyPath() {
