@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -58,7 +58,7 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.7
+ * @version 1.0.8
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4::class)

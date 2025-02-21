@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Cyface GmbH
+ * Copyright 2019-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -30,7 +30,7 @@ import de.cyface.persistence.model.ParcelableGeoLocation
  * Must be `Parcelable` to be passed from the `DataCapturingService` via `Intent`.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.1.0
  * @since 4.1.0
  */
 interface LocationCleaningStrategy : Parcelable {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -54,7 +54,7 @@ import org.robolectric.shadows.ShadowNetworkInfo
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.1
+ * @version 2.2.0
  * @since 2.0.0
  */
 // FIXME: Try if we can get this test to work with >= Android 8. If not this is okay, too, as we

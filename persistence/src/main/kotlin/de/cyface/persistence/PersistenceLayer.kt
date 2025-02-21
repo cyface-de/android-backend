@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -44,7 +44,7 @@ import java.io.File
  * `DataCapturingLocalTest`.
  *
  * @author Armin Schnabel
- * @version 1.2.0
+ * @version 1.2.1
  * @since 7.5.0
  * @property context The [Context] required to locate the app's internal storage directory.
  * @property fileIOHandler The [FileIOHandler] used to interact with files.

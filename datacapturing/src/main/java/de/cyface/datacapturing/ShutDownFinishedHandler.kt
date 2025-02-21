@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Cyface GmbH
+ * Copyright 2021-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -36,7 +36,7 @@ import de.cyface.utils.Validate.notNull
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.3
+ * @version 3.0.4
  * @since 2.0.0
  * @see DataCapturingService.pause
  * @see DataCapturingService.stop

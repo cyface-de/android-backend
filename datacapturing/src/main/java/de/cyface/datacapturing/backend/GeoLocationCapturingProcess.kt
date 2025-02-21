@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -25,7 +25,7 @@ import android.location.Location
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 4.0.2
  * @since 1.0.0
  * @param locationCapture The [LocationCapture] which sets up location capturing.
  * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should

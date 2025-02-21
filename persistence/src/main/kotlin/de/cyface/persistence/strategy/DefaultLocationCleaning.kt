@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Cyface GmbH
+ * Copyright 2019-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -34,7 +34,7 @@ import kotlinx.coroutines.runBlocking
  * delivers an old, cached location at the beginning of the track.
  *
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.2.0
  * @since 4.1.0
  */
 class DefaultLocationCleaning : LocationCleaningStrategy {

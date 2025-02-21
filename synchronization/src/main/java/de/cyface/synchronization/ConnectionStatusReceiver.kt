@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Cyface GmbH
+ * Copyright 2021-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -33,7 +33,7 @@ import de.cyface.utils.Validate.notNull
  * to populate received broadcasts about synchronization events to registered [ConnectionStatusListener]s.
  *
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.5.0
  * @param context The [Context] to use to register this [BroadcastReceiver].
  */

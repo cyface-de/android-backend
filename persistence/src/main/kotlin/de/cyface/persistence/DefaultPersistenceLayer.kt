@@ -65,7 +65,7 @@ import kotlin.math.max
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 19.1.1
+ * @version 20.0.0
  * @since 2.0.0
  * @property persistenceBehaviour The [PersistenceBehaviour] defines how the `Persistence` layer works.
  * We need this behaviour to differentiate if the [DefaultPersistenceLayer] is used for live capturing

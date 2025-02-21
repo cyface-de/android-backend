@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -65,7 +65,7 @@ import java.nio.file.Paths
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.5.0
+ * @version 2.5.1
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4::class) // To notice errors with the short running testOnPerformSync before the large

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -36,7 +36,7 @@ import de.cyface.utils.Validate.notNull
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.4
+ * @version 2.0.5
  * @since 2.5.0
  */
 class IgnoreEventsStrategy : EventHandlingStrategy {

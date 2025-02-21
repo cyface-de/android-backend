@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -51,7 +51,7 @@ import kotlin.math.min
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.2.2
+ * @version 3.2.3
  * @since 1.0.0
  * @param locationCapture The [LocationCapture] which sets up the location capturing.
  * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should

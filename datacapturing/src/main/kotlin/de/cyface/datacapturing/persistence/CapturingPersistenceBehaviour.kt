@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Cyface GmbH
+ * Copyright 2021-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit
  * [Measurement]s.
  *
  * @author Armin Schnabel
- * @version 2.1.2
+ * @version 2.1.3
  * @since 3.0.0
  */
 class CapturingPersistenceBehaviour : PersistenceBehaviour {
