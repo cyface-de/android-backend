@@ -28,6 +28,7 @@ import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
+import de.cyface.datacapturing.backend.SensorCaptureEnabled
 import de.cyface.testutils.SharedTestUtils.cleanupOldAccounts
 import de.cyface.uploader.exception.SynchronisationException
 import de.cyface.utils.Validate
@@ -118,9 +119,14 @@ class MovebisTest {
         InstrumentationRegistry.getInstrumentation()
             .runOnMainSync {
                 oocut = MovebisDataCapturingService(
-                    context!!, TestUtils.AUTHORITY, TestUtils.ACCOUNT_TYPE,
+                    context!!,
+                    TestUtils.AUTHORITY,
+                    TestUtils.ACCOUNT_TYPE,
                     testUIListener!!,
-                    0L, IgnoreEventsStrategy(), testListener!!, 100
+                    0L,
+                    IgnoreEventsStrategy(),
+                    testListener!!,
+                    SensorCaptureEnabled(100),
                 )
             }
 

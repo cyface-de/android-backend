@@ -32,7 +32,6 @@ import de.cyface.persistence.model.Modality
 import de.cyface.persistence.serialization.LocationSerializer
 import de.cyface.persistence.serialization.TransferFileSerializer.getLocationCursor
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
-import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
@@ -105,6 +104,7 @@ class LocationSerializerTest {
         val locations = arrayListOf<GeoLocation>()
         for (i in 1.rangeTo(numberOfTestEntries)) {
             val location = GeoLocation(
+                0L,
                 i.toLong(),
                 min(i + 1.0, 90.0),
                 min(i + 2.0, 180.0),
@@ -127,12 +127,12 @@ class LocationSerializerTest {
             var startIndex = 0
             while (startIndex < count) {
                 cursor = getLocationCursor(
-                    persistence.locationDao!!,
+                    persistence.database!!,
                     measurementId!!,
                     startIndex,
                     AbstractCyfaceTable.DATABASE_QUERY_LIMIT,
                 )
-                if (cursor == null) throw CursorIsNullException()
+                // if (cursor == null) throw CursorIsNullException()
                 oocut!!.readFrom(cursor)
                 startIndex += AbstractCyfaceTable.DATABASE_QUERY_LIMIT
             }

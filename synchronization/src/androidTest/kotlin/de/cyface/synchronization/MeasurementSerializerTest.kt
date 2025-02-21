@@ -461,6 +461,7 @@ class MeasurementSerializerTest {
 
     private fun sampleLocation(measurementId: Long): GeoLocation {
         return GeoLocation(
+            0L,
             SAMPLE_LONG_VALUE,
             SAMPLE_DOUBLE_VALUE,
             SAMPLE_DOUBLE_VALUE,

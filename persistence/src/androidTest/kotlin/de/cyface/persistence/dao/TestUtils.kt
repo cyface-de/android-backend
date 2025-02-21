@@ -40,49 +40,58 @@ import kotlin.io.path.Path
  * @version 1.1.1
  * @since 7.5.0
  */
-class TestUtils {
+object TestUtils {
 
-    companion object {
-        /**
-         * Creates an in-memory database, i.e. the database is cleared when the process is killed.
-         */
-        fun createDatabase(): Database {
-            return Room.inMemoryDatabaseBuilder(
-                ApplicationProvider.getApplicationContext(),
-                Database::class.java
-            ).allowMainThreadQueries().build()
-        }
+    /**
+     * Creates an in-memory database, i.e. the database is cleared when the process is killed.
+     */
+    fun createDatabase(): Database {
+        return Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            Database::class.java
+        ).allowMainThreadQueries().build()
+    }
 
-        fun measurementFixture(status: MeasurementStatus = MeasurementStatus.OPEN): Measurement {
-            return Measurement(
-                status,
-                Modality.BICYCLE,
-                DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION,
-                0.0,
-                1000L,
-                0,
-            )
-        }
+    fun measurementFixture(status: MeasurementStatus = MeasurementStatus.OPEN): Measurement {
+        return Measurement(
+            status,
+            Modality.BICYCLE,
+            DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION,
+            0.0,
+            1000L,
+            0,
+        )
+    }
 
-        fun locationFixture(
-            measurementId: Long = 1L,
-            speed: Double = 1.01,
-            accuracy: Double = 5.0
-        ): GeoLocation {
-            return GeoLocation(0, 1000L, 13.0, 51.0, 400.0, speed, accuracy, 20.0, measurementId)
-        }
+    fun locationFixture(
+        measurementId: Long = 1L,
+        speed: Double = 1.01,
+        accuracy: Double = 5.0
+    ): GeoLocation {
+        return GeoLocation(0L, 1000L, 13.0, 51.0, 400.0, speed, accuracy, 20.0, measurementId)
+    }
 
-        fun pressureFixtures(measurementId: Long = 1L): Pressure {
-            return Pressure(0, 1000L, 1013.0, measurementId)
-        }
+    fun pressureFixtures(measurementId: Long = 1L): Pressure {
+        return Pressure(0L, 1000L, 1013.0, measurementId)
+    }
 
-        fun eventFixture(measurementId: Long, type: EventType = EventType.LIFECYCLE_START): Event {
-            return Event(1000L, type, null, measurementId)
-        }
+    fun eventFixture(measurementId: Long, type: EventType = EventType.LIFECYCLE_START): Event {
+        return Event(1000L, type, null, measurementId)
+    }
 
-        fun attachmentFixtures(measurementId: Long = 1L): Attachment {
-            return Attachment(1000L, AttachmentStatus.SAVED, de.cyface.protos.model.File.FileType.CSV, 1,
-                1234L, Path("./some/test/file.ext"), null, null, 999L, measurementId)
-        }
+    fun attachmentFixtures(measurementId: Long = 1L): Attachment {
+        return Attachment(
+            0L,
+            1000L,
+            AttachmentStatus.SAVED,
+            de.cyface.protos.model.File.FileType.CSV,
+            1,
+            1234L,
+            Path("./some/test/file.ext"),
+            null,
+            null,
+            999L,
+            measurementId,
+        )
     }
 }
