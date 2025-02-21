@@ -47,11 +47,12 @@ import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 
 /**
- * Tests that the sync adapter implemented by this component gets called. This test is not so much about transmitting
- * data, but focuses on whether the sync adapter was implemented correctly.
+ * Tests that the sync adapter implemented by this component gets called. This test is not so much
+ * about transmitting data, but focuses on whether the sync adapter was implemented correctly.
  *
- * Currently the test calls the actual data transmission code and thus depends on a running server instance. This makes
- * the test large and flaky. Future implementation will hopefully remove this dependency.
+ * Currently the test calls the actual data transmission code and thus depends on a running server
+ * instance. This makes the test large and flaky. Future implementation will hopefully remove this
+ * dependency.
  *
  * Currently, Wi-Fi must be activated for this test to run through.
  *
