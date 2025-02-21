@@ -115,7 +115,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
     var eventHandlingStrategy: EventHandlingStrategy? = null
 
     /**
-     * The strategy used to calculate the [Measurement.getDistance] from [ParcelableGeoLocation] pairs
+     * The strategy used to calculate the `Measurement.getDistance` from [ParcelableGeoLocation] pairs
      */
     var distanceCalculationStrategy: DistanceCalculationStrategy? = null
 
@@ -125,7 +125,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
     var locationCleaningStrategy: LocationCleaningStrategy? = null
 
     /**
-     * This [PersistenceBehaviour] is used to capture a [Measurement]s with when a
+     * This `PersistenceBehaviour` is used to capture a `Measurement`s with when a
      * [DefaultPersistenceLayer].
      */
     var capturingBehaviour: CapturingPersistenceBehaviour? = null
@@ -136,7 +136,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
     private var lastLocation: ParcelableGeoLocation? = null
 
     /**
-     * The [Measurement.getDistance] in meters until the last location update.
+     * The `Measurement.getDistance` in meters until the last location update.
      */
     private var lastDistance = 0.0
 
@@ -228,15 +228,11 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         Log.v(TAG, "onDestroy: Unregistering Ping receiver.")
         unregisterReceiver(pingReceiver)
         pingReceiver = null
-        if (wakeLock != null && wakeLock!!.isHeld) {
-            wakeLock!!.release()
+        if (wakeLock.isHeld) {
+            wakeLock.release()
         }
-        if (dataCapturing != null) {
-            dataCapturing!!.close()
-        }
-        if (persistenceLayer != null) {
-            persistenceLayer!!.shutdown()
-        }
+        dataCapturing.close()
+        persistenceLayer.shutdown()
 
         // OnDestroy is called before the messages below to make sure it's semantic is right (stopped)
         super.onDestroy()
@@ -260,10 +256,10 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
      * Sends an IPC message to interested parties that the service stopped itself.
      *
      *
-     * This method must be called when [.stopSelf] is called on this service without a prior intent
-     * from the [DataCapturingService]. It must be called e.g. from an
+     * This method must be called when [stopSelf] is called on this service without a prior intent
+     * from the `DataCapturingService`. It must be called e.g. from an
      * [EventHandlingStrategy.handleSpaceWarning] implementation
-     * to unbind the [DataCapturingBackgroundService] from the [DataCapturingService].
+     * to unbind the [DataCapturingBackgroundService] from the `DataCapturingService`.
      *
      *
      * Attention: This method is very rarely executed and so be careful when you change it's logic.
@@ -279,9 +275,9 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
     }
 
     /**
-     * We don't use [.startService] to pause or stop the service because we prefer to use a lock and
-     * finally in the [DataCapturingService]'s life-cycle methods instead. This also avoids headaches with
-     * replacing the return statement from [.stopService] by the return by `#startService()`.
+     * We don't use [startService] to pause or stop the service because we prefer to use a lock and
+     * finally in the `DataCapturingService`'s life-cycle methods instead. This also avoids headaches with
+     * replacing the return statement from [stopService] by the return by `#startService()`.
      *
      * For the remaining documentation see the overwritten `#onStartCommand(Intent, int, int)`
      */
@@ -399,7 +395,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
             msg.data = dataBundle
         }
 
-        Log.v(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size))
+        Log.v(TAG, "Sending message $messageCode to ${clients.size} callers.")
         val temporaryCallerSet: Set<Messenger> = HashSet(clients)
         for (caller in temporaryCallerSet) {
             try {
@@ -472,8 +468,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
     /**
      * Extracts a subset of maximal `MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE` elements of captured data.
      *
-     *
-     * TODO: Copy of [.sampleSubList] until [DataPoint] merges with [DataPoint].
+     * TODO: Copy of [sampleSubList] until `DataPoint` merges with [DataPoint].
      *
      * @param completeList The [<] to extract a subset from
      * @param fromIndex The low endpoint (inclusive) of the subList
@@ -568,7 +563,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         private val context = WeakReference(context)
 
         override fun handleMessage(msg: Message) {
-            Log.v(TAG, String.format("Service received message %s", msg.what))
+            Log.v(TAG, "Service received message ${msg.what}")
 
             val service = context.get()
 
@@ -593,14 +588,14 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         private const val TAG = Constants.BACKGROUND_TAG
 
         /**
-         * The maximum size of captured data transmitted to clients of this service in one call. If there are more captured
-         * points they are split into multiple messages.
+         * The maximum size of captured data transmitted to clients of this service in one call.
+         * If there are more captured points they are split into multiple messages.
          */
         const val MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE: Int = 800
 
         /**
-         * The Cyface notification identifier used to display system notification while the service is running. This needs
-         * to be unique for the whole app, so we chose a very unlikely one.
+         * The Cyface notification identifier used to display system notification while the service
+         * is running. This needs to be unique for the whole app, so we chose a very unlikely one.
          *
          * This is also the registration number of the starship Voyager.
          */
