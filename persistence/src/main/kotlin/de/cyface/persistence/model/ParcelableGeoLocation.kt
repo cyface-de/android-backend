@@ -144,15 +144,16 @@ open class ParcelableGeoLocation(
         super.writeToParcel(dest, flags)
         dest.writeDouble(lat)
         dest.writeDouble(lon)
-        dest.writeSerializable(altitude) // to support `null` as value [STAD-496]
+        dest.writeValue(altitude) // to support `null` as value [STAD-496]
         dest.writeDouble(speed)
-        dest.writeSerializable(accuracy) // to support `null` as value [STAD-496]
-        dest.writeSerializable(verticalAccuracy) // to support `null` as value [STAD-496]
+        dest.writeValue(accuracy) // to support `null` as value [STAD-496]
+        dest.writeValue(verticalAccuracy) // to support `null` as value [STAD-496]
         dest.writeByte((if (isValid) 1 else 0).toByte())
     }
 
     override fun toString(): String {
-        return "ParcelableGeoLocation(lat=$lat, lon=$lon, altitude=$altitude, speed=$speed, accuracy=$accuracy, verticalAccuracy=$verticalAccuracy, isValid=$isValid)"
+        return "ParcelableGeoLocation(lat=$lat, lon=$lon, altitude=$altitude, speed=$speed, " +
+                "accuracy=$accuracy, verticalAccuracy=$verticalAccuracy, isValid=$isValid)"
     }
 
     override fun equals(other: Any?): Boolean {
