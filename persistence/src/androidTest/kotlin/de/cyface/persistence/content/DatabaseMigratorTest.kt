@@ -38,8 +38,6 @@ import de.cyface.persistence.Database
 import de.cyface.persistence.DatabaseMigrator
 import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.testutils.SharedTestUtils
-import de.cyface.utils.Validate
-import de.cyface.utils.ValidationException
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.hamcrest.Matchers
@@ -109,7 +107,7 @@ class DatabaseMigratorTest {
      * This test ensures that the migration code fails in case the secondary database `v6` is not still
      * in version `1` at the time the migration code is executed.
      */
-    @Test(expected = ValidationException::class)
+    @Test(expected = RuntimeException::class)
     fun testMigrationV17ToV18_withUnsupportedV6DatabaseVersion_fails() {
         // Arrange
         // Generate first bytes of a database file which contains a version > 1 at byte 60...64
@@ -159,7 +157,10 @@ class DatabaseMigratorTest {
             // Create main database
             @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
             var db = helper.createDatabase(TEST_DB_NAME, 17).apply {
-                this.execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'61e112e1-548e-4a90-be28-9d5b31d6875b')")
+                this.execSQL(
+                    "INSERT INTO identifiers (_id,device_id) " +
+                            "VALUES (1,'61e112e1-548e-4a90-be28-9d5b31d6875b')"
+                )
                 // The measurement `43L` has no `v6` data as it was "captured with SDK < 6.3/7.4"
                 addDatabaseV17Measurement(this, 43L, 1, 5.0)
                 // `measures.locations.accuracy = 0.0` is expected to be set to `null`
@@ -366,8 +367,14 @@ class DatabaseMigratorTest {
      * @param db The database to create the tables in.
      */
     private fun createV6Tables(db: SQLiteDatabase) {
-        db.execSQL("CREATE TABLE IF NOT EXISTS `Pressure` (`pressure` REAL NOT NULL, `measurement_fk` INTEGER NOT NULL, `uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL)")
-        db.execSQL("CREATE TABLE IF NOT EXISTS `Location` (`lat` REAL NOT NULL, `lon` REAL NOT NULL, `altitude` REAL, `speed` REAL NOT NULL, `accuracy` REAL NOT NULL, `vertical_accuracy` REAL, `measurement_fk` INTEGER NOT NULL, `uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL)")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `Pressure` " +
+                    "(`pressure` REAL NOT NULL, `measurement_fk` INTEGER NOT NULL, " +
+                    "`uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS `Location` " +
+                "(`lat` REAL NOT NULL, `lon` REAL NOT NULL, `altitude` REAL, `speed` REAL NOT NULL, " +
+                "`accuracy` REAL NOT NULL, `vertical_accuracy` REAL, `measurement_fk` INTEGER NOT NULL, " +
+                "`uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL)")
     }
 
     /**
@@ -537,7 +544,7 @@ class DatabaseMigratorTest {
     }
 
     private fun checkV18MeasurementTable(db: SupportSQLiteDatabase, measurements: Int) {
-        Validate.isTrue(measurements > 0)
+        require(measurements > 0)
         db.query(
             SupportSQLiteQueryBuilder.builder("Measurement").create()
         ).use { cursor ->
@@ -1062,7 +1069,7 @@ class DatabaseMigratorTest {
             db.version = version
             return db
         } catch (e: RuntimeException) {
-            throw java.lang.IllegalStateException("Unable to open database at ${file.path}")
+            throw IllegalStateException("Unable to open database at ${file.path}", e)
         }
     }
 
@@ -1091,8 +1098,12 @@ class DatabaseMigratorTest {
             val speed = 1.01
             val verticalAccuracy = 20.0
             db.execSQL(
-                ("INSERT INTO Location (uid,lat,lon,altitude,speed,accuracy,vertical_accuracy,measurement_fk,timestamp) "
-                        + "VALUES ($id,51.05210394,13.72873203,400.0,$speed,$accuracyInCm,$verticalAccuracy,$measurementId,$timestamp)")
+                (
+                    "INSERT INTO Location (uid,lat,lon,altitude,speed,accuracy,vertical_accuracy," +
+                            "measurement_fk,timestamp) "
+                    + "VALUES ($id,51.05210394,13.72873203,400.0,$speed,$accuracyInCm," +
+                            "$verticalAccuracy,$measurementId,$timestamp)"
+                )
             )
         }
         // Insert Pressure
@@ -1152,15 +1163,20 @@ class DatabaseMigratorTest {
 
         // Insert sample MeasurementTable entries - execSQL only supports one insert per commend
         db.execSQL(
-            ("INSERT INTO measurements (_id,status,vehicle,accelerations,rotations,directions,file_format_version,distance) VALUES "
-                    + " (" + measurementId + ",'FINISHED','BICYCLE',690481,690336,166370,1,5396.62473698979);")
+            (
+                "INSERT INTO measurements (_id,status,vehicle,accelerations,rotations,directions," +
+                        "file_format_version,distance) VALUES "
+                    + " (" + measurementId + ",'FINISHED','BICYCLE',690481,690336,166370,1,5396.62473698979);"
+            )
         )
         // Insert sample GeoLocationsTable entries - execSQL only supports one insert per commend
         for (i in 0 until locations) {
             db.execSQL(
-                ("INSERT INTO locations (_id,gps_time,lat,lon,speed,accuracy,measurement_fk) VALUES "
-                        + " (" + (1 + i) + "," + (1551431485000L + i) + ",51.05210394,13.72873203,0.0,1179," + measurementId
-                        + ");")
+                (
+                    "INSERT INTO locations (_id,gps_time,lat,lon,speed,accuracy,measurement_fk) VALUES "
+                    + " (" + (1 + i) + "," + (1551431485000L + i) + ",51.05210394,13.72873203,0.0,1179,"
+                            + measurementId + ");"
+                )
             )
         }
     }
@@ -1172,14 +1188,30 @@ class DatabaseMigratorTest {
         // Insert identifier entry
         db.execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'61e112e1-548e-4a90-be28-9d5b31d6875b')")
         // Exported from the end of the migrate8To12 test
-        db.execSQL("INSERT INTO \"measurements\" (\"_id\",\"status\",\"vehicle\",\"accelerations\",\"rotations\",\"directions\",\"file_format_version\",\"distance\") VALUES (42,'SYNCED','BICYCLE',0,0,0,1,0.0)")
-        db.execSQL("INSERT INTO \"measurements\" (\"_id\",\"status\",\"vehicle\",\"accelerations\",\"rotations\",\"directions\",\"file_format_version\",\"distance\") VALUES (43,'FINISHED','BICYCLE',0,0,0,1,5.09262943267822)")
-        db.execSQL("INSERT INTO \"measurements\" (\"_id\",\"status\",\"vehicle\",\"accelerations\",\"rotations\",\"directions\",\"file_format_version\",\"distance\") VALUES (44,'OPEN','BICYCLE',0,0,0,1,0.0)")
-        db.execSQL("INSERT INTO \"locations\" (\"_id\",\"gps_time\",\"lat\",\"lon\",\"speed\",\"accuracy\",\"measurement_fk\") VALUES (1,1551431421000,51.05,13.72,0.0,1000,42)")
-        db.execSQL("INSERT INTO \"locations\" (\"_id\",\"gps_time\",\"lat\",\"lon\",\"speed\",\"accuracy\",\"measurement_fk\") VALUES (11,1000000000,51.1,13.1,38.015017922507,7.22285340527633,43)")
-        db.execSQL("INSERT INTO \"locations\" (\"_id\",\"gps_time\",\"lat\",\"lon\",\"speed\",\"accuracy\",\"measurement_fk\") VALUES (12,1000000000,51.1000179864,13.1000000541394,17.7258170071012,3.36790523134923,43)")
-        db.execSQL("INSERT INTO \"locations\" (\"_id\",\"gps_time\",\"lat\",\"lon\",\"speed\",\"accuracy\",\"measurement_fk\") VALUES (13,1000000000,51.100044966,13.1000001353485,71.273771897256,13.5420166604786,43)")
-        db.execSQL("INSERT INTO \"locations\" (\"_id\",\"gps_time\",\"lat\",\"lon\",\"speed\",\"accuracy\",\"measurement_fk\") VALUES (20,1551431441000,51.05,13.728,0.0,1200,44)")
+        db.execSQL(
+            "INSERT INTO \"measurements\" (\"_id\",\"status\",\"vehicle\",\"accelerations\"," +
+                    "\"rotations\",\"directions\",\"file_format_version\",\"distance\") " +
+                    "VALUES (42,'SYNCED','BICYCLE',0,0,0,1,0.0)")
+        db.execSQL(
+            "INSERT INTO \"measurements\" (\"_id\",\"status\",\"vehicle\",\"accelerations\"," +
+                    "\"rotations\",\"directions\",\"file_format_version\",\"distance\") " +
+                    "VALUES (43,'FINISHED','BICYCLE',0,0,0,1,5.09262943267822)")
+        db.execSQL(
+            "INSERT INTO \"measurements\" (\"_id\",\"status\",\"vehicle\",\"accelerations\"," +
+                    "\"rotations\",\"directions\",\"file_format_version\",\"distance\") " +
+                    "VALUES (44,'OPEN','BICYCLE',0,0,0,1,0.0)")
+        db.execSQL("INSERT INTO \"locations\" (\"_id\",\"gps_time\",\"lat\",\"lon\"," +
+                "\"speed\",\"accuracy\",\"measurement_fk\") VALUES (1,1551431421000,51.05,13.72,0.0,1000,42)")
+        db.execSQL("INSERT INTO \"locations\" (\"_id\",\"gps_time\",\"lat\",\"lon\",\"speed\"," +
+                "\"accuracy\",\"measurement_fk\") VALUES (11,1000000000,51.1,13.1,38.015017922507,7.22285340527633,43)")
+        db.execSQL("INSERT INTO \"locations\" (\"_id\",\"gps_time\",\"lat\",\"lon\",\"speed\"," +
+                "\"accuracy\",\"measurement_fk\") VALUES (12,1000000000,51.1000179864,13.1000000541394," +
+                "17.7258170071012,3.36790523134923,43)")
+        db.execSQL("INSERT INTO \"locations\" (\"_id\",\"gps_time\",\"lat\",\"lon\",\"speed\"," +
+                "\"accuracy\",\"measurement_fk\") VALUES (13,1000000000,51.100044966,13.1000001353485," +
+                "71.273771897256,13.5420166604786,43)")
+        db.execSQL("INSERT INTO \"locations\" (\"_id\",\"gps_time\",\"lat\",\"lon\",\"speed\"," +
+                "\"accuracy\",\"measurement_fk\") VALUES (20,1551431441000,51.05,13.728,0.0,1200,44)")
     }
 
     private fun insertV8TestData(

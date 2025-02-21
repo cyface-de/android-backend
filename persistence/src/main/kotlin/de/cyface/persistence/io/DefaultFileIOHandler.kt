@@ -21,7 +21,6 @@ package de.cyface.persistence.io
 import android.content.Context
 import android.util.Log
 import de.cyface.persistence.Constants.TAG
-import de.cyface.utils.Validate
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.DataInputStream
@@ -75,7 +74,7 @@ class DefaultFileIOHandler : FileIOHandler {
     }
 
     override fun loadBytes(file: File?): ByteArray {
-        Validate.isTrue(file!!.exists())
+        require(file!!.exists())
         val bytes = ByteArray(file.length().toInt())
         try {
             BufferedInputStream(FileInputStream(file)).use { bufferedInputStream ->
@@ -90,7 +89,7 @@ class DefaultFileIOHandler : FileIOHandler {
                 return bytes
             }
         } catch (e: IOException) {
-            throw IllegalStateException("Failed to read file.")
+            throw IllegalStateException("Failed to read file.", e)
         }
     }
 
@@ -126,13 +125,13 @@ class DefaultFileIOHandler : FileIOHandler {
                 throw IOException("Failed to createFile: " + file.path)
             }
         } catch (e: IOException) {
-            throw IllegalStateException("Failed createFile: " + file.path)
+            throw IllegalStateException("Failed createFile: " + file.path, e)
         }
         return file
     }
 
     override fun write(file: File?, data: ByteArray?, append: Boolean) {
-        Validate.isTrue(file!!.exists(), "Failed to write to file as it does not exist: " + file.path)
+        require(file!!.exists()) { "Failed to write to file as it does not exist: " + file.path }
         try {
             BufferedOutputStream(
                 FileOutputStream(file, append)
@@ -141,7 +140,7 @@ class DefaultFileIOHandler : FileIOHandler {
             }
         } catch (e: IOException) {
             // TODO [MOV-566]: Soft catch the no space left scenario
-            throw IllegalStateException("Failed to append data to file. Is there space left on the device?")
+            throw IllegalStateException("Failed to append data to file. Is there space left on the device?", e)
         }
     }
 }

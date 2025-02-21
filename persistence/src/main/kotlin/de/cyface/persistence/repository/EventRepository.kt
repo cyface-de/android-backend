@@ -20,7 +20,8 @@ package de.cyface.persistence.repository
 
 import android.database.Cursor
 import androidx.annotation.WorkerThread
-import androidx.room.Query
+import androidx.sqlite.db.SimpleSQLiteQuery
+import de.cyface.persistence.Database
 import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.EventTable
 import de.cyface.persistence.dao.EventDao
@@ -73,17 +74,34 @@ class EventRepository(private val dao: EventDao) {
     }
 
     /**
-     * Returns a [Cursor] which points to a specific page defined by [limit] and [offset] of all events
-     * of a measurement with a specified the [measurementId].
+     * Returns a `Cursor` which points to a specific page defined by [limit] and [offset] of all
+     * events of a measurement with a specified the [measurementId].
      *
-     * This way we can reuse the code in `SyncAdapter` > `TransferFileSerializer` which queries and serializes
-     * only 10_000 entries at a time which fixed performance issues with large measurements.
+     * This way we can reuse the code in `SyncAdapter` > `TransferFileSerializer` which queries and
+     * serializes only 10_000 entries at a time which fixed performance issues with large
+     * measurements. This could be replaced by room-paging, but it's not straight forward.
      *
      * The events are ordered by timestamp.
      */
     @WorkerThread
-    suspend fun selectAllByMeasurementId(measurementId: Long, offset: Int, limit: Int): Cursor? {
-        return dao.selectAllByMeasurementId(measurementId, offset, limit)
+    fun selectAllByMeasurementId(
+        database: Database,
+        measurementId: Long,
+        offset: Int,
+        limit: Int
+    ): Cursor {
+        val query = SimpleSQLiteQuery(
+            "SELECT * FROM ${EventTable.URI_PATH} " +
+                    "WHERE ${BaseColumns.MEASUREMENT_ID} = ? " +
+                    "ORDER BY ${BaseColumns.TIMESTAMP} ASC " +
+                    "LIMIT ? " +
+                    "OFFSET ?",
+            arrayOf(measurementId, limit, offset)
+        )
+        // Executing `Cursor` based query directly on the `database` without `dao` layer as Room
+        // does not support `Cursor` return types with `KSP` properly.
+        // This way we are not be forced to change the currently working code.
+        return database.query(query)
     }
 
     /**

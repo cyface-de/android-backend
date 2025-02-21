@@ -24,7 +24,7 @@ import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.ParcelableGeoLocation
 
 /**
- * Interface for strategies to filter ("clean") [ParcelableGeoLocation]s captured by
+ * Interface for strategies to filter ("clean") [GeoLocation]s captured by
  * `DataCapturingBackgroundService#onLocationCaptured()` events.
  *
  * Must be `Parcelable` to be passed from the `DataCapturingService` via `Intent`.
@@ -35,16 +35,24 @@ import de.cyface.persistence.model.ParcelableGeoLocation
  */
 interface LocationCleaningStrategy : Parcelable {
     /**
+     * Implements a strategy to filter [GeoLocation]s.
+     *
+     * @param location The [GeoLocation] to be checked
+     * @return `true` if the [GeoLocation] is considered "clean" by this strategy.
+     */
+    fun isClean(location: GeoLocation?): Boolean
+
+    /**
      * Implements a strategy to filter [ParcelableGeoLocation]s.
      *
-     * @param location The `GeoLocation` to be checked
-     * @return `True` if the `GeoLocation` is considered "clean" by this strategy.
+     * @param location The [ParcelableGeoLocation] to be checked
+     * @return `true` if the [ParcelableGeoLocation] is considered "clean" by this strategy.
      */
     fun isClean(location: ParcelableGeoLocation?): Boolean
 
     /**
-     * Implements the SQL-equivalent to load only the "cleaned" [GeoLocation]s with the same filters as
-     * in the [.isClean] implementation.
+     * Implements the SQL-equivalent to load only the "cleaned" [GeoLocation]s with the same
+     * filters as in the [isClean] implementation.
      *
      * **Attention: The caller needs to wrap this method call with a try-finally block to ensure the returned
      * `Cursor` is always closed after use. The cursor cannot be closed within this implementation as it's

@@ -24,18 +24,24 @@
 plugins {
     id 'com.android.library'
     id 'kotlin-android'
-    id 'kotlin-kapt'
+    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Upgrade together with `kotlin_version`
+    id 'androidx.room'
 }
 
 android {
     namespace "de.cyface.testutils"
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    compileSdk = rootProject.ext.compileSdkVersion
 
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionName rootProject.ext.cyfaceAndroidBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+    }
+
+    room {
+        // Write Room database schema to file to record database schema changes in version control
+        schemaDirectory("$projectDir/schemas")
     }
 
     buildTypes {
@@ -70,7 +76,7 @@ dependencies {
     // `Room` API used to access the database
     // Further room libraries and Kotlin support see Room guide.
     implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
-    kapt "androidx.room:room-compiler:$rootProject.ext.roomVersion"
+    ksp "androidx.room:room-compiler:$rootProject.ext.roomVersion"
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"

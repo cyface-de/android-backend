@@ -20,6 +20,7 @@ package de.cyface.synchronization
 
 import android.accounts.Account
 import android.accounts.AccountManager
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.ContentProviderClient
 import android.content.ContentResolver
@@ -48,7 +49,6 @@ import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import de.cyface.testutils.SharedTestUtils.insertGeoLocation
 import de.cyface.testutils.SharedTestUtils.insertMeasurementEntry
 import de.cyface.testutils.SharedTestUtils.insertPoint3D
-import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
@@ -59,7 +59,7 @@ import org.junit.runner.RunWith
 import java.util.LinkedList
 
 /**
- * Tests if the upload progress is broadcasted as expected.
+ * Tests if the upload progress is broadcast as expected.
  *
  * This test does not run against an actual API, but uses [MockedUploader].
  *
@@ -106,7 +106,7 @@ class UploadProgressTest {
         if (oldAccounts.isNotEmpty()) {
             for (oldAccount in oldAccounts) {
                 ContentResolver.removePeriodicSync(oldAccount, TestUtils.AUTHORITY, Bundle.EMPTY)
-                Validate.isTrue(accountManager!!.removeAccountExplicitly(oldAccount))
+                require(accountManager!!.removeAccountExplicitly(oldAccount))
             }
         }
         contentResolver = null
@@ -123,11 +123,14 @@ class UploadProgressTest {
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED)
         filter.addAction(CyfaceConnectionStatusListener.SYNC_PROGRESS)
         filter.addAction(CyfaceConnectionStatusListener.SYNC_STARTED)
+
+        @SuppressLint("UnspecifiedRegisterReceiverFlag")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context!!.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
         } else {
             context!!.registerReceiver(receiver, filter)
         }
+
         var client: ContentProviderClient? = null
         try {
             val (measurementIdentifier) = insertMeasurementEntry(
@@ -165,10 +168,10 @@ class UploadProgressTest {
             persistenceLayer!!.setStatus(measurementIdentifier, MeasurementStatus.FINISHED, false)
             client = contentResolver!!.acquireContentProviderClient(getUri(TestUtils.AUTHORITY))
             val result = SyncResult()
-            Validate.notNull(client)
+            requireNotNull(client)
             val testBundle = Bundle()
             testBundle.putString(SyncAdapter.MOCK_IS_CONNECTED_TO_RETURN_TRUE, "")
-            oocut!!.onPerformSync(account!!, testBundle, TestUtils.AUTHORITY, client!!, result)
+            oocut!!.onPerformSync(account!!, testBundle, TestUtils.AUTHORITY, client, result)
         } finally {
             client?.close()
             context!!.unregisterReceiver(receiver)
@@ -189,18 +192,22 @@ class UploadProgressTest {
 internal class TestReceiver : BroadcastReceiver() {
     private val collectedPercentages: MutableList<Float> = LinkedList()
     override fun onReceive(context: Context, intent: Intent) {
-        Validate.notNull(intent)
-        Validate.notNull(intent.action)
-        if (intent.action == CyfaceConnectionStatusListener.SYNC_FINISHED) {
-            Log.d(TestUtils.TAG, "SYNC FINISHED")
-        } else if (intent.action == CyfaceConnectionStatusListener.SYNC_PROGRESS) {
-            val percentage = intent.getFloatExtra(BundlesExtrasCodes.SYNC_PERCENTAGE_ID, -1.0f)
-            collectedPercentages.add(percentage)
-            Log.d(TestUtils.TAG, "SYNC PROGRESS: $percentage % ")
-        } else if (intent.action == CyfaceConnectionStatusListener.SYNC_STARTED) {
-            Log.d(TestUtils.TAG, "SYNC STARTED")
-        } else {
-            throw IllegalStateException(String.format("Invalid message %s", intent.action))
+        requireNotNull(intent.action)
+        when (intent.action) {
+            CyfaceConnectionStatusListener.SYNC_FINISHED -> {
+                Log.d(TestUtils.TAG, "SYNC FINISHED")
+            }
+            CyfaceConnectionStatusListener.SYNC_PROGRESS -> {
+                val percentage = intent.getFloatExtra(BundlesExtrasCodes.SYNC_PERCENTAGE_ID, -1.0f)
+                collectedPercentages.add(percentage)
+                Log.d(TestUtils.TAG, "SYNC PROGRESS: $percentage % ")
+            }
+            CyfaceConnectionStatusListener.SYNC_STARTED -> {
+                Log.d(TestUtils.TAG, "SYNC STARTED")
+            }
+            else -> {
+                error("Invalid message ${intent.action}")
+            }
         }
     }
 

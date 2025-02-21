@@ -34,144 +34,82 @@ import java.nio.file.Paths
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 7.10.0
+ * @param timestamp The timestamp at which this data point was captured in milliseconds since 1.1.1970.
+ * @param status The status of the [Attachment]. The status allows us to persist which
+ * [Attachment]s of a [MeasurementTable] entry are already `synced` with the server.
+ * @param type The type of the file, e.g. JPG (compressed image).
+ * @param fileFormatVersion The file format version of this data point, e.g. 1. This version allows
+ * us to change the way we store a file type (e.g. JPG) over time. One example for this is when we
+ * change the JPG Exif header inside the file.
+ * @param size The size of the file represented by this data point in bytes. This way we can
+ * calculate the total size of the measurement without accessing all files. An example usage for
+ * this is to calculate the upload progress when we deleted some files which where already
+ * uploaded. Another example is to skip measurement which are too big.
+ * @param path The path to the file represented by this data point.
+ * The path is by default relative to the app-specific external storage directory defined
+ * by Android: https://developer.android.com/training/data-storage/app-specific
+ * To also support the possibility of storing files in another place, the format of the
+ * paths allows to separate relative paths from absolute paths:
+ * - relative: `./subFolder/file.extension`
+ * - absolute: `/rootFolder/subFolder/file.extension`
+ * @param lat The latitude of the last known location, e.g. 51.123, or null if unknown. It allows
+ * to show the captured images on a map, e.g. to delete images before uploading.
+ * @param lon The longitude of the last known location, e.g. 13.123, or null if unknown. It allows
+ * to show the captured images on a map, e.g. to delete images before uploading.
+ * @param locationTimestamp The timestamp of the last known location, or null if unknown. It allows
+ * to identify when the last known location was recorded too long ago. Additionally, it's the link
+ * to the location data, e.g. to get additional data like the accuracy.
  */
-open class ParcelableAttachment : DataPoint {
-    /**
-     * The status of the [Attachment].
-     *
-     * The status allows us to persist which [Attachment]s of a [MeasurementTable] entry are already
-     * `synced` with the server.
-     */
-    open val status: AttachmentStatus
-
-    /**
-     * The type of the file, e.g. JPG (compressed image).
-     */
-    open val type: FileType
-
-    /**
-     * The file format version of this data point, e.g. 1.
-     *
-     * This version allows us to change the way we store a file type (e.g. JPG) over time.
-     * One example for this is when we change the JPG Exif header inside the file.
-     */
-    open val fileFormatVersion: Short
-
-    /**
-     * The size of the file represented by this data point in bytes.
-     *
-     * This way we can calculate the total size of the measurement without accessing all files.
-     * An example usage for this is to calculate the upload progress when we deleted some files
-     * which where already uploaded. Another example is to skip measurement which are too big.
-     */
-    open val size: Long
-
-    /**
-     * The path to the file represented by this data point.
-     *
-     * The path is by default relative to the app-specific external storage directory defined
-     * by Android: https://developer.android.com/training/data-storage/app-specific
-     *
-     * To also support the possibility of storing files in another place, the format of the
-     * paths allows to separate relative paths from absolute paths:
-     * - relative: `./subFolder/file.extension`
-     * - absolute: `/rootFolder/subFolder/file.extension`
-     */
-    open val path: Path
-
-    /**
-     * The latitude of the last known location, e.g. 51.123, or null if unknown.
-     *
-     * It allows to show the captured images on a map, e.g. to delete images before uploading.
-     */
-    open val lat: Double?
-
-    /**
-     * The longitude of the last known location, e.g. 13.123, or null if unknown.
-     *
-     * It allows to show the captured images on a map, e.g. to delete images before uploading.
-     */
-    open val lon: Double?
-
-    /**
-     * Column name for the column storing the Unix timestamp in milliseconds of the last known location,
-     * or null if unknown.
-     *
-     * It allows to identify when the last known location was recorded too long ago. Additionally, it's the
-     * link to the location data, e.g. to get additional data like the accuracy.
-     */
+open class ParcelableAttachment(
+    timestamp: Long,
+    open val status: AttachmentStatus,
+    open val type: FileType,
+    open val fileFormatVersion: Short,
+    open val size: Long,
+    open val path: Path,
+    open val lat: Double?,
+    open val lon: Double?,
     open val locationTimestamp: Long?
-
-    /**
-     * Creates a new completely initialized instance of this class.
-     *
-     * @param timestamp The timestamp at which this data point was captured in milliseconds since 1.1.1970.
-     * @param status The status of the [Attachment].
-     * @param type The type of the file, e.g. JPG (compressed image).
-     * @param fileFormatVersion The file format version of this data point, e.g. 1.
-     * @param size The size of the file represented by this data point in bytes.
-     * @param path The path to the file represented by this data point.
-     * The path is by default relative to the app-specific external storage directory defined
-     * by Android: https://developer.android.com/training/data-storage/app-specific
-     * @param lat The latitude of the last known location, e.g. 51.123, or null if unknown.
-     * @param lon The longitude of the last known location, e.g. 13.123, or null if unknown.
-     * @param locationTimestamp The timestamp of the last known location, or null if unknown.
-     */
-    constructor(
-        timestamp: Long,
-        status: AttachmentStatus,
-        type: FileType,
-        fileFormatVersion: Short,
-        size: Long,
-        path: Path,
-        lat: Double?,
-        lon: Double?,
-        locationTimestamp: Long?
-    ) : super(timestamp) {
+) : DataPoint(timestamp) {
+    init {
         require(timestamp >= 0L) { "Illegal argument: timestamp was less than 0L!" }
         require(type != FileType.FILE_TYPE_UNSPECIFIED) { "Unsupported type $type." }
         require(fileFormatVersion >= 1) { "Unsupported format version $fileFormatVersion" }
         require(size >= 0) { "Unsupported size: $size bytes" }
         if (lat != null) {
-            require(!(lat < -90.0 || lat > 90.0)) {
+            require(!(lat!! < -90.0 || lat!! > 90.0)) {
                 "Illegal value for latitude. Is required to be between -90.0 and 90.0 but was $lat."
             }
         }
         if (lon != null) {
-            require(!(lon < -180.0 || lon > 180.0)) {
+            require(!(lon!! < -180.0 || lon!! > 180.0)) {
                 "Illegal value for longitude. Is required to be between -180.0 and 180.0 but was $lon."
             }
         }
         if (locationTimestamp != null) {
-            require(locationTimestamp >= 0L) { "Illegal argument: locationTimestamp was less than 0L!" }
+            require(locationTimestamp!! >= 0L) { "Illegal argument: locationTimestamp was less than 0L!" }
         }
-        this.status = status
-        this.type = type
-        this.fileFormatVersion = fileFormatVersion
-        this.size = size
-        this.path = path
-        this.lat = lat
-        this.lon = lon
-        this.locationTimestamp = locationTimestamp
     }
     /*
      * MARK: Parcelable Interface
      */
+
     /**
      * Constructor as required by `Parcelable` implementation.
      *
      * @param in A `Parcel` that is a serialized version of a data point.
      */
-    protected constructor(`in`: Parcel) : super(`in`) {
-        status = AttachmentStatus.valueOf(`in`.readString()!!)
-        type = FileType.valueOf(`in`.readString()!!)
-        fileFormatVersion = `in`.readInt().toShort()
-        size = `in`.readLong()
-        path = Paths.get(`in`.readString()) // supported < API 26 with NIO enabled desugaring
-        lat = `in`.readValue(Double::class.java.classLoader) as? Double
-        lon = `in`.readValue(Double::class.java.classLoader) as? Double
-        locationTimestamp = `in`.readValue(Long::class.java.classLoader) as? Long
-    }
+    protected constructor(`in`: Parcel) : this(
+        `in`.readLong(),
+        AttachmentStatus.valueOf(`in`.readString()!!),
+        FileType.valueOf(`in`.readString()!!),
+        `in`.readInt().toShort(),
+        `in`.readLong(),
+        Paths.get(`in`.readString()), // supported < API 26 with NIO enabled desugaring
+        `in`.readValue(Double::class.java.classLoader) as? Double,
+        `in`.readValue(Double::class.java.classLoader) as? Double,
+        `in`.readValue(Long::class.java.classLoader) as? Long,
+    )
 
     override fun describeContents(): Int {
         return 0

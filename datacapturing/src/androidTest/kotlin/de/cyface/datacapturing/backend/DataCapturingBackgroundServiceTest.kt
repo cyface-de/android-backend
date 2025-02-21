@@ -163,7 +163,7 @@ class DataCapturingBackgroundServiceTest {
             BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID,
             DefaultLocationCleaning()
         )
-        startIntent.putExtra(BundlesExtrasCodes.SENSOR_FREQUENCY, 100)
+        startIntent.putExtra(BundlesExtrasCodes.SENSOR_CAPTURE, SensorCaptureEnabled(100))
         val bindIntent = Intent(context, DataCapturingBackgroundService::class.java)
         serviceTestRule.startService(startIntent)
         // bindService() waits for ServiceConnection.onServiceConnected() to be called before returning
@@ -213,7 +213,7 @@ class DataCapturingBackgroundServiceTest {
             BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID,
             DefaultLocationCleaning()
         )
-        startIntent.putExtra(BundlesExtrasCodes.SENSOR_FREQUENCY, 100)
+        startIntent.putExtra(BundlesExtrasCodes.SENSOR_CAPTURE, SensorCaptureEnabled(100))
         val bindIntent = Intent(context, DataCapturingBackgroundService::class.java)
         serviceTestRule.startService(startIntent)
         serviceTestRule.bindService(bindIntent)

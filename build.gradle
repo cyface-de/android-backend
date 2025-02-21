@@ -25,7 +25,8 @@
 
 buildscript {
     ext.gradle_version = "8.2.2"
-    ext.kotlin_version = "1.9.22"
+    ext.kotlin_version = "2.0.21" // Upgrade together with `com.google.devtools.ksp`
+    ext.room_version = "2.6.1" // Keep in Sync with version in `plugins` section below
 
     repositories {
         google()
@@ -35,12 +36,19 @@ buildscript {
     dependencies {
         classpath "com.android.tools.build:gradle:$gradle_version"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "androidx.room:room-gradle-plugin:$room_version"
     }
 }
 
 plugins {
     // To generate Proto DataStore
     id 'com.google.protobuf' version '0.9.4' apply false // Maybe keep in sync with other usages
+
+    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Upgrade together with `kotlin_version`
+
+    // Replaces manual Room schema configuration
+    // Keep in Sync with version in `buildscript` section above
+    id 'androidx.room' version '2.6.1' apply false
 }
 
 ext {
@@ -48,7 +56,7 @@ ext {
     cyfaceAndroidBackendVersion = "0.0.0" // Automatically overwritten by CI
 
     // Cyface dependencies
-    cyfaceUtilsVersion = "4.1.0"
+    cyfaceUtilsVersion = "4.2.0"
     // (!) Match versions `android-app`, `SDK` and `camera-service`.
     // When `android-app` is checkout out, `rootProject.uploaderVersion` in the submodules will point
     // to `android-app/build.gradle` instead of `submodule/build.gradle`.
@@ -56,7 +64,7 @@ ext {
     cyfaceUploaderVersion = "1.5.1"
 
     // Android SDK versions
-    minSdkVersion = 21 // device support
+    minSdkVersion = 26 // device support
     targetSdkVersion = 34 // behavioral changes, follow migration guide & test the app against this
     compileSdkVersion = 34 // allows newest APIs to be used and to see deprecations, use latest
 
@@ -77,11 +85,11 @@ ext {
 
     // Testing
     junitVersion = "1.2.1"
-    mockitoVersion = '5.7.0'
-    mockitoKotlinVersion = '5.2.1'
+    mockitoVersion = '5.15.2'
+    mockitoKotlinVersion = '5.4.0'
     hamcrestVersion = "1.3"
     rulesVersion = "1.6.1"
-    robolectricVersion = "4.10.2"
+    robolectricVersion = "4.14.1"
     androidxTestCoreVersion = "1.4.0"
 
     sourceCompatibility = JavaVersion.VERSION_17

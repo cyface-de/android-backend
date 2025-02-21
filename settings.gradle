@@ -16,6 +16,8 @@ pluginManagement {
     }
 
     repositories {
+        google()
+        mavenCentral()
         gradlePluginPortal()
         maven {
             url = uri("https://maven.pkg.github.com/cyface-de/android-publish")

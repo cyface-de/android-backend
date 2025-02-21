@@ -24,10 +24,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.SyncResult
 import android.database.Cursor
-import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
@@ -45,7 +42,6 @@ import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData
 import de.cyface.testutils.SharedTestUtils.randomFiles
 import de.cyface.utils.CursorIsNullException
-import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
@@ -108,23 +104,7 @@ class SyncAdapterTest {
         if (oldAccounts.isNotEmpty()) {
             for (oldAccount in oldAccounts) {
                 ContentResolver.removePeriodicSync(oldAccount, TestUtils.AUTHORITY, Bundle.EMPTY)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-                    Validate.isTrue(accountManager?.removeAccountExplicitly(oldAccount) == true)
-                } else {
-                    val handler = Handler(Looper.getMainLooper())
-                    accountManager?.removeAccount(oldAccount, null, { future ->
-                        try {
-                            val bundle = future.result
-                            val accountRemoved =
-                                bundle.getBoolean(AccountManager.KEY_BOOLEAN_RESULT)
-                            if (!accountRemoved) {
-                                throw IllegalStateException("Unable to remove account")
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }, handler)
-                }
+                require(accountManager?.removeAccountExplicitly(oldAccount) == true)
             }
         }
         contentResolver = null
@@ -171,10 +151,10 @@ class SyncAdapterTest {
         contentResolver!!
             .acquireContentProviderClient(LocationTable.getUri(TestUtils.AUTHORITY)).use { client ->
                 val result = SyncResult()
-                Validate.notNull(client)
+                requireNotNull(client)
                 val testBundle = Bundle()
                 testBundle.putString(SyncAdapter.MOCK_IS_CONNECTED_TO_RETURN_TRUE, "")
-                oocut!!.onPerformSync(account!!, testBundle, TestUtils.AUTHORITY, client!!, result)
+                oocut!!.onPerformSync(account!!, testBundle, TestUtils.AUTHORITY, client, result)
             }
 
         // Assert

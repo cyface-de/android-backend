@@ -23,7 +23,6 @@ import androidx.annotation.Nullable
 import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.EventTable
 import de.cyface.protos.model.Event
-import de.cyface.utils.Validate
 import kotlin.math.pow
 
 /**
@@ -68,7 +67,7 @@ class EventSerializer {
             builder.setTimestamp(timestamp).type = type
             if (value != null) {
                 // ProtoBuf `string` must contain UTF-8 encoded text and cannot be longer than 2^32.
-                Validate.isTrue(value.length <= 2.0.pow(32.0))
+                require(value.length <= 2.0.pow(32.0))
                 builder.value = value
             }
             events.add(builder.build())

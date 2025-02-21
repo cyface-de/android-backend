@@ -103,7 +103,7 @@ class DataCapturingLocalTest {
     fun setUp() {
 
         // Replace attributes of DataCapturingBackgroundService with mocked objects
-        oocut!!.persistenceLayer = mockPersistence
+        oocut!!.persistenceLayer = mockPersistence!!
         oocut!!.capturingBehaviour = mockBehaviour
         oocut!!.eventHandlingStrategy = mockEventHandlingStrategy
         oocut!!.distanceCalculationStrategy = distanceCalculationStrategy
