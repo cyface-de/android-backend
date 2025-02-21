@@ -38,7 +38,6 @@ import de.cyface.persistence.strategy.DistanceCalculationStrategy
 import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.synchronization.LoginActivityProvider
 import de.cyface.uploader.exception.SynchronisationException
-import de.cyface.utils.Validate
 
 /**
  * An implementation of a `DataCapturingService` using a dummy Cyface account for data synchronization.
@@ -229,8 +228,8 @@ class CyfaceDataCapturingService private constructor(
                     throw IllegalStateException(e)
                 }
             }
-            Validate.isTrue(!persistenceLayer.hasMeasurement(MeasurementStatus.OPEN))
-            Validate.isTrue(!persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))
+            require(!persistenceLayer.hasMeasurement(MeasurementStatus.OPEN))
+            require(!persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))
             persistenceLayer.persistenceBehaviour!!.resetIdentifierOfCurrentlyCapturedMeasurement()
 
             // Now try again to start Capturing - now there can't be any corrupted measurements

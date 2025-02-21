@@ -30,8 +30,6 @@ import android.net.NetworkRequest
 import android.os.Bundle
 import android.util.Log
 import de.cyface.uploader.exception.SynchronisationException
-import de.cyface.utils.Validate.isTrue
-import de.cyface.utils.Validate.notNull
 import java.lang.ref.WeakReference
 
 /**
@@ -105,10 +103,10 @@ class WiFiSurveyor(
         // To make sure the state is correct before we start listening to network changes
         if (!isConnectedToSyncableNetwork) {
             Log.v(TAG, "startSurveillance: not connected to syncable network")
-            isTrue(setConnected(false))
+            require(setConnected(false))
         } else {
             Log.v(TAG, "startSurveillance: connected to syncable network")
-            isTrue(setConnected(true))
+            require(setConnected(true))
             scheduleSyncNow() // Needs to be called after currentSynchronizationAccount is set
         }
 
@@ -186,7 +184,7 @@ class WiFiSurveyor(
      */
     override fun onReceive(context: Context, intent: Intent) {
         Log.d(TAG, "onReceive called with action: ${intent.action}")
-        notNull(intent.action)
+        requireNotNull(intent.action)
         require(intent.action == ConnectivityManager.CONNECTIVITY_ACTION) // only action registered
         if (currentSynchronizationAccount == null) {
             Log.e(TAG, "No data synchronization account registered. Aborting synchronization.")
@@ -247,7 +245,7 @@ class WiFiSurveyor(
         synchronized(this) {
             // When the account already exists this softly ignores this to support MovebisDataCapturingService
             accountManager.addAccountExplicitly(newAccount, password, Bundle.EMPTY)
-            isTrue(accountManager.getAccountsByType(accountType).size == 1)
+            require(accountManager.getAccountsByType(accountType).size == 1)
             Log.v(TAG, "New account added")
             makeAccountSyncable(newAccount, true)
         }
@@ -325,9 +323,7 @@ class WiFiSurveyor(
          * [setSyncOnUnMeteredNetworkOnly] settings.
          */
         get() {
-            notNull(connectivityManager)
             val activeNetworkInfo = connectivityManager.activeNetworkInfo
-
             val activeNetwork = connectivityManager.activeNetwork
             val networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
             if (networkCapabilities == null) {

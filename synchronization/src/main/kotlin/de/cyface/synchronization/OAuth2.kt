@@ -30,7 +30,6 @@ import androidx.fragment.app.FragmentActivity
 import de.cyface.synchronization.Constants.TAG
 import de.cyface.synchronization.CyfaceSyncService.Companion.AUTH_TOKEN_TYPE
 import de.cyface.synchronization.settings.SynchronizationSettings
-import de.cyface.utils.Validate
 import net.openid.appauth.AppAuthConfiguration
 import net.openid.appauth.AuthState
 import net.openid.appauth.AuthorizationException
@@ -53,7 +52,6 @@ import org.json.JSONObject
  * @param settings The settings which store the user preferences.
  */
 class OAuth2(context: Context, settings: SynchronizationSettings, caller: String) : Auth {
-
     /**
      * The service used for authorization.
      */
@@ -166,9 +164,9 @@ class OAuth2(context: Context, settings: SynchronizationSettings, caller: String
         accountType: String,
         authority: String
     ) {
-        Validate.notEmpty(username)
-        Validate.notEmpty(accessToken)
-        Validate.notEmpty(refreshToken)
+        require(username.isNotEmpty())
+        require(accessToken.isNotEmpty())
+        require(refreshToken.isNotEmpty())
         val accountManager = AccountManager.get(context)
         val account = Account(username, accountType)
 
@@ -194,7 +192,7 @@ class OAuth2(context: Context, settings: SynchronizationSettings, caller: String
             }
             createAccount(context, username, accessToken, refreshToken, accountType, authority)
         }
-        Validate.isTrue(accountManager.getAccountsByType(accountType).size == 1)
+        require(accountManager.getAccountsByType(accountType).size == 1)
     }
 
     /**
@@ -225,9 +223,9 @@ class OAuth2(context: Context, settings: SynchronizationSettings, caller: String
         userData.putString("refresh_token", refreshToken)
         // As we use OAuth2 the password is not known to this client and is set to `null`.
         // The same occurs in alternative Authenticators such as in `MovebisDataCapturingService`.
-        Validate.isTrue(accountManager.addAccountExplicitly(newAccount, null, userData))
+        require(accountManager.addAccountExplicitly(newAccount, null, userData))
         accountManager.setAuthToken(newAccount, AUTH_TOKEN_TYPE, accessToken)
-        Validate.isTrue(accountManager.getAccountsByType(accountType).size == 1)
+        require(accountManager.getAccountsByType(accountType).size == 1)
         Log.v(TAG, "New account added")
         ContentResolver.setSyncAutomatically(newAccount, authority, false)
         // Synchronization can be disabled via {@link CyfaceDataCapturingService#setSyncEnabled}
@@ -287,7 +285,7 @@ class OAuth2(context: Context, settings: SynchronizationSettings, caller: String
             // where `signOut()` is executed which also removes the account from the account manager.
             activity.startActivityForResult(endSessionIntent, END_SESSION_REQUEST_CODE)
         } else {
-            throw IllegalStateException("Auth server does not provide an end session endpoint")
+            error("Auth server does not provide an end session endpoint")
             //signOut()
         }
     }

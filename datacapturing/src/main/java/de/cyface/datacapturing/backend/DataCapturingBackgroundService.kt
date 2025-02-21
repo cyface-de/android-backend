@@ -54,7 +54,6 @@ import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.utils.DiskConsumption
 import de.cyface.utils.PlaceholderNotificationBuilder
-import de.cyface.utils.Validate
 import java.lang.ref.WeakReference
 import kotlin.math.max
 import kotlin.math.min
@@ -282,10 +281,6 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
      * For the remaining documentation see the overwritten `#onStartCommand(Intent, int, int)`
      */
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Validate.notNull(
-            intent,
-            "The process should not be automatically recreated without START_STICKY!"
-        )
         Log.v(TAG, "onStartCommand: Starting DataCapturingBackgroundService")
 
         // Loads persistence layer
@@ -295,24 +290,23 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         // Loads EventHandlingStrategy
         this.eventHandlingStrategy =
             intent.getParcelableExtra(BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID)
-        Validate.notNull(eventHandlingStrategy)
+        requireNotNull(eventHandlingStrategy)
         val notification = eventHandlingStrategy!!.buildCapturingNotification(this)
         val notificationManager = getSystemService(
             NOTIFICATION_SERVICE
         ) as NotificationManager
         // Update the placeholder notification
-        Validate.notNull(notificationManager)
         notificationManager.notify(NOTIFICATION_ID, notification)
 
         // Loads DistanceCalculationStrategy
         this.distanceCalculationStrategy =
             intent.getParcelableExtra(BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID)
-        Validate.notNull(distanceCalculationStrategy)
+        requireNotNull(distanceCalculationStrategy)
 
         // Loads LocationCleaningStrategy
         this.locationCleaningStrategy =
             intent.getParcelableExtra(BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID)
-        Validate.notNull(locationCleaningStrategy)
+        requireNotNull(locationCleaningStrategy)
 
         // Loads measurement id
         val measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1)
@@ -325,10 +319,9 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
 
         // Ensure we resume measurements with a known file format version
         val persistenceFileFormatVersion = measurement.fileFormatVersion
-        Validate.isTrue(
-            persistenceFileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION,
+        require(persistenceFileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION) {
             "Resume a measurement of a previous persistence file format version is not supported!"
-        )
+        }
 
         // Load sensor frequency
         val sensorCapture: SensorCapture? =
@@ -401,11 +394,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
             try {
                 caller.send(msg)
             } catch (e: RemoteException) {
-                Log.w(
-                    TAG,
-                    String.format("Unable to send message (%s) to caller %s!", msg, caller),
-                    e
-                )
+                Log.w(TAG, "Unable to send message ($msg) to caller $caller!", e)
                 clients.remove(caller)
             } /* [STAD-496]: On devices with vertical accuracy = null this NPE was caught and unregistered
             the caller, i.e. the service stopped intent was not forwarded to the client. As no client uses
@@ -468,7 +457,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
     /**
      * Extracts a subset of maximal `MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE` elements of captured data.
      *
-     * TODO: Copy of [sampleSubList] until `DataPoint` merges with [DataPoint].
+     * TODO: Copy of [sampleSubList] until `DataPoint` merges with `DataPoint`.
      *
      * @param completeList The [<] to extract a subset from
      * @param fromIndex The low endpoint (inclusive) of the subList
@@ -604,10 +593,8 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         /**
          * Identifies cached locations from before the measurement started [STAD-140].
          *
-         *
          * As there are old devices which have a "week-rollover-GPS-bug" [STAD-515] this method makes
          * sure this bug does not filter all locations.
-         *
          *
          * The 1024 week shift is identified by checking for a shift > ~992 weeks.
          *

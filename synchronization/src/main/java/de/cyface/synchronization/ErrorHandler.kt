@@ -25,7 +25,6 @@ import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import de.cyface.synchronization.Constants.TAG
 import de.cyface.synchronization.ErrorHandler.ErrorListener
-import de.cyface.utils.Validate.notNull
 import java.util.Locale
 
 /**
@@ -59,11 +58,11 @@ class ErrorHandler : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        notNull(intent.extras)
+        requireNotNull(intent.extras)
         val errorCodeInt = intent.extras!!.getInt(ERROR_CODE_EXTRA)
         val fromBackground = intent.extras!!.getBoolean(ERROR_BACKGROUND_EXTRA)
         val errorCode = ErrorCode.getValueForCode(errorCodeInt)
-        notNull(errorCode)
+        requireNotNull(errorCode)
         val errorMessage: String
         when (errorCode) {
             ErrorCode.UNAUTHORIZED -> errorMessage = context

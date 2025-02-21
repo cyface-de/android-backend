@@ -35,7 +35,6 @@ import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.model.ParcelablePoint3D
 import de.cyface.persistence.model.ParcelablePressure
 import de.cyface.utils.TestEnvironment
-import de.cyface.utils.Validate
 import java.io.Closeable
 import java.util.Locale
 import java.util.Vector
@@ -396,7 +395,7 @@ abstract class CapturingProcess internal constructor(
      */
     private fun savePressureValue(event: SensorEvent, storage: MutableList<ParcelablePressure>) {
         // On emulator with API 21 3 pressure values are returned on change instead of one
-        Validate.isTrue(event.values.size >= 1, "Unexpected number of values")
+        require(event.values.isNotEmpty()) { "Unexpected number of values" }
         val dataPoint =
             ParcelablePressure(timestampMillis(event.timestamp), event.values[0].toDouble())
         storage.add(dataPoint)

@@ -32,7 +32,6 @@ import de.cyface.synchronization.TestUtils.ACCOUNT_TYPE
 import de.cyface.synchronization.TestUtils.AUTHORITY
 import de.cyface.synchronization.TestUtils.TAG
 import de.cyface.testutils.SharedTestUtils.cleanupOldAccounts
-import de.cyface.utils.Validate.isTrue
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.junit.After
@@ -87,7 +86,7 @@ class SyncAdapterAndroidTest {
         if (oldAccounts.isNotEmpty()) {
             for (oldAccount in oldAccounts) {
                 ContentResolver.removePeriodicSync(oldAccount, AUTHORITY, Bundle.EMPTY)
-                isTrue(accountManager!!.removeAccountExplicitly(oldAccount))
+                require(accountManager!!.removeAccountExplicitly(oldAccount))
             }
         }
 

@@ -26,7 +26,6 @@ import android.location.LocationManager
 import android.os.SystemClock
 import de.cyface.datacapturing.model.CapturedData
 import de.cyface.persistence.model.ParcelableGeoLocation
-import de.cyface.utils.Validate
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.hamcrest.Matchers
@@ -209,7 +208,7 @@ class CapturingProcessTest {
      * @return The newly initialized `Sensor`.
      */
     private fun initSensor(@Suppress("SameParameterValue") name: String): Sensor {
-        Validate.notEmpty(name)
+        require(name.isNotEmpty())
         val sensor = Mockito.mock(Sensor::class.java)
         Mockito.`when`(sensor.name).thenReturn(name)
         Mockito.`when`(sensor.vendor).thenReturn("Cyface")

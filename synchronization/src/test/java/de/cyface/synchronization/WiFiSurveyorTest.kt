@@ -28,7 +28,6 @@ import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import androidx.test.core.app.ApplicationProvider
 import de.cyface.uploader.exception.SynchronisationException
-import de.cyface.utils.Validate.isTrue
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.MatcherAssert.assertThat
@@ -173,8 +172,8 @@ class WiFiSurveyorTest {
         val account = oocut!!.createAccount("test", null)
         oocut!!.startSurveillance(account)
         // PeriodicSync and syncAutomatically should be disabled by default
-        isTrue(ContentResolver.getPeriodicSyncs(account, TestUtils.AUTHORITY).size == 0)
-        isTrue(!ContentResolver.getSyncAutomatically(account, TestUtils.AUTHORITY))
+        require(ContentResolver.getPeriodicSyncs(account, TestUtils.AUTHORITY).size == 0)
+        require(!ContentResolver.getSyncAutomatically(account, TestUtils.AUTHORITY))
 
         // Act & Assert 1 - don't change the order within this block
         setMobileConnectivity(false, oocut!!)

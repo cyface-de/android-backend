@@ -24,7 +24,6 @@ import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.serialization.TransferFileSerializer.loadSerialized
 import de.cyface.utils.CursorIsNullException
-import de.cyface.utils.Validate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedOutputStream
@@ -90,7 +89,7 @@ class MeasurementSerializer {
             }
         } catch (e: IOException) {
             if (compressedTempFile != null && compressedTempFile.exists()) {
-                Validate.isTrue(compressedTempFile.delete())
+                require(compressedTempFile.delete())
             }
             throw IllegalStateException(e)
         }

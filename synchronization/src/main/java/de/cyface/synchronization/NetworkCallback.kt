@@ -23,7 +23,6 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.util.Log
 import de.cyface.synchronization.WiFiSurveyor.Companion.TAG
-import de.cyface.utils.Validate.isTrue
 
 /**
  * This callback handles status changes of the [Network] connectivity, e.g. to determine if synchronization should

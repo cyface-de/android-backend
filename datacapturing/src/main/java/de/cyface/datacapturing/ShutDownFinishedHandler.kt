@@ -23,14 +23,11 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import de.cyface.synchronization.BundlesExtrasCodes
-import de.cyface.utils.Validate.isTrue
-import de.cyface.utils.Validate.notNull
 
 /**
  * Handler for shutdown finished events. Just implement the [.shutDownFinished] method with the code you
  * would like to run after the service has been shut down. This class is used for asynchronous calls to
  * `DataCapturingService` lifecycle methods.
- *
  *
  * To work properly you must register this object as an Android `BroadcastReceiver`.
  *
@@ -38,21 +35,13 @@ import de.cyface.utils.Validate.notNull
  * @author Armin Schnabel
  * @version 3.0.3
  * @since 2.0.0
+ * @param serviceStoppedActionId An app-wide unique identifier. Each service needs to use a
+ * different id so that only the service in question receives the expected ping-back.
  * @see DataCapturingService.pause
  * @see DataCapturingService.stop
  */
-abstract class ShutDownFinishedHandler
-/**
- * Constructs a fully initialized instance of this class.
- *
- * @param serviceStoppedActionId An app-wide unique identifier. Each service needs to use a different id
- * so that only the service in question receives the expected ping-back.
- */(
-    /**
-     * An app-wide unique identifier. Each service needs to use a different id so that only the
-     * service in question receives the expected ping-back.
-     */
-    private val serviceStoppedActionId: String
+abstract class ShutDownFinishedHandler(
+    private val serviceStoppedActionId: String,
 ) : BroadcastReceiver() {
     /**
      * This is set to `true` if either a `MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED` broadcast
@@ -74,11 +63,10 @@ abstract class ShutDownFinishedHandler
             "Start/Stop Synchronizer received an intent with action " + intent.action + "."
         )
         val action = intent.action
-        notNull(action, "Received broadcast with null action.")
-        isTrue(
-            serviceStoppedActionId == intent.action,
-            "Received undefined broadcast " + intent.action
-        )
+        requireNotNull(action) { "Received broadcast with null action." }
+        require(serviceStoppedActionId == intent.action) {
+            "Received undefined broadcast ${intent.action}"
+        }
 
         Log.v(Constants.TAG, "Received Service stopped broadcast!")
         receivedServiceStopped = true
@@ -86,10 +74,9 @@ abstract class ShutDownFinishedHandler
         // The measurement id should always be set, especially if `STOPPED_SUCCESSFULLY` is false,
         // which happens when stopping a paused measurement [STAD-333].
         // Even if the background service stopped itself (low space warning), the id is set.
-        isTrue(
-            measurementIdentifier != -1L,
+        require(measurementIdentifier != -1L) {
             "No measurement identifier provided for stopped service!"
-        )
+        }
         shutDownFinished(measurementIdentifier)
 
         try {
@@ -105,8 +92,7 @@ abstract class ShutDownFinishedHandler
 
     /**
      * @return This is set to `true` if either a `MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED`
-     * broadcast has
-     * been received or a `MessageCodes.SERVICE_STOPPED` was issued. It is `false`
+     * broadcast has been received or a `MessageCodes.SERVICE_STOPPED` was issued. It is `false`
      * otherwise.
      */
     fun receivedServiceStopped(): Boolean {

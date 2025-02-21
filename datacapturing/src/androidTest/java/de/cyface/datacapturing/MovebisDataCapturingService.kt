@@ -45,7 +45,6 @@ import de.cyface.persistence.model.Modality
 import de.cyface.persistence.strategy.DefaultDistanceCalculation
 import de.cyface.persistence.strategy.DefaultLocationCleaning
 import de.cyface.uploader.exception.SynchronisationException
-import de.cyface.utils.Validate
 
 /**
  * In implementation of the [DataCapturingService] as required inside the Movebis project.
@@ -109,7 +108,9 @@ class MovebisDataCapturingService internal constructor(
      * A `LocationManager` that is used to provide location updates for the UI even if no capturing is
      * running.
      */
-    private val preMeasurementLocationManager: LocationManager?
+    private val preMeasurementLocationManager: LocationManager =
+        context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
     private val AUTH_TOKEN_TYPE = "de.cyface.jwt"
 
     /**
@@ -176,8 +177,6 @@ class MovebisDataCapturingService internal constructor(
     )
 
     init {
-        preMeasurementLocationManager =
-            context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         this.uiListener = uiListener
     }
 
@@ -194,7 +193,7 @@ class MovebisDataCapturingService internal constructor(
         }
         val fineLocationAccessIsGranted = checkFineLocationAccess(getContext()!!)
         if (fineLocationAccessIsGranted) {
-            preMeasurementLocationManager!!.requestLocationUpdates(
+            preMeasurementLocationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER, locationUpdateRate, 0f,
                 locationListener
             )
@@ -202,7 +201,7 @@ class MovebisDataCapturingService internal constructor(
         }
         val coarseLocationAccessIsGranted = checkCoarseLocationAccess(getContext()!!)
         if (coarseLocationAccessIsGranted) {
-            if (!preMeasurementLocationManager!!.allProviders
+            if (!preMeasurementLocationManager.allProviders
                     .contains(LocationManager.NETWORK_PROVIDER)
             ) {
                 Log.w(
@@ -231,7 +230,7 @@ class MovebisDataCapturingService internal constructor(
         if (!uiUpdatesActive) {
             return
         }
-        preMeasurementLocationManager!!.removeUpdates(locationListener)
+        preMeasurementLocationManager.removeUpdates(locationListener)
         uiUpdatesActive = false
     }
 
@@ -263,8 +262,8 @@ class MovebisDataCapturingService internal constructor(
     /**
      * Removes the [JWT](https://jwt.io/) auth token for a specific username from the system.
      *
-     * This method calls [de.cyface.synchronization.WiFiSurveyor.stopSurveillance] before removing the account as the surveillance expects
-     * an account to be registered.
+     * This method calls [de.cyface.synchronization.WiFiSurveyor.stopSurveillance] before removing
+     * the account as the surveillance expects an account to be registered.
      *
      * If that username was not registered with [.registerJWTAuthToken] no account is removed.
      *
@@ -354,8 +353,8 @@ class MovebisDataCapturingService internal constructor(
                     throw IllegalStateException(e1)
                 }
             }
-            Validate.isTrue(!persistenceLayer.hasMeasurement(MeasurementStatus.OPEN))
-            Validate.isTrue(!persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))
+            require(!persistenceLayer.hasMeasurement(MeasurementStatus.OPEN))
+            require(!persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))
             this.persistenceLayer.persistenceBehaviour!!.resetIdentifierOfCurrentlyCapturedMeasurement()
 
             // Now try again to start Capturing - now there can't be any corrupted measurements

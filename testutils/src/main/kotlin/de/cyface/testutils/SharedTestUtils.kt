@@ -47,7 +47,6 @@ import de.cyface.protos.model.File.FileType
 import de.cyface.protos.model.Measurement
 import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.model.Point3DType
-import de.cyface.utils.Validate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.hamcrest.CoreMatchers
@@ -279,46 +278,46 @@ object SharedTestUtils {
         val accelerationFolder =
             fileIOHandler.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         if (accelerationFolder.exists()) {
-            Validate.isTrue(accelerationFolder.isDirectory)
+            require(accelerationFolder.isDirectory)
             val accelerationFiles = accelerationFolder.listFiles()
             if (accelerationFiles != null) {
                 for (file in accelerationFiles) {
-                    Validate.isTrue(file.delete())
+                    require(file.delete())
                 }
                 removedFiles += accelerationFiles.size
             }
             if (removeFolder) {
-                Validate.isTrue(accelerationFolder.delete())
+                require(accelerationFolder.delete())
             }
         }
         val rotationFolder =
             fileIOHandler.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
         if (rotationFolder.exists()) {
-            Validate.isTrue(rotationFolder.isDirectory)
+            require(rotationFolder.isDirectory)
             val rotationFiles = rotationFolder.listFiles()
             if (rotationFiles != null) {
                 for (file in rotationFiles) {
-                    Validate.isTrue(file.delete())
+                    require(file.delete())
                 }
                 removedFiles += rotationFiles.size
             }
             if (removeFolder) {
-                Validate.isTrue(rotationFolder.delete())
+                require(rotationFolder.delete())
             }
         }
         val directionFolder =
             fileIOHandler.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
         if (directionFolder.exists()) {
-            Validate.isTrue(directionFolder.isDirectory)
+            require(directionFolder.isDirectory)
             val directionFiles = directionFolder.listFiles()
             if (directionFiles != null) {
                 for (file in directionFiles) {
-                    Validate.isTrue(file.delete())
+                    require(file.delete())
                 }
                 removedFiles += directionFiles.size
             }
             if (removeFolder) {
-                Validate.isTrue(directionFolder.delete())
+                require(directionFolder.delete())
             }
         }
         return removedFiles

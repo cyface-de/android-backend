@@ -28,7 +28,6 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService
 import de.cyface.utils.R
-import de.cyface.utils.Validate.notNull
 
 /**
  * A default implementation of the [EventHandlingStrategy] used if not strategy was provided.
@@ -62,13 +61,10 @@ class IgnoreEventsStrategy : EventHandlingStrategy {
     }
 
     override fun buildCapturingNotification(context: DataCapturingBackgroundService): Notification {
-        notNull(context, "No context provided!")
-
         // The NotificationChannel settings are cached so you need to temporarily change the channel id for testing
         val channelId = context.getString(R.string.cyface_notification_channel_id)
         val notificationManager = context
             .getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notNull(notificationManager)
         if (notificationManager.getNotificationChannel(channelId) == null) {
             val channel = NotificationChannel(
                 channelId, "Cyface Data Capturing",

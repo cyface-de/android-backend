@@ -52,7 +52,6 @@ import de.cyface.uploader.exception.UnauthorizedException
 import de.cyface.uploader.exception.UnexpectedResponseCode
 import de.cyface.uploader.exception.UploadSessionExpired
 import de.cyface.utils.CursorIsNullException
-import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.equalTo
@@ -76,7 +75,6 @@ import java.io.IOException
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class SyncPerformerTestWithoutAuth {
-
     private lateinit var persistence: DefaultPersistenceLayer<*>
     private lateinit var context: Context
     private lateinit var contentResolver: ContentResolver
@@ -137,13 +135,9 @@ class SyncPerformerTestWithoutAuth {
         var file: File? = null
         try {
             contentResolver.acquireContentProviderClient(TestUtils.AUTHORITY).use { client ->
-                Validate.notNull(
-                    client,
-                    String.format(
-                        "Unable to acquire client for content provider %s",
-                        TestUtils.AUTHORITY
-                    )
-                )
+                requireNotNull(client) {
+                    "Unable to acquire client for content provider ${TestUtils.AUTHORITY}"
+                }
                 file = loadSerializedCompressed(persistence, measurementIdentifier)
                 val metaData =
                     loadMetaData(persistence, measurement, locationCount, 0, 0, 0, 0)
@@ -165,7 +159,7 @@ class SyncPerformerTestWithoutAuth {
             }
         } finally {
             if (file != null && file!!.exists()) {
-                Validate.isTrue(file!!.delete())
+                require(file!!.delete())
             }
         }
     }

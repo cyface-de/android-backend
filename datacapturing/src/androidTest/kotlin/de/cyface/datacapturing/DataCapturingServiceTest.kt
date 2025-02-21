@@ -47,7 +47,6 @@ import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.synchronization.CyfaceAuthenticator
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
-import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.`is`
@@ -148,7 +147,7 @@ class DataCapturingServiceTest {
         }
 
         // Making sure there is no service instance of a previous test running
-        Validate.isTrue(!isDataCapturingServiceRunning)
+        require(!isDataCapturingServiceRunning)
     }
 
     /**

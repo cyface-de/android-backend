@@ -41,7 +41,6 @@ import de.cyface.protos.model.Measurement
 import de.cyface.serializer.Point3DSerializer
 import de.cyface.serializer.model.Point3DType
 import de.cyface.testutils.SharedTestUtils
-import de.cyface.utils.Validate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -74,7 +73,6 @@ import java.util.zip.Inflater
  * @since 2.0.0
  */
 class MeasurementSerializerTest {
-
     private lateinit var persistence: PersistenceLayer<PersistenceBehaviour>
 
     /**
@@ -197,7 +195,7 @@ class MeasurementSerializerTest {
             )
         } finally {
             if (serializedFile.exists()) {
-                Validate.isTrue(serializedFile.delete())
+                require(serializedFile.delete())
             }
         }
     }
@@ -235,7 +233,7 @@ class MeasurementSerializerTest {
             deserializeAndCheck(DefaultFileIOHandler().loadBytes(serializedFile))
         } finally {
             if (serializedFile.exists()) {
-                Validate.isTrue(serializedFile.delete())
+                require(serializedFile.delete())
             }
         }
     }
@@ -321,7 +319,7 @@ class MeasurementSerializerTest {
             deserializeAndCheck(uncompressedTransferFileBytes) // just to be sure
         } finally {
             if (serializedFile.exists()) {
-                Validate.isTrue(serializedFile.delete())
+                require(serializedFile.delete())
             }
         }
 
@@ -337,7 +335,7 @@ class MeasurementSerializerTest {
      */
     @Throws(InvalidProtocolBufferException::class)
     private fun deserializeAndCheck(bytes: ByteArray) {
-        Validate.isTrue(bytes.isNotEmpty())
+        require(bytes.isNotEmpty())
         val measurement = deserializeTransferFile(bytes)
         MatcherAssert.assertThat(
             measurement.formatVersion,

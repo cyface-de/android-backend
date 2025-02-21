@@ -25,7 +25,6 @@ import de.cyface.datacapturing.MessageCodes
 import de.cyface.datacapturing.TestUtils.TAG
 import de.cyface.datacapturing.model.CapturedData
 import de.cyface.persistence.model.ParcelableGeoLocation
-import de.cyface.utils.Validate.notNull
 
 /**
  * A handler for messages received from the capturing service.
@@ -64,8 +63,8 @@ internal class FromServiceMessageHandler : Handler() {
             MessageCodes.LOCATION_CAPTURED -> {
                 dataBundle.classLoader = javaClass.classLoader
                 val location = dataBundle.getParcelable<ParcelableGeoLocation>("data")
-                notNull(location)
-                Log.d(TAG, "Test received location ${location!!.lat},${location.lon}")
+                requireNotNull(location)
+                Log.d(TAG, "Test received location ${location.lat},${location.lon}")
             }
 
             MessageCodes.GEOLOCATION_FIX -> Log.d(TAG, "Test received GeoLocation fix.")

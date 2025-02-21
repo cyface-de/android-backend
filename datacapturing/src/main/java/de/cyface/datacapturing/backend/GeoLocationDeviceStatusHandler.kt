@@ -3,9 +3,9 @@ package de.cyface.datacapturing.backend
 import android.location.LocationManager
 
 /**
- * Abstract base class for classes informing the system about the current state of the geo location device. It reacts to
- * fix events and if those events occur often enough it tells its `CapturingProcessListener`s about the state
- * change.
+ * Abstract base class for classes informing the system about the current state of the geo location
+ * device. It reacts to fix events and if those events occur often enough it tells its
+ * `CapturingProcessListener`s about the state change.
  *
  * @author Klemens Muthmann
  * @version 2.0.2
@@ -57,9 +57,9 @@ abstract class GeoLocationDeviceStatusHandler(val locationManager: LocationManag
     }
 
     /**
-     * Tells the system that this `GeoLocationDeviceStatusHandler` is going down and no longer interested
-     * about geo location device status updates. This method should be called when the system shuts down to free up
-     * resources.
+     * Tells the system that this `GeoLocationDeviceStatusHandler` is going down and no longer
+     * interested about geo location device status updates. This method should be called when the
+     * system shuts down to free up resources.
      */
     abstract fun shutdown()
 

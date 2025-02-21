@@ -42,7 +42,6 @@ import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData
 import de.cyface.testutils.SharedTestUtils.randomFiles
 import de.cyface.utils.CursorIsNullException
-import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
@@ -152,10 +151,10 @@ class SyncAdapterTest {
         contentResolver!!
             .acquireContentProviderClient(LocationTable.getUri(TestUtils.AUTHORITY)).use { client ->
                 val result = SyncResult()
-                Validate.notNull(client)
+                requireNotNull(client)
                 val testBundle = Bundle()
                 testBundle.putString(SyncAdapter.MOCK_IS_CONNECTED_TO_RETURN_TRUE, "")
-                oocut!!.onPerformSync(account!!, testBundle, TestUtils.AUTHORITY, client!!, result)
+                oocut!!.onPerformSync(account!!, testBundle, TestUtils.AUTHORITY, client, result)
             }
 
         // Assert
