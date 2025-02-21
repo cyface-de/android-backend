@@ -206,7 +206,7 @@ class ErrorHandler : BroadcastReceiver() {
          * @param fromBackground `true` if the error was caused without user interaction, e.g. to avoid
          * disturbing the user while he is not using the app.
          */
-        fun onErrorReceive(errorCode: ErrorCode?, errorMessage: String?, fromBackground: Boolean)
+        fun onErrorReceive(errorCode: ErrorCode, errorMessage: String?, fromBackground: Boolean)
     } // The following error handling will be (re)implemented with #CY-3709
     // if (resultExceptionType.equals(MeasurementEntryIsIrretrievableException.class.getSimpleName())) {
     // toastErrorMessage = context.getString(R.string.toast_error_message_unknown_sync_error)
