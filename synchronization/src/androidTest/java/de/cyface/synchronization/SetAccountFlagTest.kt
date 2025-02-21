@@ -256,7 +256,7 @@ class SetAccountFlagTest {
                 "$actionName: Account flag did not change to the expected state within $TIMEOUT_TIME seconds"
             )
         }
-        checkerParameters.setRunnable(accountFlagChecker)
+        checkerParameters.runnable = accountFlagChecker
         return checkerParameters
     }
 
@@ -348,10 +348,6 @@ class SetAccountFlagTest {
          * for `Account` flags to be in the expected state or else fails.
          */
         var runnable: Runnable? = null
-
-        fun setRunnable(runnable: Runnable) {
-            this.runnable = runnable
-        }
     }
 
     companion object {
