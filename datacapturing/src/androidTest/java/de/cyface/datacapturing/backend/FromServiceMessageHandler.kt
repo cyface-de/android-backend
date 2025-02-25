@@ -23,7 +23,6 @@ import android.os.Message
 import android.util.Log
 import de.cyface.datacapturing.MessageCodes
 import de.cyface.datacapturing.TestUtils.TAG
-import de.cyface.datacapturing.model.CapturedData
 import de.cyface.persistence.model.ParcelableGeoLocation
 
 /**
