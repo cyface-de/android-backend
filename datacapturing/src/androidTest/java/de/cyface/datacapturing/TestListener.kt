@@ -19,6 +19,7 @@
 package de.cyface.datacapturing
 
 import android.util.Log
+import de.cyface.datacapturing.model.CapturedData
 import de.cyface.datacapturing.ui.Reason
 import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.utils.DiskConsumption

@@ -1025,7 +1025,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         val measurements = persistence!!.loadMeasurements()
         assertThat(measurements.isNotEmpty(), `is`(equalTo(true)))
         Thread.sleep(3000L)
-        assertThat(testListener!!.capturedData.size > 0, `is`(equalTo(true)))
+        assertThat(testListener!!.getCapturedData().isNotEmpty(), `is`(equalTo(true)))
         stopAndCheckThatStopped(measurementIdentifier)
     }
 
