@@ -365,10 +365,8 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         val statusHandler = GnssStatusCallback(locationManager)
         locationCapture.setup(locationManager, statusHandler)
 
-        if (sensorCapture is SensorCaptureEnabled) {
-            val sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
-            sensorCapture.setup(sensorManager)
-        }
+        val sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+        sensorCapture.setup(sensorManager)
 
         return GeoLocationCapturingProcess(locationCapture, sensorCapture)
     }

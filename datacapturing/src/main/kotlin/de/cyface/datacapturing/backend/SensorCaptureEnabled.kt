@@ -36,12 +36,7 @@ class SensorCaptureEnabled(private val sensorFrequency: Int) : SensorCapture {
      */
     constructor(parcel: Parcel) : this(parcel.readInt())
 
-    /**
-     * Sets up the Android service for data capturing.
-     *
-     * @param sensorManager The service to register the data capturing from.
-     */
-    fun setup(sensorManager: SensorManager) {
+    override fun setup(sensorManager: SensorManager) {
         this.service = sensorManager
     }
 
