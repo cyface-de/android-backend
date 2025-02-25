@@ -5,26 +5,14 @@
     <!-- Required to check current synchronization interval and whether it is active or not-->
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
 
-    <!-- Removed: Deprecated since API 23, restricted to system apps -->
-    <!-- <uses-permission android:name="android.permission.READ_SYNC_STATS" /-->
-
     <!-- Required to enable continuous synchronization -->
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
 
     <!-- Required to communicate with the authentication system to get the JWT token. -->
     <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
 
-    <!-- Removed: GET_ACCOUNTS is restricted since API 26, unless using special exemptions -->
-    <!-- <uses-permission android:name="android.permission.GET_ACCOUNTS" /> -->
-
     <!-- Required to read JWT auth token from user account -->
     <uses-permission android:name="android.permission.USE_CREDENTIALS" />
-
-    <!-- Removed: MANAGE_ACCOUNTS was restricted to system apps in API 23 -->
-    <!-- <uses-permission android:name="android.permission.MANAGE_ACCOUNTS" android:maxSdkVersion="22" /> -->
-
-    <!-- Removed: GET_ACCOUNTS is restricted since API 26, unless using special exemptions -->
-    <!-- <uses-permission android:name="android.permission.GET_ACCOUNTS" /> -->
 
     <!-- Required to check whether WiFi is active or not -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
