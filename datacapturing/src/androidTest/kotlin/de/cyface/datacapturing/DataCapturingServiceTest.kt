@@ -34,12 +34,12 @@ import de.cyface.datacapturing.backend.TestCallback
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
 import de.cyface.datacapturing.exception.MissingPermissionException
-import de.cyface.persistence.SetupException
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceBehaviour
 import de.cyface.persistence.PersistenceLayer
+import de.cyface.persistence.SetupException
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.EventType
 import de.cyface.persistence.model.Measurement
@@ -47,9 +47,10 @@ import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.synchronization.CyfaceAuthenticator
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
-import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
-import org.hamcrest.CoreMatchers
+import org.hamcrest.CoreMatchers.equalTo
+import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.CoreMatchers.not
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.After
 import org.junit.Before
@@ -62,9 +63,10 @@ import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 
 /**
- * Tests whether the [DataCapturingService] works correctly. This is a flaky test since it starts a service that
- * relies on external sensors and the availability of a GNSS signal. Each tests waits a few seconds to actually capture
- * some data, but it might still fail if you use a real device indoors.
+ * Tests whether the [DataCapturingService] works correctly. This is a flaky test since it starts a
+ * service that relies on external sensors and the availability of a GNSS signal. Each tests waits
+ * a few seconds to actually capture some data, but it might still fail if you use a real device
+ * indoors.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -72,7 +74,6 @@ import java.util.concurrent.locks.ReentrantLock
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class DataCapturingServiceTest {
-
     /**
      * Rule used to run
      */
@@ -146,7 +147,7 @@ class DataCapturingServiceTest {
         }
 
         // Making sure there is no service instance of a previous test running
-        Validate.isTrue(!isDataCapturingServiceRunning)
+        require(!isDataCapturingServiceRunning)
     }
 
     /**
@@ -162,31 +163,31 @@ class DataCapturingServiceTest {
     @Throws(NoSuchMeasurementException::class)
     fun tearDown() {
         if (oocut != null && isDataCapturingServiceRunning) {
-
             // Stop zombie
             // Do not reuse the lock/condition!
             val lock: Lock = ReentrantLock()
             val condition = lock.newCondition()
             val shutDownFinishedHandler = TestShutdownFinishedHandler(
                 lock,
-                condition, MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
+                condition,
+                MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED,
             )
             oocut!!.stop(shutDownFinishedHandler)
 
             // Ensure the zombie sent a stopped message back to the DataCapturingService
             TestUtils.lockAndWait(
-                2, TimeUnit.SECONDS, shutDownFinishedHandler.lock,
-                shutDownFinishedHandler.condition
+                2,
+                TimeUnit.SECONDS,
+                shutDownFinishedHandler.lock,
+                shutDownFinishedHandler.condition,
             )
             assertThat(
-                shutDownFinishedHandler.receivedServiceStopped(), CoreMatchers.`is`(
-                    CoreMatchers.equalTo(true)
-                )
+                shutDownFinishedHandler.receivedServiceStopped(), `is`(equalTo(true))
             )
 
             // Ensure that the zombie was not running during the callCheckForRunning
             val isRunning = isDataCapturingServiceRunning
-            assertThat(isRunning, CoreMatchers.`is`(CoreMatchers.equalTo(false)))
+            assertThat(isRunning, `is`(equalTo(false)))
         }
         runBlocking { clearPersistenceLayer(context!!, persistence!!) }
     }
@@ -196,9 +197,8 @@ class DataCapturingServiceTest {
      */
     private val isDataCapturingServiceRunning: Boolean
         get() {
-
-            // Get the current isRunning state (i.e. updates runningStatusCallback). This is important, see #MOV-484.
-            // Do not reuse the lock/condition/runningStatusCallback!
+            // Get the current isRunning state (i.e. updates runningStatusCallback). This is
+            // important, see #MOV-484. Do not reuse the lock/condition/runningStatusCallback!
             val runningStatusCallbackLock: Lock = ReentrantLock()
             val runningStatusCallbackCondition = runningStatusCallbackLock.newCondition()
             val runningStatusCallback = TestCallback(
@@ -207,8 +207,10 @@ class DataCapturingServiceTest {
             )
             TestUtils.callCheckForRunning(oocut!!, runningStatusCallback)
             TestUtils.lockAndWait(
-                2, TimeUnit.SECONDS, runningStatusCallback.lock,
-                runningStatusCallback.condition
+                2,
+                TimeUnit.SECONDS,
+                runningStatusCallback.lock,
+                runningStatusCallback.condition,
             )
             return runningStatusCallback.wasRunning() && !runningStatusCallback.didTimeOut()
         }
@@ -217,11 +219,11 @@ class DataCapturingServiceTest {
      * Starts a [DataCapturingService] and checks that it's running afterwards.
      *
      * @return the measurement id of the started capturing
-     * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
-     * Android context was available.
-     * @throws MissingPermissionException If no Android `ACCESS_FINE_LOCATION` has been granted. You may
-     * register a `de.cyface.datacapturing.ui.UIListener` to ask the user for this permission and prevent the
-     * `Exception`. If the `Exception` was thrown the service does not start.
+     * @throws DataCapturingException If the asynchronous background service did not start
+     * successfully or no valid Android context was available.
+     * @throws MissingPermissionException If no Android `ACCESS_FINE_LOCATION` has been granted.
+     * You may register a `de.cyface.datacapturing.ui.UIListener` to ask the user for this permission
+     * and prevent the `Exception`. If the `Exception` was thrown the service does not start.
      */
     @Throws(
         MissingPermissionException::class,
@@ -229,13 +231,13 @@ class DataCapturingServiceTest {
         CorruptedMeasurementException::class
     )
     private fun startAndCheckThatLaunched(): Long {
-
         // Do not reuse the lock/condition!
         val lock: Lock = ReentrantLock()
         val condition = lock.newCondition()
         val startUpFinishedHandler = TestStartUpFinishedHandler(
-            lock, condition,
-            MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED
+            lock,
+            condition,
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED,
         )
         oocut!!.start(Modality.UNKNOWN, startUpFinishedHandler)
         return checkThatLaunched(startUpFinishedHandler)
@@ -245,10 +247,9 @@ class DataCapturingServiceTest {
      * Pauses a [DataCapturingService] and checks that it's not running afterwards.
      *
      * @param measurementIdentifier The if of the measurement expected to be closed.
-     * @throws NoSuchMeasurementException If no measurement was [MeasurementStatus.OPEN] while pausing the
-     * service. This usually occurs if there was no call to
-     * [DataCapturingService.start] prior to
-     * pausing.
+     * @throws NoSuchMeasurementException If no measurement was [MeasurementStatus.OPEN] while
+     * pausing the service. This usually occurs if there was no call to [DataCapturingService.start]
+     * prior to pausing.
      */
     @Throws(NoSuchMeasurementException::class)
     private fun pauseAndCheckThatStopped(measurementIdentifier: Long) {
@@ -257,8 +258,9 @@ class DataCapturingServiceTest {
         val lock: Lock = ReentrantLock()
         val condition = lock.newCondition()
         val shutDownFinishedHandler = TestShutdownFinishedHandler(
-            lock, condition,
-            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
+            lock,
+            condition,
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED,
         )
         oocut!!.pause(shutDownFinishedHandler)
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier)
@@ -269,14 +271,13 @@ class DataCapturingServiceTest {
      *
      * @param measurementIdentifier The id of the measurement which is expected to be resumed
      * @throws DataCapturingException If starting the background service was not successful.
-     * @throws MissingPermissionException If permission to access geo location via satellite has not been granted or
-     * revoked. The current measurement is closed if you receive this `Exception`. If you get the
-     * permission in the future you need to start a new measurement and not call `resumeSync`
-     * again.
-     * @throws NoSuchMeasurementException If no measurement was [MeasurementStatus.OPEN] while pausing the
-     * service. This usually occurs if there was no call to
-     * [DataCapturingService.start] prior to
-     * pausing.
+     * @throws MissingPermissionException If permission to access geo location via satellite has
+     * not been granted or revoked. The current measurement is closed if you receive this
+     * `Exception`. If you get the permission in the future you need to start a new measurement
+     * and not call `resumeSync` again.
+     * @throws NoSuchMeasurementException If no measurement was [MeasurementStatus.OPEN] while
+     * pausing the service. This usually occurs if there was no call to [DataCapturingService.start]
+     * prior to pausing.
      */
     @Throws(
         MissingPermissionException::class,
@@ -289,12 +290,13 @@ class DataCapturingServiceTest {
         val lock: Lock = ReentrantLock()
         val condition = lock.newCondition()
         val startUpFinishedHandler = TestStartUpFinishedHandler(
-            lock, condition,
-            MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED
+            lock,
+            condition,
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED,
         )
         oocut!!.resume(startUpFinishedHandler)
         val resumedMeasurementId = checkThatLaunched(startUpFinishedHandler)
-        assertThat(resumedMeasurementId, CoreMatchers.`is`(measurementIdentifier))
+        assertThat(resumedMeasurementId, `is`(measurementIdentifier))
     }
 
     /**
@@ -315,8 +317,9 @@ class DataCapturingServiceTest {
         val lock: Lock = ReentrantLock()
         val condition = lock.newCondition()
         val shutDownFinishedHandler = TestShutdownFinishedHandler(
-            lock, condition,
-            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
+            lock,
+            condition,
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED,
         )
         oocut!!.stop(shutDownFinishedHandler)
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier)
@@ -334,32 +337,29 @@ class DataCapturingServiceTest {
 
         // Ensure the DataCapturingBackgroundService sent a started message back to the DataCapturingService
         TestUtils.lockAndWait(
-            2, TimeUnit.SECONDS, startUpFinishedHandler.lock,
-            startUpFinishedHandler.condition
+            2,
+            TimeUnit.SECONDS,
+            startUpFinishedHandler.lock,
+            startUpFinishedHandler.condition,
         )
         assertThat(
-            startUpFinishedHandler.receivedServiceStarted(), CoreMatchers.`is`(
-                CoreMatchers.equalTo(true)
-            )
+            startUpFinishedHandler.receivedServiceStarted(), `is`(equalTo(true))
         )
 
         // Ensure that the DataCapturingBackgroundService was running during the callCheckForRunning
         val isRunning = isDataCapturingServiceRunning
-        assertThat(isRunning, CoreMatchers.`is`(CoreMatchers.equalTo(true)))
+        assertThat(isRunning, `is`(equalTo(true)))
 
         // Return the id of the started measurement
         assertThat(
-            startUpFinishedHandler.receivedMeasurementIdentifier, CoreMatchers.`is`(
-                CoreMatchers.not(CoreMatchers.equalTo(-1L))
-            )
+            startUpFinishedHandler.receivedMeasurementIdentifier, `is`(not(equalTo(-1L)))
         )
         return startUpFinishedHandler.receivedMeasurementIdentifier
     }
 
     /**
      * Checks that a [DataCapturingService] actually stopped after calling the life-cycle method
-     * [DataCapturingService.stop] or
-     * [DataCapturingService.pause].
+     * [DataCapturingService.stop] or [DataCapturingService.pause].
      *
      * Also checks that the measurement which was stopped is the expected measurement.
      *
@@ -374,23 +374,23 @@ class DataCapturingServiceTest {
 
         // Ensure the DataCapturingBackgroundService sent a stopped message back to the DataCapturingService
         TestUtils.lockAndWait(
-            2, TimeUnit.SECONDS, shutDownFinishedHandler.lock,
-            shutDownFinishedHandler.condition
+            2,
+            TimeUnit.SECONDS,
+            shutDownFinishedHandler.lock,
+            shutDownFinishedHandler.condition,
         )
         assertThat(
-            shutDownFinishedHandler.receivedServiceStopped(), CoreMatchers.`is`(
-                CoreMatchers.equalTo(true)
-            )
+            shutDownFinishedHandler.receivedServiceStopped(), `is`(equalTo(true))
         )
 
         // Ensure that the DataCapturingBackgroundService was not running during the callCheckForRunning
         val isRunning = isDataCapturingServiceRunning
-        assertThat(isRunning, CoreMatchers.`is`(CoreMatchers.equalTo(false)))
+        assertThat(isRunning, `is`(equalTo(false)))
 
         // Ensure that the expected measurement stopped
         assertThat(
-            shutDownFinishedHandler.receivedMeasurementIdentifier, CoreMatchers.`is`(
-                CoreMatchers.equalTo(measurementIdentifier)
+            shutDownFinishedHandler.receivedMeasurementIdentifier, `is`(
+                equalTo(measurementIdentifier)
             )
         )
     }
@@ -434,11 +434,11 @@ class DataCapturingServiceTest {
     fun testMultipleStartStopWithDelay() {
         val measurementIdentifier = startAndCheckThatLaunched()
         var measurements: List<Measurement?> = persistence!!.loadMeasurements()
-        assertThat(measurements.size, CoreMatchers.`is`(CoreMatchers.equalTo(1)))
+        assertThat(measurements.size, `is`(equalTo(1)))
         stopAndCheckThatStopped(measurementIdentifier)
         val measurementIdentifier2 = startAndCheckThatLaunched()
         measurements = persistence!!.loadMeasurements()
-        assertThat(measurements.size, CoreMatchers.`is`(CoreMatchers.equalTo(2)))
+        assertThat(measurements.size, `is`(equalTo(2)))
         stopAndCheckThatStopped(measurementIdentifier2)
     }
 
@@ -462,7 +462,6 @@ We should consider refactoring the code before to use startCommandReceived as in
         CorruptedMeasurementException::class
     )
     fun testMultipleStartStopWithoutDelay() {
-
         // Do not reuse the lock/condition!
         val lock1: Lock = ReentrantLock()
         val condition1 = lock1.newCondition()
@@ -474,36 +473,41 @@ We should consider refactoring the code before to use startCommandReceived as in
         val lock2: Lock = ReentrantLock()
         val condition2 = lock2.newCondition()
         val startUpFinishedHandler2 = TestStartUpFinishedHandler(
-            lock2, condition2,
-            MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED
+            lock2,
+            condition2,
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED,
         )
         // Do not reuse the lock/condition!
         val lock3: Lock = ReentrantLock()
         val condition3 = lock3.newCondition()
         val startUpFinishedHandler3 = TestStartUpFinishedHandler(
-            lock3, condition3,
-            MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED
+            lock3,
+            condition3,
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED,
         )
         // Do not reuse the lock/condition!
         val lock4: Lock = ReentrantLock()
         val condition4 = lock4.newCondition()
         val shutDownFinishedHandler1 = TestShutdownFinishedHandler(
-            lock4, condition4,
-            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
+            lock4,
+            condition4,
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED,
         )
         // Do not reuse the lock/condition!
         val lock5: Lock = ReentrantLock()
         val condition5 = lock5.newCondition()
         val shutDownFinishedHandler2 = TestShutdownFinishedHandler(
-            lock5, condition5,
-            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
+            lock5,
+            condition5,
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED,
         )
         // Do not reuse the lock/condition!
         val lock6: Lock = ReentrantLock()
         val condition6 = lock6.newCondition()
         val shutDownFinishedHandler3 = TestShutdownFinishedHandler(
-            lock6, condition6,
-            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED
+            lock6,
+            condition6,
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED,
         )
 
         // First Start/stop without waiting
@@ -518,72 +522,60 @@ We should consider refactoring the code before to use startCommandReceived as in
 
         // Now let's make sure all measurements started and stopped as expected
         TestUtils.lockAndWait(
-            2, TimeUnit.SECONDS, startUpFinishedHandler1.lock,
-            startUpFinishedHandler1.condition
+            2,
+            TimeUnit.SECONDS,
+            startUpFinishedHandler1.lock,
+            startUpFinishedHandler1.condition,
         )
         TestUtils.lockAndWait(
-            2, TimeUnit.SECONDS, shutDownFinishedHandler1.lock,
-            shutDownFinishedHandler1.condition
+            2,
+            TimeUnit.SECONDS,
+            shutDownFinishedHandler1.lock,
+            shutDownFinishedHandler1.condition,
         )
         TestUtils.lockAndWait(
-            2, TimeUnit.SECONDS, startUpFinishedHandler2.lock,
-            startUpFinishedHandler2.condition
+            2,
+            TimeUnit.SECONDS,
+            startUpFinishedHandler2.lock,
+            startUpFinishedHandler2.condition,
         )
         TestUtils.lockAndWait(
-            2, TimeUnit.SECONDS, shutDownFinishedHandler2.lock,
-            shutDownFinishedHandler2.condition
+            2,
+            TimeUnit.SECONDS,
+            shutDownFinishedHandler2.lock,
+            shutDownFinishedHandler2.condition,
         )
         TestUtils.lockAndWait(
-            2, TimeUnit.SECONDS, startUpFinishedHandler3.lock,
-            startUpFinishedHandler3.condition
+            2,
+            TimeUnit.SECONDS,
+            startUpFinishedHandler3.lock,
+            startUpFinishedHandler3.condition,
         )
         TestUtils.lockAndWait(
-            2, TimeUnit.SECONDS, shutDownFinishedHandler3.lock,
-            shutDownFinishedHandler3.condition
+            2,
+            TimeUnit.SECONDS,
+            shutDownFinishedHandler3.lock,
+            shutDownFinishedHandler3.condition,
         )
         val measurements = persistence!!.loadMeasurements()
-        assertThat(measurements.size, CoreMatchers.`is`(CoreMatchers.equalTo(3)))
+        assertThat(measurements.size, `is`(equalTo(3)))
         val measurementId1 = startUpFinishedHandler1.receivedMeasurementIdentifier
-        assertThat(
-            measurements[0].id,
-            CoreMatchers.`is`(CoreMatchers.equalTo(measurementId1))
-        )
+        assertThat(measurements[0].id, `is`(equalTo(measurementId1)))
         val measurementId2 = startUpFinishedHandler2.receivedMeasurementIdentifier
-        assertThat(
-            measurements[1].id,
-            CoreMatchers.`is`(CoreMatchers.equalTo(measurementId2))
-        )
+        assertThat(measurements[1].id, `is`(equalTo(measurementId2)))
         val measurementId3 = startUpFinishedHandler3.receivedMeasurementIdentifier
+        assertThat(measurements[2].id, `is`(equalTo(measurementId3)))
+        assertThat(measurementId1, `is`(not(equalTo(-1L))))
         assertThat(
-            measurements[2].id,
-            CoreMatchers.`is`(CoreMatchers.equalTo(measurementId3))
+            shutDownFinishedHandler1.receivedMeasurementIdentifier, `is`(equalTo(measurementId1))
         )
+        assertThat(measurementId2, `is`(not(equalTo(-1L))))
         assertThat(
-            measurementId1,
-            CoreMatchers.`is`(CoreMatchers.not(CoreMatchers.equalTo(-1L)))
+            shutDownFinishedHandler2.receivedMeasurementIdentifier, `is`(equalTo(measurementId2))
         )
+        assertThat(measurementId3, `is`(not(equalTo(-1L))))
         assertThat(
-            shutDownFinishedHandler1.receivedMeasurementIdentifier, CoreMatchers.`is`(
-                CoreMatchers.equalTo(measurementId1)
-            )
-        )
-        assertThat(
-            measurementId2,
-            CoreMatchers.`is`(CoreMatchers.not(CoreMatchers.equalTo(-1L)))
-        )
-        assertThat(
-            shutDownFinishedHandler2.receivedMeasurementIdentifier, CoreMatchers.`is`(
-                CoreMatchers.equalTo(measurementId2)
-            )
-        )
-        assertThat(
-            measurementId3,
-            CoreMatchers.`is`(CoreMatchers.not(CoreMatchers.equalTo(-1L)))
-        )
-        assertThat(
-            shutDownFinishedHandler3.receivedMeasurementIdentifier, CoreMatchers.`is`(
-                CoreMatchers.equalTo(measurementId3)
-            )
+            shutDownFinishedHandler3.receivedMeasurementIdentifier, `is`(equalTo(measurementId3))
         )
     }
 
@@ -606,9 +598,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         val measurementIdentifier = startAndCheckThatLaunched()
         oocut!!.disconnect()
         assertThat(
-            oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), CoreMatchers.`is`(
-                CoreMatchers.equalTo(true)
-            )
+            oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), `is`(equalTo(true))
         )
         stopAndCheckThatStopped(measurementIdentifier)
     }
@@ -636,15 +626,14 @@ We should consider refactoring the code before to use startCommandReceived as in
         val lock: Lock = ReentrantLock()
         val condition = lock.newCondition()
         val startUpFinishedHandler = TestStartUpFinishedHandler(
-            lock, condition,
-            MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED
+            lock,
+            condition,
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED,
         )
         oocut!!.start(Modality.UNKNOWN, startUpFinishedHandler)
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition)
         assertThat(
-            startUpFinishedHandler.receivedServiceStarted(), CoreMatchers.`is`(
-                CoreMatchers.equalTo(false)
-            )
+            startUpFinishedHandler.receivedServiceStarted(), `is`(equalTo(false))
         )
         stopAndCheckThatStopped(measurementIdentifier)
     }
@@ -737,14 +726,8 @@ We should consider refactoring the code before to use startCommandReceived as in
     fun testDoubleReconnect() {
         val measurementIdentifier = startAndCheckThatLaunched()
         oocut!!.disconnect()
-        assertThat(
-            oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT),
-            CoreMatchers.`is`(true)
-        )
-        assertThat(
-            oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT),
-            CoreMatchers.`is`(true)
-        )
+        assertThat(oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), `is`(true))
+        assertThat(oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), `is`(true))
         stopAndCheckThatStopped(measurementIdentifier)
     }
 
@@ -765,15 +748,9 @@ We should consider refactoring the code before to use startCommandReceived as in
     fun testDisconnectReconnectTwice() {
         val measurementIdentifier = startAndCheckThatLaunched()
         oocut!!.disconnect()
-        assertThat(
-            oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT),
-            CoreMatchers.`is`(true)
-        )
+        assertThat(oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), `is`(true))
         oocut!!.disconnect()
-        assertThat(
-            oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT),
-            CoreMatchers.`is`(true)
-        )
+        assertThat(oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), `is`(true))
         stopAndCheckThatStopped(measurementIdentifier)
     }
 
@@ -795,10 +772,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         val measurementIdentifier = startAndCheckThatLaunched()
         stopAndCheckThatStopped(measurementIdentifier)
         val measurementIdentifier2 = startAndCheckThatLaunched()
-        assertThat(
-            measurementIdentifier2,
-            CoreMatchers.not(CoreMatchers.equalTo(measurementIdentifier))
-        )
+        assertThat(measurementIdentifier2, not(equalTo(measurementIdentifier)))
         stopAndCheckThatStopped(measurementIdentifier2)
     }
 
@@ -818,7 +792,6 @@ We should consider refactoring the code before to use startCommandReceived as in
         CorruptedMeasurementException::class
     )
     fun testResumeTwice() {
-
         // Start, pause
         val measurementIdentifier = startAndCheckThatLaunched()
         pauseAndCheckThatStopped(measurementIdentifier)
@@ -827,29 +800,26 @@ We should consider refactoring the code before to use startCommandReceived as in
         resumeAndCheckThatLaunched(measurementIdentifier)
 
         // Resume 2: must be ignored by resumeAsync
-        val persistence = DefaultPersistenceLayer(
-            context!!, CapturingPersistenceBehaviour()
-        )
+        val persistence = DefaultPersistenceLayer(context!!, CapturingPersistenceBehaviour())
         // Do not reuse the lock/condition!
         val lock: Lock = ReentrantLock()
         val condition = lock.newCondition()
         val startUpFinishedHandler = TestStartUpFinishedHandler(
-            lock, condition,
-            MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED
+            lock,
+            condition,
+            MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED,
         )
         oocut!!.resume(startUpFinishedHandler)
         val isRunning = isDataCapturingServiceRunning
-        assertThat(isRunning, CoreMatchers.`is`(CoreMatchers.equalTo(true)))
+        assertThat(isRunning, `is`(equalTo(true)))
         assertThat(
-            persistence.loadMeasurementStatus(measurementIdentifier), CoreMatchers.`is`(
-                CoreMatchers.equalTo(MeasurementStatus.OPEN)
-            )
+            persistence.loadMeasurementStatus(measurementIdentifier),
+            `is`(equalTo(MeasurementStatus.OPEN))
         )
         stopAndCheckThatStopped(measurementIdentifier)
         assertThat(
-            persistence.loadMeasurementStatus(measurementIdentifier), CoreMatchers.`is`(
-                CoreMatchers.equalTo(MeasurementStatus.FINISHED)
-            )
+            persistence.loadMeasurementStatus(measurementIdentifier),
+            `is`(equalTo(MeasurementStatus.FINISHED))
         )
     }
 
@@ -931,7 +901,8 @@ We should consider refactoring the code before to use startCommandReceived as in
     }
 
     /**
-     * Tests if the service lifecycle is running successfully and that the life-cycle [de.cyface.persistence.model.Event]s are logged.
+     * Tests if the service lifecycle is running successfully and that the life-cycle
+     * [de.cyface.persistence.model.Event]s are logged.
      *
      * Makes sure the [DataCapturingService.pause] and
      * [DataCapturingService.resume] work correctly.
@@ -951,31 +922,17 @@ We should consider refactoring the code before to use startCommandReceived as in
         val measurementIdentifier = startPauseResumeStop()
         val events = oocut!!.persistenceLayer.loadEvents(measurementIdentifier)
         // start, pause, resume, stop and initial MODALITY_TYPE_CHANGE event
-        assertThat(events.size, CoreMatchers.`is`(CoreMatchers.equalTo(5)))
-        assertThat(
-            events[0]!!.type,
-            CoreMatchers.`is`(CoreMatchers.equalTo(EventType.LIFECYCLE_START))
-        )
-        assertThat(
-            events[1]!!.type,
-            CoreMatchers.`is`(CoreMatchers.equalTo(EventType.MODALITY_TYPE_CHANGE))
-        )
-        assertThat(
-            events[2]!!.type,
-            CoreMatchers.`is`(CoreMatchers.equalTo(EventType.LIFECYCLE_PAUSE))
-        )
-        assertThat(
-            events[3]!!.type,
-            CoreMatchers.`is`(CoreMatchers.equalTo(EventType.LIFECYCLE_RESUME))
-        )
-        assertThat(
-            events[4]!!.type,
-            CoreMatchers.`is`(CoreMatchers.equalTo(EventType.LIFECYCLE_STOP))
-        )
+        assertThat(events.size, `is`(equalTo(5)))
+        assertThat(events[0]!!.type, `is`(equalTo(EventType.LIFECYCLE_START)))
+        assertThat(events[1]!!.type, `is`(equalTo(EventType.MODALITY_TYPE_CHANGE)))
+        assertThat(events[2]!!.type, `is`(equalTo(EventType.LIFECYCLE_PAUSE)))
+        assertThat(events[3]!!.type, `is`(equalTo(EventType.LIFECYCLE_RESUME)))
+        assertThat(events[4]!!.type, `is`(equalTo(EventType.LIFECYCLE_STOP)))
     }
 
     /**
-     * Tests if the service lifecycle is running successfully and that the life-cycle [de.cyface.persistence.model.Event]s are logged.
+     * Tests if the service lifecycle is running successfully and that the life-cycle
+     * [de.cyface.persistence.model.Event]s are logged.
      *
      * Makes sure the [DataCapturingService.pause] and
      * [DataCapturingService.resume] work correctly.
@@ -1015,46 +972,24 @@ We should consider refactoring the code before to use startCommandReceived as in
     private fun startPauseResumeStop(): Long {
         val measurementIdentifier = startAndCheckThatLaunched()
         val measurements = persistence!!.loadMeasurements()
-        assertThat(measurements.size, CoreMatchers.`is`(CoreMatchers.equalTo(1)))
+        assertThat(measurements.size, `is`(equalTo(1)))
         pauseAndCheckThatStopped(measurementIdentifier)
         resumeAndCheckThatLaunched(measurementIdentifier)
         val newMeasurements = persistence!!.loadMeasurements()
-        assertThat(
-            measurements.size == newMeasurements.size, CoreMatchers.`is`(
-                CoreMatchers.equalTo(true)
-            )
-        )
+        assertThat(measurements.size == newMeasurements.size, `is`(equalTo(true)))
         stopAndCheckThatStopped(measurementIdentifier)
 
         runBlocking {
             // Check Events
             val events =
                 persistence!!.eventRepository!!.loadAllByMeasurementId(measurementIdentifier)
-            assertThat(events!!.size, CoreMatchers.`is`(CoreMatchers.equalTo(5)))
-            assertThat(
-                events[0].type,
-                CoreMatchers.`is`(CoreMatchers.equalTo(EventType.LIFECYCLE_START))
-            )
-            assertThat(
-                events[1].type,
-                CoreMatchers.`is`(CoreMatchers.equalTo(EventType.MODALITY_TYPE_CHANGE))
-            )
-            assertThat(
-                events[1].value,
-                CoreMatchers.`is`(CoreMatchers.equalTo(Modality.UNKNOWN.databaseIdentifier))
-            )
-            assertThat(
-                events[2].type,
-                CoreMatchers.`is`(CoreMatchers.equalTo(EventType.LIFECYCLE_PAUSE))
-            )
-            assertThat(
-                events[3].type,
-                CoreMatchers.`is`(CoreMatchers.equalTo(EventType.LIFECYCLE_RESUME))
-            )
-            assertThat(
-                events[4].type,
-                CoreMatchers.`is`(CoreMatchers.equalTo(EventType.LIFECYCLE_STOP))
-            )
+            assertThat(events!!.size, `is`(equalTo(5)))
+            assertThat(events[0].type, `is`(equalTo(EventType.LIFECYCLE_START)))
+            assertThat(events[1].type, `is`(equalTo(EventType.MODALITY_TYPE_CHANGE)))
+            assertThat(events[1].value, `is`(equalTo(Modality.UNKNOWN.databaseIdentifier)))
+            assertThat(events[2].type, `is`(equalTo(EventType.LIFECYCLE_PAUSE)))
+            assertThat(events[3].type, `is`(equalTo(EventType.LIFECYCLE_RESUME)))
+            assertThat(events[4].type, `is`(equalTo(EventType.LIFECYCLE_STOP)))
         }
         return measurementIdentifier
     }
@@ -1088,16 +1023,9 @@ We should consider refactoring the code before to use startCommandReceived as in
 
         // Check sensor data
         val measurements = persistence!!.loadMeasurements()
-        assertThat(
-            measurements.isNotEmpty(),
-            CoreMatchers.`is`(CoreMatchers.equalTo(true))
-        )
+        assertThat(measurements.isNotEmpty(), `is`(equalTo(true)))
         Thread.sleep(3000L)
-        assertThat(
-            testListener!!.capturedData.size > 0, CoreMatchers.`is`(
-                CoreMatchers.equalTo(true)
-            )
-        )
+        assertThat(testListener!!.getCapturedData().isNotEmpty(), `is`(equalTo(true)))
         stopAndCheckThatStopped(measurementIdentifier)
     }
 
@@ -1107,11 +1035,8 @@ We should consider refactoring the code before to use startCommandReceived as in
      */
     @Test
     fun testReconnectOnNonRunningServer() {
-        assertThat(
-            oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT),
-            CoreMatchers.`is`(false)
-        )
-        assertThat(oocut!!.isRunning, CoreMatchers.`is`(CoreMatchers.equalTo(false)))
+        assertThat(oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), `is`(false))
+        assertThat(oocut!!.isRunning, `is`(equalTo(false)))
     }
 
     /**
@@ -1137,24 +1062,9 @@ We should consider refactoring the code before to use startCommandReceived as in
             measurementIdentifier,
             EventType.MODALITY_TYPE_CHANGE
         )
-        assertThat(
-            modalityTypeChanges!!.size,
-            CoreMatchers.`is`(CoreMatchers.equalTo(2))
-        )
-        assertThat(
-            modalityTypeChanges[0].value, CoreMatchers.`is`(
-                CoreMatchers.equalTo(
-                    Modality.UNKNOWN.databaseIdentifier
-                )
-            )
-        )
-        assertThat(
-            modalityTypeChanges[1].value, CoreMatchers.`is`(
-                CoreMatchers.equalTo(
-                    Modality.CAR.databaseIdentifier
-                )
-            )
-        )
+        assertThat(modalityTypeChanges!!.size, `is`(equalTo(2)))
+        assertThat(modalityTypeChanges[0].value, `is`(equalTo(Modality.UNKNOWN.databaseIdentifier)))
+        assertThat(modalityTypeChanges[1].value, `is`(equalTo(Modality.CAR.databaseIdentifier)))
     }
 
     /**
@@ -1181,10 +1091,7 @@ We should consider refactoring the code before to use startCommandReceived as in
             measurementIdentifier,
             EventType.MODALITY_TYPE_CHANGE
         )
-        assertThat(
-            modalityTypeChanges!!.size,
-            CoreMatchers.`is`(CoreMatchers.equalTo(2))
-        )
+        assertThat(modalityTypeChanges!!.size, `is`(equalTo(2)))
     }
 
     /**
@@ -1210,23 +1117,8 @@ We should consider refactoring the code before to use startCommandReceived as in
             measurementIdentifier,
             EventType.MODALITY_TYPE_CHANGE
         )
-        assertThat(
-            modalityTypeChanges!!.size,
-            CoreMatchers.`is`(CoreMatchers.equalTo(2))
-        )
-        assertThat(
-            modalityTypeChanges[0].value, CoreMatchers.`is`(
-                CoreMatchers.equalTo(
-                    Modality.UNKNOWN.databaseIdentifier
-                )
-            )
-        )
-        assertThat(
-            modalityTypeChanges[1].value, CoreMatchers.`is`(
-                CoreMatchers.equalTo(
-                    Modality.CAR.databaseIdentifier
-                )
-            )
-        )
+        assertThat(modalityTypeChanges!!.size, `is`(equalTo(2)))
+        assertThat(modalityTypeChanges[0].value, `is`(equalTo(Modality.UNKNOWN.databaseIdentifier)))
+        assertThat(modalityTypeChanges[1].value, `is`(equalTo(Modality.CAR.databaseIdentifier)))
     }
 }

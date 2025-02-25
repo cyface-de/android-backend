@@ -19,6 +19,7 @@
 package de.cyface.datacapturing
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -36,6 +37,7 @@ import android.os.RemoteException
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService
+import de.cyface.datacapturing.backend.SensorCapture
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
 import de.cyface.datacapturing.exception.MissingPermissionException
@@ -56,8 +58,8 @@ import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
 import de.cyface.synchronization.WiFiSurveyor
-import de.cyface.utils.Validate
 import java.lang.ref.WeakReference
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
@@ -93,9 +95,8 @@ import java.util.concurrent.locks.ReentrantLock
  * [ParcelableGeoLocation]s
  * @param capturingListener A [DataCapturingListener] that is notified of important events during data
  * capturing.
- * @property sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
- * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
- * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
+ * @property sensorCapture The [SensorCapture] implementation which decides if sensor data should
+ *  be captured.
  */
 abstract class DataCapturingService(
     context: Context,
@@ -106,7 +107,7 @@ abstract class DataCapturingService(
     distanceCalculationStrategy: DistanceCalculationStrategy,
     locationCleaningStrategy: LocationCleaningStrategy,
     capturingListener: DataCapturingListener,
-    sensorFrequency: Int
+    private val sensorCapture: SensorCapture,
 ) {
     /**
      * `true` if data capturing is running; `false` otherwise.
@@ -223,13 +224,6 @@ abstract class DataCapturingService(
      */
     private val locationCleaningStrategy: LocationCleaningStrategy
 
-    /**
-     * The frequency in which sensor data should be captured. If this is higher than the maximum
-     * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
-     * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
-     */
-    private val sensorFrequency: Int
-
     init {
         this.context = WeakReference(context)
         this.authority = authority
@@ -239,12 +233,12 @@ abstract class DataCapturingService(
         this.eventHandlingStrategy = eventHandlingStrategy
         this.distanceCalculationStrategy = distanceCalculationStrategy
         this.locationCleaningStrategy = locationCleaningStrategy
-        this.sensorFrequency = sensorFrequency
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId()
 
         // Mark deprecated measurements
         for (m in persistenceLayer.loadMeasurements()) {
-            if (m.fileFormatVersion < DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION && m.status != MeasurementStatus.DEPRECATED) {
+            if (m.fileFormatVersion < DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION &&
+                m.status != MeasurementStatus.DEPRECATED) {
                 try {
                     markDeprecated(m.id, m.status)
                 } catch (e: NoSuchMeasurementException) {
@@ -252,6 +246,7 @@ abstract class DataCapturingService(
                 }
             } else require(m.fileFormatVersion <= DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION) {
                 String.format(
+                    Locale.getDefault(),
                     "Invalid format version: %d",
                     m.fileFormatVersion
                 )
@@ -486,7 +481,7 @@ abstract class DataCapturingService(
 
             // Resume paused measurement
             val measurement = persistenceLayer.loadCurrentlyCapturedMeasurement()
-            Validate.isTrue(measurement.fileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
+            require(measurement.fileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
             persistenceLayer.logEvent(EventType.LIFECYCLE_RESUME, measurement)
             runService(measurement, finishedHandler)
 
@@ -511,7 +506,7 @@ abstract class DataCapturingService(
     private fun handleStopFailed(currentlyCapturedMeasurement: Measurement) {
         isRunning(IS_RUNNING_CALLBACK_TIMEOUT, TimeUnit.MILLISECONDS, object : IsRunningCallback {
             override fun isRunning() {
-                throw IllegalStateException("Capturing is still running.")
+                error("Capturing is still running.")
             }
 
             override fun timedOut() {
@@ -519,7 +514,7 @@ abstract class DataCapturingService(
                     val hasOpenMeasurement = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
                     val hasPausedMeasurement =
                         persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
-                    Validate.isTrue(!(hasOpenMeasurement && hasPausedMeasurement))
+                    require(!(hasOpenMeasurement && hasPausedMeasurement))
                     if (hasOpenMeasurement || hasPausedMeasurement) {
                         if (hasOpenMeasurement) {
                             // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
@@ -566,7 +561,7 @@ abstract class DataCapturingService(
     private fun handlePauseFailed(currentlyCapturedMeasurement: Measurement) {
         isRunning(IS_RUNNING_CALLBACK_TIMEOUT, TimeUnit.MILLISECONDS, object : IsRunningCallback {
             override fun isRunning() {
-                throw IllegalStateException("Capturing is still running.")
+                error("Capturing is still running.")
             }
 
             override fun timedOut() {
@@ -574,9 +569,9 @@ abstract class DataCapturingService(
                     val hasOpenMeasurement = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
                     val hasPausedMeasurement =
                         persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
-                    Validate.isTrue(!(hasOpenMeasurement && hasPausedMeasurement))
+                    require(!(hasOpenMeasurement && hasPausedMeasurement))
                     // There is no good reason why pause is called when there is not even an unfinished measurement
-                    Validate.isTrue(hasOpenMeasurement || hasPausedMeasurement)
+                    require(hasOpenMeasurement || hasPausedMeasurement)
                     if (hasOpenMeasurement) {
                         // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
                         // We just update the {@link MeasurementStatus} and hope all will be okay.
@@ -681,7 +676,7 @@ abstract class DataCapturingService(
                     Log.v(Constants.TAG, "ReconnectCallback.onSuccess(): Binding to service!")
                     bind()
                 } catch (e: DataCapturingException) {
-                    throw IllegalStateException("Illegal state: unable to bind to background service!")
+                    throw IllegalStateException("Illegal state: unable to bind to background service!", e)
                 }
             }
         }
@@ -737,6 +732,8 @@ abstract class DataCapturingService(
         startUpFinishedHandler: StartUpFinishedHandler
     ) {
         val context = getContext()
+
+        @SuppressLint("UnspecifiedRegisterReceiverFlag")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context!!.registerReceiver(
                 startUpFinishedHandler,
@@ -767,16 +764,9 @@ abstract class DataCapturingService(
             BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID,
             locationCleaningStrategy
         )
-        startIntent.putExtra(BundlesExtrasCodes.SENSOR_FREQUENCY, sensorFrequency)
-        val serviceComponentName: ComponentName? =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(startIntent)
-            } else {
-                context.startService(startIntent)
-            }
-        if (serviceComponentName == null) {
-            throw DataCapturingException("DataCapturingBackgroundService failed to start!")
-        }
+        startIntent.putExtra(BundlesExtrasCodes.SENSOR_CAPTURE, sensorCapture)
+        context.startForegroundService(startIntent)
+            ?: throw DataCapturingException("DataCapturingBackgroundService failed to start!")
         bind()
     }
 
@@ -822,10 +812,18 @@ abstract class DataCapturingService(
             // We probably catch this silently as we only try to unbind and the stopService call follows
             Log.w(
                 Constants.TAG,
-                "Service was either paused or already stopped, so I was unable to unbind from it."
+                "Service was either paused or already stopped, so I was unable to unbind from it.",
+                e
             )
         } finally {
-            Log.v(Constants.TAG, String.format("Stopping using Intent with context %s", context))
+            Log.v(
+                Constants.TAG,
+                String.format(
+                    Locale.getDefault(),
+                    "Stopping using Intent with context %s",
+                    context
+                )
+            )
             val stopIntent = Intent(context, DataCapturingBackgroundService::class.java)
             serviceWasActive = context.stopService(stopIntent)
         }
@@ -846,7 +844,7 @@ abstract class DataCapturingService(
     ) {
         val stoppedBroadcastIntent = Intent(MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED)
         // The measurement id should always be set, also if `stoppedSuccessfully=false` [STAD-333]
-        Validate.isTrue(measurementIdentifier > 0L)
+        require(measurementIdentifier > 0L)
         stoppedBroadcastIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, measurementIdentifier)
         stoppedBroadcastIntent.putExtra(
             BundlesExtrasCodes.STOPPED_SUCCESSFULLY,
@@ -870,8 +868,11 @@ abstract class DataCapturingService(
         ) == PackageManager.PERMISSION_GRANTED
         return if (!permissionAlreadyGranted && uiListener != null) {
             uiListener!!.onRequirePermission(
-                Manifest.permission.ACCESS_FINE_LOCATION, Reason(
-                    "This app uses the GNSS (GPS) receiver to display your position. If you would like your position to be shown as exactly as possible please allow access to the GNSS (GPS) sensors."
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Reason(
+                    "This app uses the GNSS (GPS) receiver to display your position. " +
+                            "If you would like your position to be shown as exactly as possible" +
+                            "please allow access to the GNSS (GPS) sensors."
                 )
             )
         } else {
@@ -909,11 +910,10 @@ abstract class DataCapturingService(
         }
         val hasOpenMeasurements = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
         val hasPausedMeasurements = persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
-        Validate.isTrue(!hasOpenMeasurements, "There is a dead OPEN measurement!")
-        Validate.isTrue(
-            !hasPausedMeasurements,
+        require(!hasOpenMeasurements) { "There is a dead OPEN measurement!" }
+        require(!hasPausedMeasurements) {
             "There is a dead PAUSED measurement or wrong life-cycle call."
-        )
+        }
         return persistenceLayer.newMeasurement(modality)
     }
 
@@ -923,7 +923,8 @@ abstract class DataCapturingService(
      *
      * We offer this API through the [DataCapturingService] to allow the SDK implementor to load the
      * currentlyCapturedMeasurement from the cache as the [de.cyface.persistence.DefaultPersistenceBehaviour]
-     * does not have a cache which is the only [de.cyface.persistence.PersistenceBehaviour] the implementor may use directly.
+     * does not have a cache which is the only [de.cyface.persistence.PersistenceBehaviour] the
+     * implementor may use directly.
      *
      * @return the currently captured [Measurement]
      * @throws NoSuchMeasurementException If this method has been called while no `Measurement` was active. To
@@ -1008,9 +1009,8 @@ abstract class DataCapturingService(
     /**
      * Unregisters the [ConnectionStatusReceiver] when no more needed.
      */
-    fun  // Used by implementing apps (CY)
-            shutdownConnectionStatusReceiver() {
-        connectionStatusReceiver.shutdown(getContext())
+    fun shutdownConnectionStatusReceiver() { // Used by implementing apps (CY)
+        getContext()?.let { connectionStatusReceiver.shutdown(it) }
     }
 
     /**
@@ -1084,8 +1084,8 @@ abstract class DataCapturingService(
      * Called when the user switches the [Modality] via UI.
      *
      * In order to record multi-`Modality` `Measurement`s this method records `Modality` switches as
-     * [de.cyface.persistence.model.Event]s when this occurs during an ongoing [Measurement]. Does nothing when no capturing
-     * [.isRunning].
+     * [de.cyface.persistence.model.Event]s when this occurs during an ongoing [Measurement]. Does
+     * nothing when no capturing [.isRunning].
      *
      * @param newModality the identifier of the new [Modality]
      */
@@ -1112,7 +1112,7 @@ abstract class DataCapturingService(
             if (modalityChanges!!.isNotEmpty()) {
                 val lastModalityChangeEvent = modalityChanges[modalityChanges.size - 1]
                 val lastChangeValue = lastModalityChangeEvent.value
-                Validate.notNull(lastChangeValue)
+                requireNotNull(lastChangeValue)
                 if (lastChangeValue == newModality.databaseIdentifier) {
                     Log.d(
                         Constants.TAG,
@@ -1142,6 +1142,7 @@ abstract class DataCapturingService(
         Log.d(
             Constants.TAG,
             String.format(
+                Locale.getDefault(),
                 "markDeprecated(): Updating measurement %d: %s -> %s",
                 measurementIdentifier,
                 status,
@@ -1161,7 +1162,8 @@ abstract class DataCapturingService(
                 measurementIdentifier
             )
 
-            MeasurementStatus.SKIPPED, MeasurementStatus.SYNCED ->                 // No need to clean the measurement using `markFinishedAs`
+            // No need to clean the measurement using `markFinishedAs`
+            MeasurementStatus.SKIPPED, MeasurementStatus.SYNCED ->
                 persistenceLayer.setStatus(
                     measurementIdentifier,
                     MeasurementStatus.DEPRECATED,
@@ -1205,7 +1207,14 @@ abstract class DataCapturingService(
         }
 
         override fun handleMessage(msg: Message) {
-            Log.v(Constants.TAG, String.format("Service facade received message: %d", msg.what))
+            Log.v(
+                Constants.TAG,
+                String.format(
+                    Locale.getDefault(),
+                    "Service facade received message: %d",
+                    msg.what
+                )
+            )
             val parcel: Bundle = msg.data
             parcel.classLoader = javaClass.classLoader
             if (msg.what == MessageCodes.SERVICE_STOPPED || msg.what == MessageCodes.SERVICE_STOPPED_ITSELF) {
@@ -1255,8 +1264,10 @@ abstract class DataCapturingService(
                 MessageCodes.GEOLOCATION_FIX -> listener.onFixAcquired()
                 MessageCodes.NO_GEOLOCATION_FIX -> listener.onFixLost()
                 MessageCodes.ERROR_PERMISSION -> listener.onRequiresPermission(
-                    Manifest.permission.ACCESS_FINE_LOCATION, Reason(
-                        "Data capturing requires permission to access geo location via satellite. Was not granted or revoked!"
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Reason(
+                        "Data capturing requires permission to access geo location via" +
+                                "satellite. Was not granted or revoked!"
                     )
                 )
 
@@ -1280,15 +1291,15 @@ abstract class DataCapturingService(
          */
         private fun informShutdownFinishedHandler(messageCode: Int, parcel: Bundle) {
             val dataBundle = parcel.getParcelable<Bundle>("data")
-            Validate.notNull(dataBundle)
-            val measurementId = dataBundle!!.getLong(BundlesExtrasCodes.MEASUREMENT_ID)
+            requireNotNull(dataBundle)
+            val measurementId = dataBundle.getLong(BundlesExtrasCodes.MEASUREMENT_ID)
             when (messageCode) {
                 MessageCodes.SERVICE_STOPPED -> {
                     val stoppedSuccessfully =
                         dataBundle.getBoolean(BundlesExtrasCodes.STOPPED_SUCCESSFULLY)
                     // Success means the background service was still alive. As this is the private
                     // IPC to the background service this must always be true.
-                    Validate.isTrue(stoppedSuccessfully)
+                    require(stoppedSuccessfully)
 
                     // Inform interested parties
                     dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, true)
@@ -1306,7 +1317,7 @@ abstract class DataCapturingService(
                     // The background service already received a stopSelf command but as it's still
                     // bound to this service it should be still alive. We unbind it from this service via the
                     // stopService method (to reduce code duplicity).
-                    Validate.isTrue(dataCapturingService.stopService(synchronizationReceiver))
+                    require(dataCapturingService.stopService(synchronizationReceiver))
 
                     // Thus, no broadcast was sent to the ShutDownFinishedHandler, so we do this here:
                     dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, false)

@@ -29,7 +29,6 @@ import de.cyface.persistence.model.Modality
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData
-import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.equalTo
@@ -174,17 +173,17 @@ class PersistenceLayerTest {
             context!!, id,
             Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION
         )
-        Validate.isTrue(!accelerationFile.exists())
+        require(!accelerationFile.exists())
         val rotationFile = oocut!!.fileIOHandler.getFilePath(
             context!!, id,
             Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION
         )
-        Validate.isTrue(!rotationFile.exists())
+        require(!rotationFile.exists())
         val directionFile = oocut!!.fileIOHandler.getFilePath(
             context!!, id,
             Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION
         )
-        Validate.isTrue(!directionFile.exists())
+        require(!directionFile.exists())
     }
 
     /**

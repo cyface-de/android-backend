@@ -1,24 +1,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Required to transmit data to a server -->
     <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Required to check current synchronization interval and whether it is active or not-->
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
-    <!-- WTF!!! -->
-    <uses-permission android:name="android.permission.READ_SYNC_STATS" />
+
     <!-- Required to enable continuous synchronization -->
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+
     <!-- Required to communicate with the authentication system to get the JWT token. -->
     <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
-    <!-- Required to load the current user account from the system -->
-    <!--<uses-permission android:name="android.permission.GET_ACCOUNTS"/>-->
+
     <!-- Required to read JWT auth token from user account -->
     <uses-permission android:name="android.permission.USE_CREDENTIALS" />
-    <!-- Required to delete Cyface accounts from the Android system -->
-    <uses-permission
-        android:name="android.permission.MANAGE_ACCOUNTS"
-        android:maxSdkVersion="22" />
-    <!-- Required to read the Cyface accounts currently registered with the system -->
-    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+
     <!-- Required to check whether WiFi is active or not -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 </manifest>

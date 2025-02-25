@@ -34,43 +34,37 @@ import java.util.Locale
  * @author Armin Schnabel
  * @version 3.0.0
  * @since 1.0.0
- * @property lat The captured latitude of this data point in decimal coordinates as a value between -90.0 (south pole)
- * and 90.0 (north pole).
- * @property lon The captured longitude of this data point in decimal coordinates as a value between -180.0 and 180.0.
+ * @param timestamp The time at which this data point was captured in milliseconds since 1.1.1970.
+ * @property lat The captured latitude of this data point in decimal coordinates as a value between
+ * -90.0 (south pole) and 90.0 (north pole).
+ * @property lon The captured longitude of this data point in decimal coordinates as a value between
+ * -180.0 and 180.0.
  * @property altitude The captured altitude of this data point in meters above WGS 84 if available.
- * @property speed The current speed of the measuring device according to its location sensor in meters per second.
+ * @property speed The current speed of the measuring device according to its location sensor in
+ * meters per second.
  * @property accuracy The current accuracy of the measuring device in meters if available.
- * @property verticalAccuracy The current vertical accuracy of the measuring device in meters if available.
- * @property isValid `True` if this location is considered "clean" by the provided [de.cyface.persistence.strategy.LocationCleaningStrategy].
- * This is not persisted, as the validity can be different depending on the strategy implementation.
+ * @property verticalAccuracy The current vertical accuracy of the measuring device in meters if
+ * available.
  */
-open class ParcelableGeoLocation : DataPoint {
-    open val lat: Double
-    open val lon: Double
-    open val altitude: Double?
-    open val speed: Double
-    open val accuracy: Double?
+open class ParcelableGeoLocation(
+    timestamp: Long,
+    open val lat: Double,
+    open val lon: Double,
+    open val altitude: Double?,
+    open val speed: Double,
+    open val accuracy: Double?,
     open val verticalAccuracy: Double?
+) : DataPoint(timestamp) {
+    /**
+     *`True` if this location is considered "clean" by the provided
+     * [de.cyface.persistence.strategy.LocationCleaningStrategy].
+     *
+     * This is not persisted, as the validity can be different depending on the strategy
+     * implementation.
+     */
     open var isValid: Boolean = true
 
-    /**
-     * Creates a new completely initialized instance of this class.
-     *
-     * @param timestamp The timestamp at which this data point was captured in milliseconds since
-     * 1.1.1970.
-     * @param lat The captured latitude of this data point in decimal coordinates as a value between -90.0 (south
-     * pole) and 90.0 (north pole).
-     * @param lon The captured longitude of this data point in decimal coordinates as a value between -180.0
-     * and 180.0.
-     * @param altitude The captured altitude of this data point in meters above WGS 84.
-     * @param speed The current speed of the measuring device according to its location sensor in meters per second.
-     * @param accuracy The current accuracy of the measuring device in meters.
-     * @param verticalAccuracy The current vertical accuracy of the measuring device in meters.
-     */
-    constructor(
-        timestamp: Long, lat: Double, lon: Double, altitude: Double?,
-        speed: Double, accuracy: Double?, verticalAccuracy: Double?
-    ) : super(timestamp) {
+    init {
         require(timestamp >= 0L) { "Illegal argument: timestamp was less than 0L!" }
         require(!(lat < -90.0 || lat > 90.0)) {
             String.format(
@@ -87,7 +81,7 @@ open class ParcelableGeoLocation : DataPoint {
             )
         }
         // lowest and highest point on earth with a few meters added because of inaccuracy
-        require(!(altitude != null && (altitude < -500.0 || altitude > 10000.0))) {
+        require(!(altitude != null && (altitude!! < -500.0 || altitude!! > 10000.0))) {
             String.format(
                 Locale.US,
                 "Illegal value for altitude. Is required to be between -500.0 and 10_000.0 but was %f.",
@@ -105,25 +99,19 @@ open class ParcelableGeoLocation : DataPoint {
                 )
             )
         }
-        require(accuracy != null && accuracy >= 0.0) {
+        require(accuracy != null && accuracy!! >= 0.0) {
             String.format(
                 Locale.US,
                 "Illegal value for accuracy. Is required to be positive but was %f.", accuracy
             )
         }
-        require(!(verticalAccuracy != null && verticalAccuracy < 0.0)) {
+        require(!(verticalAccuracy != null && verticalAccuracy!! < 0.0)) {
             String.format(
                 Locale.US,
                 "Illegal value for verticalAccuracy. Is required to be positive but was %f.",
                 verticalAccuracy
             )
         }
-        this.lat = lat
-        this.lon = lon
-        this.altitude = altitude
-        this.speed = speed
-        this.accuracy = accuracy
-        this.verticalAccuracy = verticalAccuracy
     }
 
     /*
@@ -136,14 +124,16 @@ open class ParcelableGeoLocation : DataPoint {
      * @param in A `Parcel` that is a serialized version of a data point.
      */
     @Ignore // Parcelable requires this constructor, make {@code Room} ignore this constructor.
-    protected constructor(`in`: Parcel) : super(`in`) {
-        lat = `in`.readDouble()
-        lon = `in`.readDouble()
-        altitude = `in`.readSerializable() as Double? // to support `null` as value [STAD-496]
-        speed = `in`.readDouble()
-        accuracy = `in`.readSerializable() as Double? // to support `null` as value [STAD-496]
-        verticalAccuracy = `in`.readSerializable() as Double? // to support `null` as value [STAD-496]
-        isValid = `in`.readByte().let { (it > 0) }
+    protected constructor(`in`: Parcel) : this(
+        `in`.readLong(),
+        `in`.readDouble(),
+        `in`.readDouble(),
+        `in`.readValue(Double::class.java.classLoader) as? Double, // supports `null` [STAD-496]
+        `in`.readDouble(),
+        `in`.readValue(Double::class.java.classLoader) as? Double, // supports `null` [STAD-496]
+        `in`.readValue(Double::class.java.classLoader) as? Double, // supports `null` [STAD-496]
+    ) {
+        isValid = `in`.readByte().toInt() > 0
     }
 
     override fun describeContents(): Int {
@@ -154,15 +144,16 @@ open class ParcelableGeoLocation : DataPoint {
         super.writeToParcel(dest, flags)
         dest.writeDouble(lat)
         dest.writeDouble(lon)
-        dest.writeSerializable(altitude) // to support `null` as value [STAD-496]
+        dest.writeValue(altitude) // to support `null` as value [STAD-496]
         dest.writeDouble(speed)
-        dest.writeSerializable(accuracy) // to support `null` as value [STAD-496]
-        dest.writeSerializable(verticalAccuracy) // to support `null` as value [STAD-496]
+        dest.writeValue(accuracy) // to support `null` as value [STAD-496]
+        dest.writeValue(verticalAccuracy) // to support `null` as value [STAD-496]
         dest.writeByte((if (isValid) 1 else 0).toByte())
     }
 
     override fun toString(): String {
-        return "ParcelableGeoLocation(lat=$lat, lon=$lon, altitude=$altitude, speed=$speed, accuracy=$accuracy, verticalAccuracy=$verticalAccuracy, isValid=$isValid)"
+        return "ParcelableGeoLocation(lat=$lat, lon=$lon, altitude=$altitude, speed=$speed, " +
+                "accuracy=$accuracy, verticalAccuracy=$verticalAccuracy, isValid=$isValid)"
     }
 
     override fun equals(other: Any?): Boolean {

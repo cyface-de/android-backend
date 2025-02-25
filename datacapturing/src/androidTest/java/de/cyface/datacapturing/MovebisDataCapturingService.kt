@@ -30,6 +30,7 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
 import androidx.core.app.ActivityCompat
+import de.cyface.datacapturing.backend.SensorCapture
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
 import de.cyface.datacapturing.exception.MissingPermissionException
@@ -44,7 +45,6 @@ import de.cyface.persistence.model.Modality
 import de.cyface.persistence.strategy.DefaultDistanceCalculation
 import de.cyface.persistence.strategy.DefaultLocationCleaning
 import de.cyface.uploader.exception.SynchronisationException
-import de.cyface.utils.Validate
 
 /**
  * In implementation of the [DataCapturingService] as required inside the Movebis project.
@@ -80,31 +80,36 @@ import de.cyface.utils.Validate
  * triggered by the [de.cyface.datacapturing.backend.DataCapturingBackgroundService].
  * @param capturingListener A [DataCapturingListener] that is notified of important events during data
  * capturing.
- * @property sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
- * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
- * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
+ * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should
+ * be captured.
  */
 // Used by SDK implementing apps (SR)
 class MovebisDataCapturingService internal constructor(
-    context: Context, authority: String,
-    accountType: String, uiListener: UIListener,
+    context: Context,
+    authority: String,
+    accountType: String,
+    uiListener: UIListener,
     private val locationUpdateRate: Long,
     eventHandlingStrategy: EventHandlingStrategy,
     capturingListener: DataCapturingListener,
-    sensorFrequency: Int
+    sensorCapture: SensorCapture,
 ) : DataCapturingService(
-    context, authority, accountType,
+    context,
+    authority,
+    accountType,
     eventHandlingStrategy,
     DefaultPersistenceLayer(context, CapturingPersistenceBehaviour()),
-    DefaultDistanceCalculation(), DefaultLocationCleaning(), capturingListener,
-    sensorFrequency
+    DefaultDistanceCalculation(),
+    DefaultLocationCleaning(),
+    capturingListener,
+    sensorCapture,
 ) {
     /**
      * A `LocationManager` that is used to provide location updates for the UI even if no capturing is
      * running.
      */
-    private val preMeasurementLocationManager: LocationManager?
-    private val AUTH_TOKEN_TYPE = "de.cyface.jwt"
+    private val preMeasurementLocationManager: LocationManager =
+        context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
     /**
      * A listener for location updates, which it passes through to the user interface.
@@ -147,16 +152,17 @@ class MovebisDataCapturingService internal constructor(
      * triggered by the [de.cyface.datacapturing.backend.DataCapturingBackgroundService].
      * @param capturingListener A [DataCapturingListener] that is notified of important events during data
      * capturing.
-     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
-     * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
-     * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
+     * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should
+     * be captured.
      */
     @Suppress("unused") // Used by SDK implementing apps (SR)
     constructor(
-        context: Context, uiListener: UIListener,
-        locationUpdateRate: Long, eventHandlingStrategy: EventHandlingStrategy,
+        context: Context,
+        uiListener: UIListener,
+        locationUpdateRate: Long,
+        eventHandlingStrategy: EventHandlingStrategy,
         capturingListener: DataCapturingListener,
-        sensorFrequency: Int
+        sensorCapture: SensorCapture,
     ) : this(
         context,
         "de.cyface.provider",
@@ -165,12 +171,10 @@ class MovebisDataCapturingService internal constructor(
         locationUpdateRate,
         eventHandlingStrategy,
         capturingListener,
-        sensorFrequency
+        sensorCapture,
     )
 
     init {
-        preMeasurementLocationManager =
-            context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         this.uiListener = uiListener
     }
 
@@ -187,7 +191,7 @@ class MovebisDataCapturingService internal constructor(
         }
         val fineLocationAccessIsGranted = checkFineLocationAccess(getContext()!!)
         if (fineLocationAccessIsGranted) {
-            preMeasurementLocationManager!!.requestLocationUpdates(
+            preMeasurementLocationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER, locationUpdateRate, 0f,
                 locationListener
             )
@@ -195,7 +199,7 @@ class MovebisDataCapturingService internal constructor(
         }
         val coarseLocationAccessIsGranted = checkCoarseLocationAccess(getContext()!!)
         if (coarseLocationAccessIsGranted) {
-            if (!preMeasurementLocationManager!!.allProviders
+            if (!preMeasurementLocationManager.allProviders
                     .contains(LocationManager.NETWORK_PROVIDER)
             ) {
                 Log.w(
@@ -224,7 +228,7 @@ class MovebisDataCapturingService internal constructor(
         if (!uiUpdatesActive) {
             return
         }
-        preMeasurementLocationManager!!.removeUpdates(locationListener)
+        preMeasurementLocationManager.removeUpdates(locationListener)
         uiUpdatesActive = false
     }
 
@@ -256,8 +260,8 @@ class MovebisDataCapturingService internal constructor(
     /**
      * Removes the [JWT](https://jwt.io/) auth token for a specific username from the system.
      *
-     * This method calls [de.cyface.synchronization.WiFiSurveyor.stopSurveillance] before removing the account as the surveillance expects
-     * an account to be registered.
+     * This method calls [de.cyface.synchronization.WiFiSurveyor.stopSurveillance] before removing
+     * the account as the surveillance expects an account to be registered.
      *
      * If that username was not registered with [.registerJWTAuthToken] no account is removed.
      *
@@ -286,8 +290,11 @@ class MovebisDataCapturingService internal constructor(
         val uiListener = uiListener
         return if (!permissionAlreadyGranted && uiListener != null) {
             uiListener.onRequirePermission(
-                Manifest.permission.ACCESS_COARSE_LOCATION, Reason(
-                    "this app uses information about WiFi and cellular networks to display your position. Please provide your permission to track the networks you are currently using, to see your position on the map."
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Reason(
+                    "this app uses information about WiFi and cellular networks to display " +
+                            "your position. Please provide your permission to track the networks you " +
+                            "are currently using, to see your position on the map."
                 )
             )
         } else {
@@ -329,7 +336,7 @@ class MovebisDataCapturingService internal constructor(
         try {
             super.start(modality, finishedHandler)
         } catch (e: CorruptedMeasurementException) {
-            val corruptedMeasurements: MutableList<Measurement?> = ArrayList()
+            val corruptedMeasurements: MutableList<Measurement?> = mutableListOf()
             val openMeasurements = persistenceLayer.loadMeasurements(MeasurementStatus.OPEN)
             val pausedMeasurements = persistenceLayer
                 .loadMeasurements(MeasurementStatus.PAUSED)
@@ -338,7 +345,8 @@ class MovebisDataCapturingService internal constructor(
             for (measurement in corruptedMeasurements) {
                 Log.w(
                     Constants.TAG,
-                    "Finishing corrupted measurement (mid " + measurement!!.id + ")."
+                    "Finishing corrupted measurement (mid " + measurement!!.id + ").",
+                    e,
                 )
                 try {
                     // Because of MOV-790 we disable the validation in setStatus and do this manually below
@@ -347,8 +355,8 @@ class MovebisDataCapturingService internal constructor(
                     throw IllegalStateException(e1)
                 }
             }
-            Validate.isTrue(!persistenceLayer.hasMeasurement(MeasurementStatus.OPEN))
-            Validate.isTrue(!persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))
+            require(!persistenceLayer.hasMeasurement(MeasurementStatus.OPEN))
+            require(!persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))
             this.persistenceLayer.persistenceBehaviour!!.resetIdentifierOfCurrentlyCapturedMeasurement()
 
             // Now try again to start Capturing - now there can't be any corrupted measurements
@@ -358,5 +366,9 @@ class MovebisDataCapturingService internal constructor(
                 throw IllegalStateException(e1)
             }
         }
+    }
+
+    companion object {
+        private const val AUTH_TOKEN_TYPE = "de.cyface.jwt"
     }
 }

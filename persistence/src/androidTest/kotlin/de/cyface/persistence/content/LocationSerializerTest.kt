@@ -30,9 +30,8 @@ import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.serialization.LocationSerializer
+import de.cyface.persistence.serialization.TransferFileSerializer.getLocationCursor
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
-import de.cyface.utils.CursorIsNullException
-import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
@@ -98,12 +97,13 @@ class LocationSerializerTest {
     }
 
     private fun testReadFrom(numberOfTestEntries: Int) = runBlocking {
-        Validate.isTrue(numberOfTestEntries >= 2, "not supported")
+        require(numberOfTestEntries >= 2) { "not supported" }
 
         // Arrange
-        val locations = arrayListOf<GeoLocation>()
+        val locations = mutableListOf<GeoLocation>()
         for (i in 1.rangeTo(numberOfTestEntries)) {
             val location = GeoLocation(
+                0L,
                 i.toLong(),
                 min(i + 1.0, 90.0),
                 min(i + 2.0, 180.0),
@@ -125,13 +125,13 @@ class LocationSerializerTest {
             assertThat(count, equalTo(numberOfTestEntries))
             var startIndex = 0
             while (startIndex < count) {
-                cursor =
-                    persistence.locationDao!!.selectAllByMeasurementId(
-                        measurementId!!,
-                        startIndex,
-                        AbstractCyfaceTable.DATABASE_QUERY_LIMIT
-                    )
-                if (cursor == null) throw CursorIsNullException()
+                cursor = getLocationCursor(
+                    persistence.database!!,
+                    measurementId!!,
+                    startIndex,
+                    AbstractCyfaceTable.DATABASE_QUERY_LIMIT,
+                )
+                // if (cursor == null) throw CursorIsNullException()
                 oocut!!.readFrom(cursor)
                 startIndex += AbstractCyfaceTable.DATABASE_QUERY_LIMIT
             }

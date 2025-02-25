@@ -29,10 +29,9 @@ import kotlinx.coroutines.runBlocking
  * An implementation of the [LocationCleaningStrategy] which uses simple lightweight filters
  * which can be applied "live".
  *
- * The goal is to ignore [ParcelableGeoLocation]s when standing still, to ignore very inaccurate locations and to
- * avoid
- * large distance "jumps", e.g. when the `LocationManager` implementation delivers an old, cached location at the
- * beginning of the track.
+ * The goal is to ignore [ParcelableGeoLocation]s when standing still, to ignore very inaccurate
+ * locations and to avoid large distance "jumps", e.g. when the `LocationManager` implementation
+ * delivers an old, cached location at the beginning of the track.
  *
  * @author Armin Schnabel
  * @version 1.1.2
@@ -57,8 +56,18 @@ class DefaultLocationCleaning : LocationCleaningStrategy {
         // Nothing to do here.
     }
 
+    override fun isClean(location: GeoLocation?): Boolean {
+        return isClean(location!!.speed, location.accuracy)
+    }
+
     override fun isClean(location: ParcelableGeoLocation?): Boolean {
-        return location!!.speed > LOWER_SPEED_THRESHOLD && location.accuracy!! < UPPER_ACCURACY_THRESHOLD && location.speed < UPPER_SPEED_THRESHOLD
+        return isClean(location!!.speed, location.accuracy)
+    }
+
+    private fun isClean(speed: Double, accuracy: Double?): Boolean {
+        return speed > LOWER_SPEED_THRESHOLD &&
+                accuracy!! < UPPER_ACCURACY_THRESHOLD &&
+                speed < UPPER_SPEED_THRESHOLD
     }
 
     override fun loadCleanedLocations(
@@ -66,8 +75,10 @@ class DefaultLocationCleaning : LocationCleaningStrategy {
         measurementId: Long
     ): List<GeoLocation> = runBlocking {
         return@runBlocking dao.loadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt(
-            measurementId, LOWER_SPEED_THRESHOLD,
-            UPPER_ACCURACY_THRESHOLD, UPPER_SPEED_THRESHOLD
+            measurementId,
+            LOWER_SPEED_THRESHOLD,
+            UPPER_ACCURACY_THRESHOLD,
+            UPPER_SPEED_THRESHOLD
         )
     }
 

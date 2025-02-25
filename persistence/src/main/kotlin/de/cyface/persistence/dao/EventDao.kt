@@ -18,7 +18,6 @@
  */
 package de.cyface.persistence.dao
 
-import android.database.Cursor
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
@@ -50,7 +49,11 @@ interface EventDao {
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
-    @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY timestamp ASC")
+    @Query(
+        "SELECT * FROM ${EventTable.URI_PATH} " +
+                "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId " +
+                "ORDER BY timestamp ASC"
+    )
     suspend fun loadAllByMeasurementId(measurementId: Long): List<Event>?
 
     /**
@@ -58,20 +61,12 @@ interface EventDao {
      *
      * As this returns a `Flow`, queries are automatically run asynchronously on a background thread.
      */
-    @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY timestamp ASC")
+    @Query(
+        "SELECT * FROM ${EventTable.URI_PATH} " +
+                "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId " +
+                "ORDER BY timestamp ASC"
+    )
     fun observeAllByMeasurementId(measurementId: Long): Flow<List<Event>?>
-
-    /**
-     * Returns a [Cursor] which points to a specific page defined by [limit] and [offset] of all events
-     * of a measurement with a specified the [measurementId].
-     *
-     * This way we can reuse the code in `SyncAdapter` > `TransferFileSerializer` which queries and serializes
-     * only 10_000 entries at a time which fixed performance issues with large measurements.
-     *
-     * The events are ordered by timestamp.
-     */
-    @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY ${BaseColumns.TIMESTAMP} ASC LIMIT :limit OFFSET :offset")
-    fun selectAllByMeasurementId(measurementId: Long, offset: Int, limit: Int): Cursor?
 
     /**
      * Returns the number of events found for a specific [measurementId].
@@ -82,7 +77,12 @@ interface EventDao {
     /**
      * Ordered by timestamp is required.
      */
-    @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${EventTable.COLUMN_TYPE} = :type ORDER BY ${BaseColumns.TIMESTAMP} ASC")
+    @Query(
+        "SELECT * FROM ${EventTable.URI_PATH} " +
+                "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId " +
+                "AND ${EventTable.COLUMN_TYPE} = :type " +
+                "ORDER BY ${BaseColumns.TIMESTAMP} ASC"
+    )
     suspend fun loadAllByMeasurementIdAndType(measurementId: Long, type: EventType): List<Event>?
 
     @Query("DELETE FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")

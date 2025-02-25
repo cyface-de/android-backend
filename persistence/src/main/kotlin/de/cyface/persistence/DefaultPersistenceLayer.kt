@@ -39,7 +39,6 @@ import de.cyface.persistence.model.Identifier
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
-import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.model.ParcelablePressure
 import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.model.Track
@@ -49,12 +48,12 @@ import de.cyface.persistence.serialization.NoSuchFileException
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.serializer.model.Point3DType
-import de.cyface.utils.Validate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import java.util.Locale
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.max
@@ -81,6 +80,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         private set
 
     override val fileIOHandler: FileIOHandler
+
+    override val database: Database?
 
     override val identifierDao: IdentifierDao?
 
@@ -114,6 +115,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     constructor() {
         context = null
+        database = null
         identifierDao = null
         measurementRepository = null
         eventRepository = null
@@ -142,7 +144,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     constructor(context: Context, persistenceBehaviour: B, fileIOHandler: FileIOHandler) {
         this.context = context
-        val database = Database.build(context.applicationContext)
+        this.database = Database.build(context.applicationContext)
         this.identifierDao = database.identifierDao()
         this.measurementRepository = MeasurementRepository(database.measurementDao())
         this.eventRepository = EventRepository(database.eventDao())
@@ -170,7 +172,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     private fun checkOrCreateFolder(folder: java.io.File) {
         if (!folder.exists()) {
-            Validate.isTrue(folder.mkdir())
+            require(folder.mkdir())
         }
     }
 
@@ -190,7 +192,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             }
             measurement.id = measurementId
         }
-        Validate.notNull(measurement.id) // Ensure the blocking code altered the object
+        requireNotNull(measurement.id) // Ensure the blocking code altered the object
         return measurement
     }
 
@@ -309,7 +311,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     fun markFinishedAs(newStatus: MeasurementStatus, measurementId: Long) {
 
         // The status in the database could be different from the one in the object so load it again
-        Validate.isTrue(loadMeasurementStatus(measurementId) === MeasurementStatus.FINISHED)
+        require(loadMeasurementStatus(measurementId) === MeasurementStatus.FINISHED)
         setStatus(measurementId, newStatus, false)
 
         // TODO [CY-4359]: implement cyface variant where not only sensor data but also GeoLocations are deleted
@@ -318,7 +320,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 context!!, fileIOHandler, measurementId, Point3DType.ACCELERATION
             )
                 .file
-            Validate.isTrue(accelerationFile.delete())
+            require(accelerationFile.delete())
         } catch (e: NoSuchFileException) {
             Log.v(TAG, "markAsSynchronized: No acceleration file found to delete, nothing to do", e)
         }
@@ -326,7 +328,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             val rotationFile = Point3DFile.loadFile(
                 context!!, fileIOHandler, measurementId, Point3DType.ROTATION
             ).file
-            Validate.isTrue(rotationFile.delete())
+            require(rotationFile.delete())
         } catch (e: NoSuchFileException) {
             Log.v(TAG, "markAsSynchronized: No rotation file found to delete, nothing to do", e)
         }
@@ -335,7 +337,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 context!!, fileIOHandler, measurementId, Point3DType.DIRECTION
             )
                 .file
-            Validate.isTrue(directionFile.delete())
+            require(directionFile.delete())
         } catch (e: NoSuchFileException) {
             Log.v(TAG, "markAsSynchronized: No direction file found to delete, nothing to do", e)
         }
@@ -372,7 +374,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     fun markSyncableAttachmentsAs(newStatus: MeasurementStatus, measurementId: Long) {
 
         // The status in the database could be different from the one in the object so load it again
-        Validate.isTrue(loadMeasurementStatus(measurementId) === MeasurementStatus.SYNCABLE_ATTACHMENTS)
+        require(loadMeasurementStatus(measurementId) === MeasurementStatus.SYNCABLE_ATTACHMENTS)
         setStatus(measurementId, newStatus, false)
 
         cleanupEmptyFolder(measurementId)
@@ -435,7 +437,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
 
         // Deleting first as a second upload approach would be handled by the API
         val file = attachment.path.toFile()
-        Validate.isTrue(file.delete())
+        require(file.delete())
     }
 
     override fun restoreOrCreateDeviceId(): String {
@@ -460,7 +462,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 identifierDao!!.getAll()
             }
 
-            Validate.isTrue(identifiers.size <= 1, "More entries than expected")
+            require(identifiers.size <= 1) { "More entries than expected" }
             if (identifiers.isEmpty()) {
                 throw NoDeviceIdException("No entries in IdentifierTable.")
             } else {
@@ -514,7 +516,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     }
 
     /**
-     * Removes the [de.cyface.persistence.model.ParcelablePoint3D]s for one [Measurement] from the local persistent data storage.
+     * Removes the [de.cyface.persistence.model.ParcelablePoint3D]s for one [Measurement] from the
+     * local persistent data storage.
      *
      * @param measurementIdentifier The `Measurement` id of the data to remove.
      */
@@ -531,7 +534,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION
             )
             if (accelerationFile.exists()) {
-                Validate.isTrue(accelerationFile.delete())
+                require(accelerationFile.delete())
             }
         }
         if (rotationFolder.exists()) {
@@ -540,7 +543,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION
             )
             if (rotationFile.exists()) {
-                Validate.isTrue(rotationFile.delete())
+                require(rotationFile.delete())
             }
         }
         if (directionFolder.exists()) {
@@ -549,7 +552,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION
             )
             if (directionFile.exists()) {
-                Validate.isTrue(directionFile.delete())
+                require(directionFile.delete())
             }
         }
     }
@@ -615,12 +618,14 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     }
 
     /**
-     * Returns the sum of the positive altitude changes of the measurement with the provided measurement identifier.
+     * Returns the sum of the positive altitude changes of the measurement with the provided
+     * measurement identifier.
      *
-     * To calculate the ascend, the [ParcelablePressure] values are loaded from the database if such values are
-     * available, otherwise the the [Track]s with the [de.cyface.persistence.model.ParcelableGeoLocation] are loaded from the database to
-     * calculate the metric on the fly [STAD-384]. In case no altitude information is available, `null` is
-     * returned.
+     * To calculate the ascend, the [ParcelablePressure] values are loaded from the database if
+     * such values are available, otherwise the the [Track]s with the
+     * [de.cyface.persistence.model.ParcelableGeoLocation] are loaded from the database to
+     * calculate the metric on the fly [STAD-384]. In case no altitude information is available,
+     * `null` is returned.
      *
      * @param measurementIdentifier The id of the `Measurement` to load the track for.
      * @param forceGnssAscend `true` if the ascend calculated based on GNSS data should be returned regardless if
@@ -655,10 +660,11 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     /**
      * Returns the altitudes for each sub-track of a specified measurement.
      *
-     * To calculate the altitudes, the [ParcelablePressure] values are loaded from the database if such values are
-     * available, otherwise the the [Track]s with the [de.cyface.persistence.model.ParcelableGeoLocation] are loaded from the database to
-     * calculate the metric on the fly [STAD-384]. In case no altitude information is available, `null` is
-     * returned.
+     * To calculate the altitudes, the [ParcelablePressure] values are loaded from the database if
+     * such values are available, otherwise the the [Track]s with the
+     * [de.cyface.persistence.model.ParcelableGeoLocation] are loaded from the database to
+     * calculate the metric on the fly [STAD-384]. In case no altitude information is available,
+     * `null` is returned.
      *
      * @param measurementIdentifier The id of the `Measurement` to load the track for.
      * @param forceGnssAltitudes `true` if the altitudes calculated based on GNSS data should be returned regardless if
@@ -695,22 +701,22 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param slidingWindowSize The window size to use to average the pressure values.
      * @return The altitudes in meters as list of lists, each representing a sub-track.
      */
-    protected fun altitudesFromPressures(tracks: List<Track>, slidingWindowSize: Int): List<List<Double>> {
-        val allAltitudes = ArrayList<List<Double>>()
+    fun altitudesFromPressures(tracks: List<Track>, slidingWindowSize: Int): List<List<Double>> {
+        val allAltitudes = mutableListOf<List<Double>>()
         for (track in tracks) {
 
             // Calculate average pressure because some devices measure large pressure differences when
             // the display-fingerprint is used and pressure is applied to the display: Pixel 6 [STAD-400]
             // This filter did not affect ascend calculation of devices without the bug: Pixel 3a
-            val pressures: MutableList<Double> = ArrayList()
+            val pressures: MutableList<Double> = mutableListOf()
             for (pressure in track.pressures) {
                 pressures.add(pressure!!.pressure)
             }
             val averagePressures = averages(pressures, slidingWindowSize) ?: continue
-            val altitudes = ArrayList<Double>()
+            val altitudes = mutableListOf<Double>()
             for (pressure in averagePressures) {
-                // As we're only interested in ascend and elevation profile, using a static reference pressure is
-                // sufficient [STAD-385] [STAD-391]
+                // As we're only interested in ascend and elevation profile, using a static
+                // reference pressure is sufficient [STAD-385] [STAD-391]
                 val altitude = SensorManager.getAltitude(
                     SensorManager.PRESSURE_STANDARD_ATMOSPHERE,
                     pressure.toFloat()
@@ -730,10 +736,10 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param tracks The tracks to calculate the altitudes for.
      * @return The altitudes in meters as list of lists, each representing a sub-track.
      */
-    protected fun altitudesFromGNSS(tracks: List<Track>): List<List<Double>> {
-        val allAltitudes = ArrayList<List<Double>>()
+    fun altitudesFromGNSS(tracks: List<Track>): List<List<Double>> {
+        val allAltitudes = mutableListOf<List<Double>>()
         for (track in tracks) {
-            val altitudes = ArrayList<Double>()
+            val altitudes = mutableListOf<Double>()
             for (location in track.geoLocations) {
                 val altitude = location!!.altitude
                 val verticalAccuracy = location.verticalAccuracy
@@ -756,7 +762,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param altitudes The list of altitudes to calculate the ascend for.
      * @return The ascend in meters.
      */
-    protected fun totalAscend(altitudes: List<List<Double>>): Double? {
+    fun totalAscend(altitudes: List<List<Double>>): Double? {
         var totalAscend: Double? = null
         for (trackAltitudes in altitudes) {
             // Tracks without much altitude should return 0 not null
@@ -808,11 +814,11 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         if (values.size <= windowSize) {
             return null
         }
-        val averages: MutableList<Double> = ArrayList()
+        val averages: MutableList<Double> = mutableListOf()
         for (i in windowSize - 1 until values.size) {
             var sum = 0.0
             val window = values.subList(i - windowSize + 1, i + 1)
-            Validate.isTrue(window.size == windowSize)
+            require(window.size == windowSize)
             for (value in window) {
                 sum += value
             }
@@ -836,10 +842,11 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     fun loadDuration(measurementIdentifier: Long): Long {
 
         // Extract lifecycle events only
-        val lifecycleEvents: MutableList<Event?> = ArrayList()
+        val lifecycleEvents: MutableList<Event?> = mutableListOf()
         for (event in loadEvents(measurementIdentifier)) {
             val type = event!!.type
-            if (type == EventType.LIFECYCLE_START || type == EventType.LIFECYCLE_PAUSE || type == EventType.LIFECYCLE_RESUME || type == EventType.LIFECYCLE_STOP) {
+            if (type == EventType.LIFECYCLE_START || type == EventType.LIFECYCLE_PAUSE ||
+                type == EventType.LIFECYCLE_RESUME || type == EventType.LIFECYCLE_STOP) {
                 lifecycleEvents.add(event)
             }
         }
@@ -853,9 +860,10 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             val event = lifecycleEvents[i]
             val isLast = i == lifecycleEvents.size - 1
             val isOngoing = loadMeasurementStatus(measurementIdentifier) == MeasurementStatus.OPEN
-            if (isLast && isOngoing && (event!!.type === EventType.LIFECYCLE_START || event!!.type === EventType.LIFECYCLE_RESUME)) {
+            if (isLast && isOngoing && (event!!.type === EventType.LIFECYCLE_START ||
+                        event!!.type === EventType.LIFECYCLE_RESUME)) {
                 val newDuration = System.currentTimeMillis() - event!!.timestamp
-                Validate.isTrue(newDuration >= 0, "Invalid duration: $newDuration")
+                require(newDuration >= 0) { "Invalid duration: $newDuration" }
                 duration += newDuration
             } else if (previousEvent != null) {
                 val previousType = previousEvent.type
@@ -870,7 +878,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                     previousType === EventType.LIFECYCLE_RESUME && type === EventType.LIFECYCLE_STOP
                 if (startStop || startPause || resumePause || resumeStop) {
                     val newDuration = event.timestamp - previousEvent.timestamp
-                    Validate.isTrue(newDuration >= 0, "Invalid duration: $newDuration")
+                    require(newDuration >= 0) { "Invalid duration: $newDuration" }
                     duration += newDuration
                 }
             }
@@ -906,12 +914,11 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param locations The locations to build the tracks from.
      * @param events The events to build the tracks from.
      * @param pressures The pressures to build the track from.
-     * @return The [Track]s build from the provided data. If no [de.cyface.persistence.model.ParcelableGeoLocation]s exists, an
-     * empty list is returned.
+     * @return The [Track]s built or an empty `List` if no [GeoLocation]s exist.
      */
     private fun loadTracks(
-        locations: List<ParcelableGeoLocation?>?, events: List<Event?>?,
-        pressures: List<ParcelablePressure?>?
+        locations: List<GeoLocation?>?, events: List<Event?>?,
+        pressures: List<Pressure?>?
     ): List<Track> {
         if (locations!!.isEmpty()) {
             return emptyList()
@@ -920,7 +927,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var mutableLocations = locations.toMutableList()
         val mutableEvents = events!!.toMutableList()
         var mutablePressures = pressures!!.toMutableList()
-        val tracks = ArrayList<Track>()
+        val tracks = mutableListOf<Track>()
         // The geoLocation iterator always needs to point to the first GeoLocation of the next sub track
         val i = 0
 
@@ -938,7 +945,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 }
                 continue
             }
-            Validate.notNull(pauseEventTime)
+            requireNotNull(pauseEventTime)
             val resumeEventTime = event.timestamp
 
             // Collect all GeoLocationsV6 and Pressure points until the pause event
@@ -952,9 +959,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             // Pause reached: Move geoLocationCursor to the first data point of the next sub-track
             // We do this to ignore data points between pause and resume event (STAD-140)
             mutableLocations =
-                mutableLocations.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<ParcelableGeoLocation?>
+                mutableLocations.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<GeoLocation?>
             mutablePressures =
-                mutablePressures.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<ParcelablePressure?>
+                mutablePressures.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<Pressure?>
         }
 
         // Return if there is no tail (sub track ending at LIFECYCLE_STOP instead of LIFECYCLE_PAUSE)
@@ -965,7 +972,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         // Collect tail sub track
         // This is either the track between start[, pause] and stop or resume[, pause] and stop.
         val track = Track(mutableLocations, mutablePressures)
-        Validate.isTrue(track.geoLocations.isNotEmpty())
+        require(track.geoLocations.isNotEmpty())
         tracks.add(track)
         return tracks
     }
@@ -1041,8 +1048,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return The sub `Track`.
      */
     fun collectNextSubTrack(
-        locations: MutableList<ParcelableGeoLocation?>,
-        pressures: MutableList<ParcelablePressure?>, pauseEventTime: Long?
+        locations: MutableList<GeoLocation?>,
+        pressures: MutableList<Pressure?>, pauseEventTime: Long?
     ): Track {
         val track = Track()
         var location = if (locations.isNotEmpty()) locations[0] else null
@@ -1080,7 +1087,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 )
             }
         }
-        Validate.isTrue(updates == 1)
+        require(updates == 1)
     }
 
     /**
@@ -1116,7 +1123,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         if (openMeasurements.isEmpty() && pausedMeasurements.isEmpty()) {
             throw NoSuchMeasurementException("No currently captured measurement found!")
         }
-        check(openMeasurements.size + pausedMeasurements.size <= 1) { "More than one currently captured measurement found!" }
+        check(openMeasurements.size + pausedMeasurements.size <= 1) {
+            "More than one currently captured measurement found!"
+        }
         return (if (openMeasurements.size == 1) openMeasurements else pausedMeasurements)[0]
     }
 
@@ -1145,19 +1154,22 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 measurementRepository!!.update(measurementIdentifier, newStatus)
             }
         }
-        Validate.isTrue(updates == 1)
+        require(updates == 1)
         @Suppress("REDUNDANT_ELSE_IN_WHEN")
         when (newStatus) {
-            MeasurementStatus.OPEN -> Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED))
-            MeasurementStatus.PAUSED -> Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN))
-            MeasurementStatus.FINISHED ->                 // Because of MOV-790 we don't check this when cleaning up corrupted measurement*s*
+            MeasurementStatus.OPEN -> require(!hasMeasurement(MeasurementStatus.PAUSED))
+            MeasurementStatus.PAUSED -> require(!hasMeasurement(MeasurementStatus.OPEN))
+            // Because of MOV-790 we don't check this when cleaning up corrupted measurements
+            MeasurementStatus.FINISHED ->
                 if (!allowCorruptedState) {
-                    Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN))
-                    Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED))
+                    require(!hasMeasurement(MeasurementStatus.OPEN))
+                    require(!hasMeasurement(MeasurementStatus.PAUSED))
                 }
             MeasurementStatus.SYNCABLE_ATTACHMENTS,
             MeasurementStatus.SYNCED, MeasurementStatus.SKIPPED, MeasurementStatus.DEPRECATED -> {}
-            else -> throw IllegalArgumentException(String.format("Unknown status: %s", newStatus))
+            else -> throw IllegalArgumentException(
+                String.format(Locale.getDefault(), "Unknown status: %s", newStatus)
+            )
         }
         Log.d(TAG, "Set measurement $measurementIdentifier to $newStatus")
     }
@@ -1180,7 +1192,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 measurementRepository!!.updateDistance(measurementIdentifier, newDistance)
             }
         }
-        Validate.isTrue(updates == 1)
+        require(updates == 1)
     }
 
     override fun logEvent(eventType: EventType, measurement: Measurement, timestamp: Long) {

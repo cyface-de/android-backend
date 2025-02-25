@@ -23,11 +23,9 @@ import android.hardware.SensorEvent
 import android.hardware.SensorManager
 import android.location.Location
 import android.location.LocationManager
-import android.os.HandlerThread
 import android.os.SystemClock
 import de.cyface.datacapturing.model.CapturedData
 import de.cyface.persistence.model.ParcelableGeoLocation
-import de.cyface.utils.Validate
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.hamcrest.Matchers
@@ -72,18 +70,6 @@ class CapturingProcessTest {
     private val locationManager: LocationManager? = null
 
     /**
-     * A mock for the thread handling occurrence of new geo locations.
-     */
-    @Mock
-    private val geoLocationEventHandlerThread: HandlerThread? = null
-
-    /**
-     * A mock for the thread handling the occurrence of new sensor values.
-     */
-    @Mock
-    private val sensorEventHandlerThread: HandlerThread? = null
-
-    /**
      * A listener for the capturing process used to receive test events and assert against those events.
      */
     private var testListener: TestCapturingProcessListener? = null
@@ -93,19 +79,25 @@ class CapturingProcessTest {
      */
     @Before
     fun setUp() {
-        oocut = GeoLocationCapturingProcess(
-            locationManager!!, sensorManager!!,
-            object : GeoLocationDeviceStatusHandler(locationManager) {
-                public override fun shutdown() {}
-                public override fun hasLocationFix(): Boolean {
-                    return true
-                }
-            }, geoLocationEventHandlerThread!!, sensorEventHandlerThread!!, 100
-        )
+        val locationCapture = LocationCapture().also {
+            it.setup(
+                locationManager!!,
+                object : GeoLocationDeviceStatusHandler(locationManager) {
+                    override fun shutdown() { /* Nothing to do */ }
+                    override fun hasLocationFix(): Boolean {
+                        return true
+                    }
+                },
+            )
+        }
+        val sensorCapture = SensorCaptureEnabled(100).also {
+            it.setup(sensorManager!!)
+        }
+        oocut = GeoLocationCapturingProcess(locationCapture, sensorCapture)
         testListener = TestCapturingProcessListener()
-        oocut!!.addCapturingProcessListener(testListener)
+        oocut!!.addCapturingProcessListener(testListener!!)
         val accelerometer = initSensor("accelerometer")
-        Mockito.`when`(sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER))
+        Mockito.`when`(sensorManager!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER))
             .thenReturn(accelerometer)
     }
 
@@ -133,8 +125,8 @@ class CapturingProcessTest {
         }
         MatcherAssert.assertThat(testListener!!.getCapturedData(), Matchers.hasSize(2))
         MatcherAssert.assertThat(
-            testListener!!.getCapturedData()[0].accelerations.size
-                    + testListener!!.getCapturedData()[1].accelerations.size,
+            testListener!!.getCapturedData()[0].getAccelerations().size
+                    + testListener!!.getCapturedData()[1].getAccelerations().size,
             Matchers.`is`(Matchers.equalTo(400))
         )
         MatcherAssert.assertThat(
@@ -216,7 +208,7 @@ class CapturingProcessTest {
      * @return The newly initialized `Sensor`.
      */
     private fun initSensor(@Suppress("SameParameterValue") name: String): Sensor {
-        Validate.notEmpty(name)
+        require(name.isNotEmpty())
         val sensor = Mockito.mock(Sensor::class.java)
         Mockito.`when`(sensor.name).thenReturn(name)
         Mockito.`when`(sensor.vendor).thenReturn("Cyface")
@@ -236,12 +228,12 @@ class CapturingProcessTest {
         /**
          * `GeoLocation` instances this listener was informed about.
          */
-        private val capturedLocations: MutableList<ParcelableGeoLocation> = ArrayList()
+        private val capturedLocations: MutableList<ParcelableGeoLocation> = mutableListOf()
 
         /**
          * Captured sensor data this listener was informed about.
          */
-        private val capturedData: MutableList<CapturedData> = ArrayList()
+        private val capturedData: MutableList<CapturedData> = mutableListOf()
         override fun onLocationCaptured(location: ParcelableGeoLocation) {
             capturedLocations.add(location)
         }

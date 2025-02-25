@@ -250,7 +250,7 @@ public class EventHandlingStrategyImpl implements EventHandlingStrategy {
     public @NonNull Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
       final String channelId = "channel";
       NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && notificationManager.getNotificationChannel(channelId)==null) {
+      if (notificationManager.getNotificationChannel(channelId)==null) {
         final NotificationChannel channel = new NotificationChannel(channelId, "Cyface Data Capturing", NotificationManager.IMPORTANCE_DEFAULT);
         notificationManager.createNotificationChannel(channel);
       }

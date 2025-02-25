@@ -21,7 +21,6 @@ package de.cyface.testutils
 import android.accounts.AccountManager
 import android.content.ContentResolver
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import com.google.protobuf.ByteString
@@ -35,6 +34,7 @@ import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.io.DefaultFileIOHandler
 import de.cyface.persistence.io.FileIOHandler
+import de.cyface.persistence.model.Attachment
 import de.cyface.persistence.model.AttachmentStatus
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.MeasurementStatus
@@ -47,7 +47,6 @@ import de.cyface.protos.model.File.FileType
 import de.cyface.protos.model.Measurement
 import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.model.Point3DType
-import de.cyface.utils.Validate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.hamcrest.CoreMatchers
@@ -103,11 +102,7 @@ object SharedTestUtils {
         // To make these tests reproducible make sure we don't reuse old sync accounts
         for (account in accountManager.getAccountsByType(accountType)) {
             ContentResolver.removePeriodicSync(account, authority, Bundle.EMPTY)
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
-                accountManager.removeAccount(account, null, null)
-            } else {
-                Validate.isTrue(accountManager.removeAccountExplicitly(account))
-            }
+            require(accountManager.removeAccountExplicitly(account))
         }
         // To ensure reproducibility make sure there is no old account registered
         val oldAccounts = accountManager.getAccountsByType(accountType)
@@ -125,6 +120,7 @@ object SharedTestUtils {
      * each other. In this case (1, 5) = 4m distance and (1, 3) or (3, 5) = 2m distance.
      * @return the generated `GeoLocation`
      */
+    @SuppressWarnings("MagicNumber") // This is a test method
     @JvmStatic
     fun generateGeoLocation(distanceFromBase: Int): ParcelableGeoLocation {
         return generateGeoLocation(distanceFromBase, 1000000000L)
@@ -142,6 +138,7 @@ object SharedTestUtils {
      * each other. In this case (1, 5) = 4m distance and (1, 3) or (3, 5) = 2m distance.
      * @return the generated `GeoLocation`
      */
+    @SuppressWarnings("MagicNumber") // This is a test method
     @JvmStatic
     fun generateGeoLocation(distanceFromBase: Int, timestamp: Long): ParcelableGeoLocation {
         val salt = Math.random()
@@ -150,14 +147,17 @@ object SharedTestUtils {
             BASE_LAT + distanceFromBase * LAT_CONSTANT,
             BASE_LON + distanceFromBase * LON_CONSTANT,
             400.0,
-            DefaultLocationCleaning.LOWER_SPEED_THRESHOLD.coerceAtLeast(salt * DefaultLocationCleaning.UPPER_SPEED_THRESHOLD),
+            DefaultLocationCleaning.LOWER_SPEED_THRESHOLD.coerceAtLeast(
+                salt * DefaultLocationCleaning.UPPER_SPEED_THRESHOLD,
+            ),
             salt * (DefaultLocationCleaning.UPPER_ACCURACY_THRESHOLD - 1),
             20.0
         )
     }
 
     /**
-     * Inserts a test [de.cyface.persistence.model.ParcelablePoint3D] into the database content provider accessed by the test.
+     * Inserts a test [de.cyface.persistence.model.ParcelablePoint3D] into the database content
+     * provider accessed by the test.
      *
      * @param point3DFile existing file to append the data to
      * @param timestamp A fake test timestamp of the `Point3D`.
@@ -171,7 +171,7 @@ object SharedTestUtils {
         point3DFile: Point3DFile, timestamp: Long, x: Double,
         y: Double, z: Double
     ) {
-        val points = ArrayList<Point3DImpl?>()
+        val points = mutableListOf<Point3DImpl?>()
         points.add(Point3DImpl(x.toFloat(), y.toFloat(), z.toFloat(), timestamp))
         insertPoint3Ds(point3DFile, points)
     }
@@ -185,15 +185,15 @@ object SharedTestUtils {
      * @param point3DFile existing file to append the data to
      * @param point3Ds Test fake `Point3D`s.
      */
+    @SuppressWarnings("MagicNumber") // This is a test method
     private fun insertPoint3Ds(point3DFile: Point3DFile, point3Ds: List<Point3DImpl?>) {
-
         // Avoid OOM when adding too much data at once
         val insertLimit = 100000
         var nextInsertedIndex = 0
         while (nextInsertedIndex < point3Ds.size) {
             val sublist = point3Ds.subList(
                 nextInsertedIndex,
-                Math.min(nextInsertedIndex + insertLimit, point3Ds.size)
+                (nextInsertedIndex + insertLimit).coerceAtMost(point3Ds.size)
             )
             point3DFile.append(sublist)
             nextInsertedIndex += sublist.size
@@ -278,46 +278,46 @@ object SharedTestUtils {
         val accelerationFolder =
             fileIOHandler.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         if (accelerationFolder.exists()) {
-            Validate.isTrue(accelerationFolder.isDirectory)
+            require(accelerationFolder.isDirectory)
             val accelerationFiles = accelerationFolder.listFiles()
             if (accelerationFiles != null) {
                 for (file in accelerationFiles) {
-                    Validate.isTrue(file.delete())
+                    require(file.delete())
                 }
                 removedFiles += accelerationFiles.size
             }
             if (removeFolder) {
-                Validate.isTrue(accelerationFolder.delete())
+                require(accelerationFolder.delete())
             }
         }
         val rotationFolder =
             fileIOHandler.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
         if (rotationFolder.exists()) {
-            Validate.isTrue(rotationFolder.isDirectory)
+            require(rotationFolder.isDirectory)
             val rotationFiles = rotationFolder.listFiles()
             if (rotationFiles != null) {
                 for (file in rotationFiles) {
-                    Validate.isTrue(file.delete())
+                    require(file.delete())
                 }
                 removedFiles += rotationFiles.size
             }
             if (removeFolder) {
-                Validate.isTrue(rotationFolder.delete())
+                require(rotationFolder.delete())
             }
         }
         val directionFolder =
             fileIOHandler.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
         if (directionFolder.exists()) {
-            Validate.isTrue(directionFolder.isDirectory)
+            require(directionFolder.isDirectory)
             val directionFiles = directionFolder.listFiles()
             if (directionFiles != null) {
                 for (file in directionFiles) {
-                    Validate.isTrue(file.delete())
+                    require(file.delete())
                 }
                 removedFiles += directionFiles.size
             }
             if (removeFolder) {
-                Validate.isTrue(directionFolder.delete())
+                require(directionFolder.delete())
             }
         }
         return removedFiles
@@ -333,6 +333,7 @@ object SharedTestUtils {
      */
     @JvmStatic
     @Throws(NoSuchMeasurementException::class)
+    @SuppressWarnings("MagicNumber") // This is a test method
     suspend fun insertSampleMeasurementWithData(
         context: Context,
         status: MeasurementStatus,
@@ -353,7 +354,7 @@ object SharedTestUtils {
             "Expected $logCount + $imageCount + $videoCount files but found ${sampleFiles.size}"
         }
 
-        val geoLocations: MutableList<ParcelableGeoLocation> = ArrayList()
+        val geoLocations: MutableList<ParcelableGeoLocation> = mutableListOf()
         val measurement = insertMeasurementEntry(persistence, Modality.UNKNOWN)
         val measurementId = measurement.id
         val database = Database.build(context)
@@ -376,9 +377,9 @@ object SharedTestUtils {
             Point3DFile(context, measurementId, Point3DType.ACCELERATION)
         val rotationsFile = Point3DFile(context, measurementId, Point3DType.ROTATION)
         val directionsFile = Point3DFile(context, measurementId, Point3DType.DIRECTION)
-        val aPoints = ArrayList<Point3DImpl?>()
-        val rPoints = ArrayList<Point3DImpl?>()
-        val dPoints = ArrayList<Point3DImpl?>()
+        val aPoints = mutableListOf<Point3DImpl?>()
+        val rPoints = mutableListOf<Point3DImpl?>()
+        val dPoints = mutableListOf<Point3DImpl?>()
         val createLimit = 100000
         var alreadyInserted = 0
         var i = 0
@@ -420,7 +421,8 @@ object SharedTestUtils {
         insertPoint3Ds(accelerationsFile, aPoints)
         insertPoint3Ds(rotationsFile, rPoints)
         insertPoint3Ds(directionsFile, dPoints)
-        if (status === MeasurementStatus.FINISHED || status === MeasurementStatus.SYNCED || status === MeasurementStatus.SKIPPED) {
+        if (status === MeasurementStatus.FINISHED || status === MeasurementStatus.SYNCED ||
+            status === MeasurementStatus.SKIPPED) {
             persistence.storePersistenceFileFormatVersion(
                 DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION,
                 measurementId
@@ -440,10 +442,10 @@ object SharedTestUtils {
         val logFilesPaths = getFiles(logCount, logStartIndex, sampleFiles)
         val imageFilesPaths = getFiles(imageCount, imageStartIndex, sampleFiles)
         val videoFilesPaths = getFiles(videoCount, videoStartIndex, sampleFiles)
-        val logFiles = files(logCount, FileType.CSV, null, logFilesPaths, measurementId)
+        val logFiles = files(logCount, FileType.CSV, null, logFilesPaths)
         val location = geoLocations[0]
-        val imageFiles = files(imageCount, FileType.JPG, location, imageFilesPaths, measurementId)
-        val videoFiles = files(videoCount, FileType.MP4, location, videoFilesPaths, measurementId)
+        val imageFiles = files(imageCount, FileType.JPG, location, imageFilesPaths)
+        val videoFiles = files(videoCount, FileType.MP4, location, videoFilesPaths)
         insertFiles(database, measurement.id, logFiles)
         insertFiles(database, measurement.id, imageFiles)
         insertFiles(database, measurement.id, videoFiles)
@@ -469,18 +471,31 @@ object SharedTestUtils {
         return if (endIndex <= files.size) {
             files.subList(startingIndex, endIndex)
         } else {
-            throw IllegalArgumentException("Expected $count but found ${files.size}")
+            error("Expected $count but found ${files.size}")
         }
     }
 
-    private fun files(count: Int, type: FileType, location: ParcelableGeoLocation?, sampleFiles: List<Path>, measurementId: Long): List<ParcelableAttachment> {
+    @SuppressWarnings("MagicNumber") // This is a test method
+    private fun files(
+        count: Int,
+        type: FileType,
+        location: ParcelableGeoLocation?,
+        sampleFiles: List<Path>,
+    ): List<ParcelableAttachment> {
         require(sampleFiles.size == count) {"Expected $count files but found ${sampleFiles.size}"}
-        val files: MutableList<de.cyface.persistence.model.Attachment> = ArrayList()
+        val files: MutableList<ParcelableAttachment> = mutableListOf()
         for (j in 0 until count) {
             files.add(
-                de.cyface.persistence.model.Attachment(
-                    1000L + j, AttachmentStatus.SAVED, type, 1, 1234L, sampleFiles[j],
-                    location?.lat, location?.lon, 999L, measurementId
+                ParcelableAttachment(
+                    1000L + j,
+                    AttachmentStatus.SAVED,
+                    type,
+                    1,
+                    1234L,
+                    sampleFiles[j],
+                    location?.lat,
+                    location?.lon,
+                    999L,
                 )
             )
         }
@@ -524,14 +539,27 @@ object SharedTestUtils {
     // Used by the cyface flavour tests
     @JvmStatic
     suspend fun insertGeoLocation(
-        dao: LocationDao, measurementIdentifier: Long,
-        timestamp: Long, lat: Double, lon: Double, altitude: Double, speed: Double,
-        accuracy: Double, verticalAccuracy: Double
+        dao: LocationDao,
+        measurementIdentifier: Long,
+        timestamp: Long,
+        lat: Double,
+        lon: Double,
+        altitude: Double,
+        speed: Double,
+        accuracy: Double,
+        verticalAccuracy: Double,
     ) {
         dao.insertAll(
             GeoLocation(
-                timestamp, lat, lon, altitude, speed, accuracy,
-                verticalAccuracy, measurementIdentifier
+                id = 0,
+                timestamp,
+                lat,
+                lon,
+                altitude,
+                speed,
+                accuracy,
+                verticalAccuracy,
+                measurementIdentifier,
             )
         )
     }
@@ -549,7 +577,7 @@ object SharedTestUtils {
         database: Database,
         measurementIdentifier: Long, geoLocations: List<ParcelableGeoLocation>
     ) {
-        val locations = ArrayList<GeoLocation>()
+        val locations = mutableListOf<GeoLocation>()
         for (geoLocation in geoLocations) {
             locations.add(GeoLocation(geoLocation, measurementIdentifier))
         }
@@ -570,7 +598,7 @@ object SharedTestUtils {
     }
 
     /**
-     * Inserts test [ParcelableAttachment]s into the database content provider accessed by the test.
+     * Inserts test [Attachment]s into the database content provider accessed by the test.
      *
      * This increases the performance of large tests and avoids "failed binder transaction - parcel size ..." error.
      *
@@ -583,9 +611,9 @@ object SharedTestUtils {
         measurementId: Long,
         files: List<ParcelableAttachment>
     ) {
-        val entries = ArrayList<de.cyface.persistence.model.Attachment>()
+        val entries = mutableListOf<Attachment>()
         for (entry in files) {
-            entries.add(de.cyface.persistence.model.Attachment(entry, measurementId))
+            entries.add(Attachment(entry, measurementId))
         }
         database.attachmentDao().insertAll(*entries.toTypedArray())
     }

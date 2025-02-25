@@ -30,7 +30,6 @@ import androidx.sqlite.db.SupportSQLiteQueryBuilder
 import de.cyface.persistence.content.LocationTable
 import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.strategy.DefaultDistanceCalculation
-import de.cyface.utils.Validate
 import java.io.File
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
@@ -115,7 +114,8 @@ class DatabaseMigrator(val context: Context) {
                         "`lat` REAL, `lon` REAL, `locationTimestamp` INTEGER, `measurementId` INTEGER NOT NULL, " +
                         "FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) " +
                         "ON UPDATE NO ACTION ON DELETE CASCADE )")
-                database.execSQL("CREATE INDEX IF NOT EXISTS `index_Attachment_measurementId` ON `Attachment` (`measurementId`)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_Attachment_measurementId` " +
+                        "ON `Attachment` (`measurementId`)")
             }
         }
 
@@ -125,8 +125,8 @@ class DatabaseMigrator(val context: Context) {
          * Upgrades the `locations` `accuracy` column's type and values.
          */
         val MIGRATION_16_17 = object : Migration(16, 17) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                migrate16To17Locations(database)
+            override fun migrate(db: SupportSQLiteDatabase) {
+                migrate16To17Locations(db)
             }
 
             /**
@@ -161,8 +161,8 @@ class DatabaseMigrator(val context: Context) {
          * Renames the `vehicle` column to `modality` in the `measurements` table.
          */
         val MIGRATION_15_16 = object : Migration(15, 16) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                migrate15To16Measurements(database)
+            override fun migrate(db: SupportSQLiteDatabase) {
+                migrate15To16Measurements(db)
             }
 
             /**
@@ -198,9 +198,9 @@ class DatabaseMigrator(val context: Context) {
          * Adds the `value` column to the `events` table.
          */
         val MIGRATION_14_15 = object : Migration(14, 15) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Migrate Events: The `value` column was added in version `15`
-                database.execSQL("ALTER TABLE events ADD COLUMN value TEXT;")
+                db.execSQL("ALTER TABLE events ADD COLUMN value TEXT;")
             }
         }
 
@@ -208,8 +208,8 @@ class DatabaseMigrator(val context: Context) {
          * Upgrades the measurement table from `13` to `14` with a recalculated `timestamp`.
          */
         val MIGRATION_13_14 = object : Migration(13, 14) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                migrate13To14Measurements(database)
+            override fun migrate(db: SupportSQLiteDatabase) {
+                migrate13To14Measurements(db)
             }
 
             /**
@@ -252,7 +252,7 @@ class DatabaseMigrator(val context: Context) {
                             timestamp =
                                 geoLocationCursor.getLong(geoLocationCursor.getColumnIndexOrThrow("gps_time"))
                         }
-                        Validate.isTrue(timestamp >= 0L)
+                        require(timestamp >= 0L)
                         Log.v(
                             Constants.TAG,
                             "Updating timestamp for measurement $measurementId to $timestamp"
@@ -270,8 +270,8 @@ class DatabaseMigrator(val context: Context) {
          * Removing sensor point counter columns from measurement table.
          */
         val MIGRATION_12_13 = object : Migration(12, 13) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                migrate12To13Measurements(database)
+            override fun migrate(db: SupportSQLiteDatabase) {
+                migrate12To13Measurements(db)
             }
 
             /**
@@ -304,9 +304,9 @@ class DatabaseMigrator(val context: Context) {
          * Adds the `events` table which was introduced in version `12` (SDK 4.0.0).
          */
         val MIGRATION_11_12 = object : Migration(11, 12) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Migrate Events: create table in the schema at the time of version `12`.
-                database.execSQL(
+                db.execSQL(
                     "CREATE TABLE events (_id INTEGER PRIMARY KEY AUTOINCREMENT, "
                             + "timestamp INTEGER NOT NULL, type TEXT NOT NULL, measurement_fk INTEGER);"
                 )
@@ -318,7 +318,7 @@ class DatabaseMigrator(val context: Context) {
          * an empty migration object to `Room` or it will clear and recreate the database.
          */
         val MIGRATION_10_11 = object : Migration(10, 11) {
-            override fun migrate(database: SupportSQLiteDatabase) {}
+            override fun migrate(db: SupportSQLiteDatabase) {}
         }
 
         //val MIGRATION_9_10 = is provided from outside the companion object constructor!
@@ -329,10 +329,10 @@ class DatabaseMigrator(val context: Context) {
          * Version `8` was the last version in SDK 2 (SDK 3 was release in Feb'2019).
          */
         val MIGRATION_8_9 = object : Migration(8, 9) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                migrate8To9SensorPoints(database)
-                migrate8To9Measurements(database)
-                migrate8To9Locations(database)
+            override fun migrate(db: SupportSQLiteDatabase) {
+                migrate8To9SensorPoints(db)
+                migrate8To9Measurements(db)
+                migrate8To9Locations(db)
             }
 
             /**
@@ -380,7 +380,8 @@ class DatabaseMigrator(val context: Context) {
                 database.execSQL("ALTER TABLE _measurements_old ADD COLUMN rotations INTEGER NOT NULL DEFAULT 0")
                 database.execSQL("ALTER TABLE _measurements_old ADD COLUMN directions INTEGER NOT NULL DEFAULT 0")
                 // For the same reason we can just set the file_format_version to 1 (first supported version)
-                database.execSQL("ALTER TABLE _measurements_old ADD COLUMN file_format_version INTEGER NOT NULL DEFAULT 1")
+                database.execSQL("ALTER TABLE _measurements_old ADD COLUMN file_format_version " +
+                        "INTEGER NOT NULL DEFAULT 1")
 
                 // Distance column was added. We calculate the distance for the migrated data in onUpgrade(9, 10)
                 database.execSQL("ALTER TABLE _measurements_old ADD COLUMN distance REAL NOT NULL DEFAULT 0.0;")
@@ -396,14 +397,15 @@ class DatabaseMigrator(val context: Context) {
                 database.execSQL(
                     "CREATE TABLE measurements (_id INTEGER PRIMARY KEY AUTOINCREMENT, "
                             + "status TEXT NOT NULL, vehicle TEXT NOT NULL, accelerations INTEGER NOT NULL, "
-                            + "rotations INTEGER NOT NULL, directions INTEGER NOT NULL, file_format_version INTEGER NOT NULL, "
-                            + "distance REAL NOT NULL);"
+                            + "rotations INTEGER NOT NULL, directions INTEGER NOT NULL, file_format_version " +
+                            "INTEGER NOT NULL, distance REAL NOT NULL);"
                 )
                 // and insert the old data accordingly. This is anyway cleaner (no defaults)
                 database.execSQL(
                     "INSERT INTO measurements "
                             + "(_id,status,vehicle,accelerations,rotations,directions,file_format_version,distance) "
-                            + "SELECT _id,status,vehicle,accelerations,rotations,directions,file_format_version,distance "
+                            + "SELECT _id,status,vehicle,accelerations,rotations,directions," +
+                            "file_format_version,distance "
                             + "FROM _measurements_old"
                 )
 
@@ -446,48 +448,59 @@ class DatabaseMigrator(val context: Context) {
      */
     private fun migrationFrom17To18(): Migration {
         return object : Migration(17, 18) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Migrate Identifier data
                 // Create table with Room generated name and new schema
-                database.execSQL("CREATE TABLE IF NOT EXISTS `Identifier` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `deviceId` TEXT NOT NULL);")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `Identifier` " +
+                        "(`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `deviceId` TEXT NOT NULL);")
                 // Insert the data from old table
-                database.execSQL("INSERT INTO `Identifier` (`_id`, `deviceId`) SELECT `_id`, `device_id` FROM `identifiers`;")
+                db.execSQL("INSERT INTO `Identifier` (`_id`, `deviceId`) " +
+                        "SELECT `_id`, `device_id` FROM `identifiers`;")
                 // Drop the old table
-                database.execSQL("DROP TABLE `identifiers`;")
+                db.execSQL("DROP TABLE `identifiers`;")
 
                 // Migrate Measurement data
                 // Create table with Room generated name and new schema
-                database.execSQL("CREATE TABLE IF NOT EXISTS `Measurement` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `status` TEXT NOT NULL, `modality` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, `distance` REAL NOT NULL, `timestamp` INTEGER NOT NULL);")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `Measurement` " +
+                        "(`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `status` TEXT NOT NULL, " +
+                        "`modality` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, " +
+                        "`distance` REAL NOT NULL, `timestamp` INTEGER NOT NULL);")
                 // Insert the data from old table
-                database.execSQL(
-                    "INSERT INTO `Measurement` (`_id`, `status`, `modality`, `fileFormatVersion`, `distance`, `timestamp`)"
-                            + " SELECT `_id`, `status`, `modality`, `file_format_version`, `distance`, `timestamp` FROM `measurements`;"
+                db.execSQL(
+                    "INSERT INTO `Measurement` (`_id`, `status`, `modality`, `fileFormatVersion`, " +
+                            "`distance`, `timestamp`)"
+                            + " SELECT `_id`, `status`, `modality`, `file_format_version`, `distance`, " +
+                            "`timestamp` FROM `measurements`;"
                 )
                 // Drop the old table
-                database.execSQL("DROP TABLE `measurements`;")
+                db.execSQL("DROP TABLE `measurements`;")
 
                 // Migrate Event data
                 // Create table with Room generated name and new schema
-                database.execSQL("CREATE TABLE IF NOT EXISTS `Event` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `type` TEXT NOT NULL, `value` TEXT, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `Event` " +
+                        "(`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`timestamp` INTEGER NOT NULL, `type` TEXT NOT NULL, `value` TEXT, " +
+                        "`measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) " +
+                        "REFERENCES `Measurement`(`_id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
                 // Insert the data from old table
-                database.execSQL(
+                db.execSQL(
                     "INSERT INTO `Event` (`_id`, `timestamp`, `type`, `value`, `measurementId`)"
                             + " SELECT `_id`, `timestamp`, `type`, `value`, `measurement_fk` FROM `events`;"
                 )
                 // Create index
-                database.execSQL("CREATE INDEX IF NOT EXISTS `index_Event_measurementId` ON `Event` (`measurementId`);")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_Event_measurementId` ON `Event` (`measurementId`);")
                 // Drop the old table
-                database.execSQL("DROP TABLE `events`;")
+                db.execSQL("DROP TABLE `events`;")
 
                 // Check if database `v6` exists
                 val v6DatabaseName = "v6"
                 val v6File = context.getDatabasePath(v6DatabaseName)
                 if (v6File.exists()) {
                     val version = sqLiteDatabaseVersion(v6File)
-                    Validate.isTrue(version == 1, "Unsupported version $version")
-                    migrate17To18LocationsAndPressuresWithV6Data(database, v6File, v6DatabaseName)
+                    require(version == 1) { "Unsupported version $version" }
+                    migrate17To18LocationsAndPressuresWithV6Data(db, v6File, v6DatabaseName)
                 } else {
-                    migrate17To18LocationsAndPressuresWithoutV6Data(database)
+                    migrate17To18LocationsAndPressuresWithoutV6Data(db)
                 }
             }
 
@@ -515,7 +528,7 @@ class DatabaseMigrator(val context: Context) {
                         SQLiteDatabase.OPEN_READONLY
                     )
                 } catch (e: RuntimeException) {
-                    throw java.lang.IllegalStateException("Unable to open database at ${v6DatabaseFile.path}")
+                    throw IllegalStateException("Unable to open database at ${v6DatabaseFile.path}", e)
                 }
 
                 // Migrate GeoLocation data
@@ -654,9 +667,9 @@ class DatabaseMigrator(val context: Context) {
      */
     private fun migrationFrom9To10(): Migration {
         return object : Migration(9, 10) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                migrate9To10Identifiers(database)
-                migrate9To10Measurements(database)
+            override fun migrate(db: SupportSQLiteDatabase) {
+                migrate9To10Identifiers(db)
+                migrate9To10Measurements(db)
             }
 
             /**
@@ -666,7 +679,8 @@ class DatabaseMigrator(val context: Context) {
              * @param database The database to upgrade
              */
             private fun migrate9To10Identifiers(database: SupportSQLiteDatabase) {
-                database.execSQL("CREATE TABLE identifiers (_id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT NOT NULL);")
+                database.execSQL("CREATE TABLE identifiers " +
+                        "(_id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT NOT NULL);")
                 // Try to migrate old device id (which was stored in the preferences)
                 @Suppress("DEPRECATION") // (!) Don't change this, as this is migration code !
                 val preferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -731,8 +745,7 @@ class DatabaseMigrator(val context: Context) {
 
                             // We cannot calculate a distance from just one geoLocation:
                             if (lastLocationLat == null || lastLocationLon == null) {
-                                @Suppress("KotlinConstantConditions")
-                                Validate.isTrue(lastLocationLat == null && lastLocationLon == null)
+                                require(lastLocationLat == null && lastLocationLon == null)
                                 lastLocationLat = newLocationLat
                                 lastLocationLon = newLocationLon
                                 continue
@@ -745,7 +758,7 @@ class DatabaseMigrator(val context: Context) {
                                 newLocationLat,
                                 newLocationLon
                             )
-                            Validate.isTrue(newDistance >= 0)
+                            require(newDistance >= 0)
                             distance += newDistance
                             lastLocationLat = newLocationLat
                             lastLocationLon = newLocationLon
