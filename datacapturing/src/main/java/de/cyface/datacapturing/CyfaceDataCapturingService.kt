@@ -52,11 +52,11 @@ import de.cyface.uploader.exception.SynchronisationException
  * avoid collisions between different apps using the Cyface SDK.
  * @param accountType The type of the account to use to synchronize data.
  * @param eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
- * triggered by the [DataCapturingBackgroundService].
+ * triggered by the `DataCapturingBackgroundService`.
  * @param distanceCalculationStrategy The [DistanceCalculationStrategy] used to calculate the
- * [Measurement.getDistance]
+ * [Measurement.distance]
  * @param locationCleaningStrategy The [LocationCleaningStrategy] used to filter the
- * [ParcelableGeoLocation]s
+ * `ParcelableGeoLocation`s
  * @param capturingListener A [DataCapturingListener] that is notified of important events during data
  * capturing.
  * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should
@@ -97,7 +97,7 @@ class CyfaceDataCapturingService private constructor(
      * avoid collisions between different apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data.
      * @param eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
-     * triggered by the [DataCapturingBackgroundService].
+     * triggered by the `DataCapturingBackgroundService`.
      * @param capturingListener A [DataCapturingListener] that is notified of important events during data
      * capturing.
      * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
@@ -159,7 +159,7 @@ class CyfaceDataCapturingService private constructor(
      * Removes the account for a specific username from the system.
      *
      *
-     * This method calls [WiFiSurveyor.stopSurveillance] before removing the account as the surveillance expects
+     * This method calls `WiFiSurveyor.stopSurveillance` before removing the account as the surveillance expects
      * an account to be registered.
      *
      *
@@ -203,7 +203,7 @@ class CyfaceDataCapturingService private constructor(
      * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
      * Android context was available.
      * @throws MissingPermissionException If no Android `ACCESS_FINE_LOCATION` has been granted. You may
-     * register a [UIListener] to ask the user for this permission and prevent the
+     * register a `UIListener` to ask the user for this permission and prevent the
      * `Exception`. If the `Exception` was thrown the service does not start.
      */
     @Suppress("unused") // This is called by the SDK implementing app to start a measurement
@@ -212,7 +212,7 @@ class CyfaceDataCapturingService private constructor(
         try {
             super.start(modality, finishedHandler)
         } catch (e: CorruptedMeasurementException) {
-            val corruptedMeasurements: MutableList<Measurement> = ArrayList()
+            val corruptedMeasurements: MutableList<Measurement> = mutableListOf()
             val openMeasurements = persistenceLayer.loadMeasurements(MeasurementStatus.OPEN)
             val pausedMeasurements = persistenceLayer
                 .loadMeasurements(MeasurementStatus.PAUSED)
@@ -220,12 +220,12 @@ class CyfaceDataCapturingService private constructor(
             corruptedMeasurements.addAll(pausedMeasurements)
 
             for ((id) in corruptedMeasurements) {
-                Log.w(Constants.TAG, "Finishing corrupted measurement (mid $id).")
+                Log.w(Constants.TAG, "Finishing corrupted measurement (mid $id).", e)
                 try {
                     // Because of MOV-790 we disable the validation in setStatus and do this manually below
                     persistenceLayer.setStatus(id, MeasurementStatus.FINISHED, true)
                 } catch (e1: NoSuchMeasurementException) {
-                    throw IllegalStateException(e)
+                    throw IllegalStateException(e1)
                 }
             }
             require(!persistenceLayer.hasMeasurement(MeasurementStatus.OPEN))

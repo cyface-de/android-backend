@@ -37,7 +37,7 @@ import java.util.Locale
  * @author Armin Schnabel
  */
 class ErrorHandler : BroadcastReceiver() {
-    private val errorListeners: MutableCollection<ErrorListener> = ArrayList()
+    private val errorListeners: MutableCollection<ErrorListener> = mutableListOf()
 
     /**
      * Adds a party to the list to be informed when errors occur.

@@ -36,17 +36,7 @@ class EventSerializer {
     /**
      * The serialized events.
      */
-    private val events: MutableList<Event>
-
-    /**
-     * Fully initialized constructor of this class.
-     *
-     * Use [.readFrom] to add `Event` from the database.
-     * And [.result] to receive the `Event`s in the serialized format.
-     */
-    init {
-        events = ArrayList()
-    }
+    private val events: MutableList<Event> = mutableListOf()
 
     /**
      * Loads and parses [de.cyface.persistence.model.Event]s from a database `Cursor`.

@@ -36,12 +36,12 @@ internal class TestListener : DataCapturingListener {
     /**
      * Geo locations captured during the test run.
      */
-    private val capturedPositions: MutableList<ParcelableGeoLocation> = ArrayList()
+    private val capturedPositions: MutableList<ParcelableGeoLocation> = mutableListOf()
 
     /**
      * Sensor data captured during the test run.
      */
-    private val capturedData: MutableList<CapturedData> = ArrayList()
+    private val capturedData: MutableList<CapturedData> = mutableListOf()
 
     override fun onFixAcquired() {
         Log.d(TestUtils.TAG, "Fix acquired!")

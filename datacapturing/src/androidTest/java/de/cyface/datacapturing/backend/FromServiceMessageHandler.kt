@@ -36,7 +36,7 @@ internal class FromServiceMessageHandler : Handler() {
     /**
      * The data previously captured by the service and send to this handler.
      */
-    private val capturedData: MutableList<CapturedData> = ArrayList()
+    private val capturedData: MutableList<CapturedData> = mutableListOf()
 
     /**
      * A flag that is set to `true` if no permission to access fine location has been granted to the

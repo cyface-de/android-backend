@@ -443,7 +443,7 @@ class MeasurementSerializerTest {
     }
 
     private fun serializeSamplePoints(numberOfPoints: Int, type: Point3DType): ByteArray {
-        val points: MutableList<Point3D> = ArrayList()
+        val points: MutableList<Point3D> = mutableListOf()
         for (i in 0 until numberOfPoints) {
             points.add(
                 Point3DImpl(

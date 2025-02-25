@@ -702,18 +702,18 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return The altitudes in meters as list of lists, each representing a sub-track.
      */
     fun altitudesFromPressures(tracks: List<Track>, slidingWindowSize: Int): List<List<Double>> {
-        val allAltitudes = ArrayList<List<Double>>()
+        val allAltitudes = mutableListOf<List<Double>>()
         for (track in tracks) {
 
             // Calculate average pressure because some devices measure large pressure differences when
             // the display-fingerprint is used and pressure is applied to the display: Pixel 6 [STAD-400]
             // This filter did not affect ascend calculation of devices without the bug: Pixel 3a
-            val pressures: MutableList<Double> = ArrayList()
+            val pressures: MutableList<Double> = mutableListOf()
             for (pressure in track.pressures) {
                 pressures.add(pressure!!.pressure)
             }
             val averagePressures = averages(pressures, slidingWindowSize) ?: continue
-            val altitudes = ArrayList<Double>()
+            val altitudes = mutableListOf<Double>()
             for (pressure in averagePressures) {
                 // As we're only interested in ascend and elevation profile, using a static
                 // reference pressure is sufficient [STAD-385] [STAD-391]
@@ -737,9 +737,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return The altitudes in meters as list of lists, each representing a sub-track.
      */
     fun altitudesFromGNSS(tracks: List<Track>): List<List<Double>> {
-        val allAltitudes = ArrayList<List<Double>>()
+        val allAltitudes = mutableListOf<List<Double>>()
         for (track in tracks) {
-            val altitudes = ArrayList<Double>()
+            val altitudes = mutableListOf<Double>()
             for (location in track.geoLocations) {
                 val altitude = location!!.altitude
                 val verticalAccuracy = location.verticalAccuracy
@@ -814,7 +814,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         if (values.size <= windowSize) {
             return null
         }
-        val averages: MutableList<Double> = ArrayList()
+        val averages: MutableList<Double> = mutableListOf()
         for (i in windowSize - 1 until values.size) {
             var sum = 0.0
             val window = values.subList(i - windowSize + 1, i + 1)
@@ -842,7 +842,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     fun loadDuration(measurementIdentifier: Long): Long {
 
         // Extract lifecycle events only
-        val lifecycleEvents: MutableList<Event?> = ArrayList()
+        val lifecycleEvents: MutableList<Event?> = mutableListOf()
         for (event in loadEvents(measurementIdentifier)) {
             val type = event!!.type
             if (type == EventType.LIFECYCLE_START || type == EventType.LIFECYCLE_PAUSE ||
@@ -927,7 +927,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var mutableLocations = locations.toMutableList()
         val mutableEvents = events!!.toMutableList()
         var mutablePressures = pressures!!.toMutableList()
-        val tracks = ArrayList<Track>()
+        val tracks = mutableListOf<Track>()
         // The geoLocation iterator always needs to point to the first GeoLocation of the next sub track
         val i = 0
 

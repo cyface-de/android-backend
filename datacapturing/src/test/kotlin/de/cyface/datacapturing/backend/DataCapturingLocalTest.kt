@@ -218,12 +218,10 @@ class DataCapturingLocalTest {
         // noinspection UnnecessaryLocalVariable - because this is better readable
         val directionsSize = someLargeOddNumber / 2
         val pressuresSize = someLargeOddNumber / 2
-        val accelerations: MutableList<ParcelablePoint3D> = ArrayList(accelerationsSize)
-        val rotations: MutableList<ParcelablePoint3D> = ArrayList(
-            someLargeOddNumber
-        )
-        val directions: MutableList<ParcelablePoint3D> = ArrayList(directionsSize)
-        val pressures: MutableList<ParcelablePressure> = ArrayList(pressuresSize)
+        val accelerations: MutableList<ParcelablePoint3D> = mutableListOf()
+        val rotations: MutableList<ParcelablePoint3D> = mutableListOf()
+        val directions: MutableList<ParcelablePoint3D> = mutableListOf()
+        val pressures: MutableList<ParcelablePressure> = mutableListOf()
 
         // Create some random test data.
         for (i in 0 until accelerationsSize) {
@@ -287,10 +285,10 @@ class DataCapturingLocalTest {
         var receivedDirections = 0
         var receivedPressures = 0
         for (dataFromCall in captor.allValues) {
-            receivedAccelerations += dataFromCall.accelerations.size
-            receivedRotations += dataFromCall.rotations.size
-            receivedDirections += dataFromCall.directions.size
-            receivedPressures += dataFromCall.pressures.size
+            receivedAccelerations += dataFromCall.getAccelerations().size
+            receivedRotations += dataFromCall.getRotations().size
+            receivedDirections += dataFromCall.getDirections().size
+            receivedPressures += dataFromCall.getPressures().size
         }
         MatcherAssert.assertThat(
             receivedAccelerations,

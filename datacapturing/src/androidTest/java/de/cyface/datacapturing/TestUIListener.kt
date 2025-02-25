@@ -39,7 +39,7 @@ internal class TestUIListener : UIListener {
     constructor(lock: Lock, condition: Condition) {
         this.lock = lock
         this.condition = condition
-        receivedUpdates = ArrayList()
+        receivedUpdates = mutableListOf()
     }
 
     /**
@@ -48,7 +48,7 @@ internal class TestUIListener : UIListener {
     constructor() {
         lock = null
         condition = null
-        receivedUpdates = ArrayList()
+        receivedUpdates = mutableListOf()
     }
 
     override fun onLocationUpdate(location: Location) {

@@ -166,12 +166,12 @@ class PersistenceLayerTest {
     @Test
     fun testCollectNextSubTrack() {
         // Arrange
-        val locations = ArrayList<GeoLocation?>()
+        val locations = mutableListOf<GeoLocation?>()
         locations.add(GeoLocation(0, 1L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
         locations.add(GeoLocation(0, 2L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
         locations.add(GeoLocation(0, 10L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
         locations.add(GeoLocation(0, 11L, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0, 1L))
-        val pressures = ArrayList<Pressure?>()
+        val pressures = mutableListOf<Pressure?>()
         val p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE
         pressures.add(Pressure(0, 1L, pressure(0.0, p0).toDouble(), 1L))
         pressures.add(Pressure(0, 2L, pressure(0.0, p0).toDouble(), 1L))

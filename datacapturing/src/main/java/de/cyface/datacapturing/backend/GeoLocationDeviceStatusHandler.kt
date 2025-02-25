@@ -26,7 +26,7 @@ abstract class GeoLocationDeviceStatusHandler(val locationManager: LocationManag
     /**
      * The `List` of listeners to inform about geo location updates.
      */
-    private val listener: MutableCollection<CapturingProcessListener> = ArrayList()
+    private val listener: MutableCollection<CapturingProcessListener> = mutableListOf()
 
     /**
      * Adds all the listeners from the provided `List` to this objects list of listeners that are informed

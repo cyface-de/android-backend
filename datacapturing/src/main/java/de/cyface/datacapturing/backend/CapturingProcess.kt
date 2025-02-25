@@ -148,7 +148,7 @@ abstract class CapturingProcess internal constructor(
                 accuracy = Math.random() * 30.0
                 verticalAccuracyMeters = accuracy * 2.5
                 altitude = 400.0 + Math.random() * 2 - Math.random()
-                val copy = ArrayList(pressures)
+                val copy = pressures.toList()
                 pressures.clear()
                 pressures.addAll(
                     copy.stream().map { p: ParcelablePressure ->

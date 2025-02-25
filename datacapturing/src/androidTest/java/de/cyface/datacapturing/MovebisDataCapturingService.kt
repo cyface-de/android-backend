@@ -111,8 +111,6 @@ class MovebisDataCapturingService internal constructor(
     private val preMeasurementLocationManager: LocationManager =
         context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-    private val AUTH_TOKEN_TYPE = "de.cyface.jwt"
-
     /**
      * A listener for location updates, which it passes through to the user interface.
      */
@@ -292,8 +290,11 @@ class MovebisDataCapturingService internal constructor(
         val uiListener = uiListener
         return if (!permissionAlreadyGranted && uiListener != null) {
             uiListener.onRequirePermission(
-                Manifest.permission.ACCESS_COARSE_LOCATION, Reason(
-                    "this app uses information about WiFi and cellular networks to display your position. Please provide your permission to track the networks you are currently using, to see your position on the map."
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Reason(
+                    "this app uses information about WiFi and cellular networks to display " +
+                            "your position. Please provide your permission to track the networks you " +
+                            "are currently using, to see your position on the map."
                 )
             )
         } else {
@@ -335,7 +336,7 @@ class MovebisDataCapturingService internal constructor(
         try {
             super.start(modality, finishedHandler)
         } catch (e: CorruptedMeasurementException) {
-            val corruptedMeasurements: MutableList<Measurement?> = ArrayList()
+            val corruptedMeasurements: MutableList<Measurement?> = mutableListOf()
             val openMeasurements = persistenceLayer.loadMeasurements(MeasurementStatus.OPEN)
             val pausedMeasurements = persistenceLayer
                 .loadMeasurements(MeasurementStatus.PAUSED)
@@ -344,7 +345,8 @@ class MovebisDataCapturingService internal constructor(
             for (measurement in corruptedMeasurements) {
                 Log.w(
                     Constants.TAG,
-                    "Finishing corrupted measurement (mid " + measurement!!.id + ")."
+                    "Finishing corrupted measurement (mid " + measurement!!.id + ").",
+                    e,
                 )
                 try {
                     // Because of MOV-790 we disable the validation in setStatus and do this manually below
@@ -364,5 +366,9 @@ class MovebisDataCapturingService internal constructor(
                 throw IllegalStateException(e1)
             }
         }
+    }
+
+    companion object {
+        private const val AUTH_TOKEN_TYPE = "de.cyface.jwt"
     }
 }

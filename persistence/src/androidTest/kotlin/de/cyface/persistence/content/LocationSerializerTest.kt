@@ -100,7 +100,7 @@ class LocationSerializerTest {
         require(numberOfTestEntries >= 2) { "not supported" }
 
         // Arrange
-        val locations = arrayListOf<GeoLocation>()
+        val locations = mutableListOf<GeoLocation>()
         for (i in 1.rangeTo(numberOfTestEntries)) {
             val location = GeoLocation(
                 0L,
