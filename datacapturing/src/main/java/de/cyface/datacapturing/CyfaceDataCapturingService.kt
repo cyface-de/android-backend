@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -44,7 +44,7 @@ import de.cyface.uploader.exception.SynchronisationException
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.0.0
+ * @version 15.0.1
  * @since 2.0.0
  * @param context The context (i.e. `Activity`) handling this service.
  * @param authority The `ContentProvider` authority used to identify the content provider used by this

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Cyface GmbH
+ * Copyright 2021-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -35,7 +35,7 @@ import java.util.Random
  * Tests that captured data can be serialized to a transferable file and deserialized.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 7.0.0
  */
 class ProtoTest {

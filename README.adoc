@@ -959,7 +959,7 @@ The AVD Cache leads to `Install_failed_Update_Incompatible` after a few builds.
 
 [[license]]
 == License
-Copyright 2017-2023 Cyface GmbH
+Copyright 2017-2025 Cyface GmbH
 
 This file is part of the Cyface SDK for Android.
 

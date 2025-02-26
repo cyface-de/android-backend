@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -32,7 +32,7 @@ import java.nio.file.Paths
  * [Attachment] requires the measurement id to be set.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 2.0.0
  * @since 7.10.0
  * @param timestamp The timestamp at which this data point was captured in milliseconds since 1.1.1970.
  * @param status The status of the [Attachment]. The status allows us to persist which

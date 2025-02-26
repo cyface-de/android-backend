@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -32,7 +32,7 @@ import de.cyface.synchronization.BundlesExtrasCodes
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.2
+ * @version 4.0.3
  * @since 2.0.0
  * @property pingActionId An app and device-wide unique identifier. Each service of this app needs to use
  * a different id so that only the service in question "replies" to the ping request.

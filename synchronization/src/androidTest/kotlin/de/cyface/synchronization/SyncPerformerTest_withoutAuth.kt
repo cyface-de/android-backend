@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2024 Cyface GmbH
+ * Copyright 2018-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -70,6 +70,8 @@ import java.io.IOException
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 7.7.0
  * @see [Testing documentation](http://d.android.com/tools/testing)
  */
 @RunWith(AndroidJUnit4::class)

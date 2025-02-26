@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2024 Cyface GmbH
+ * Copyright 2018-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *

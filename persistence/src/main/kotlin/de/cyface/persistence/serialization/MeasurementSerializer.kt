@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2024 Cyface GmbH
+ * Copyright 2018-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -47,6 +47,8 @@ import java.util.zip.DeflaterOutputStream
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
+ * @version 8.0.3
+ * @since 2.0.0
  */
 class MeasurementSerializer {
     /**

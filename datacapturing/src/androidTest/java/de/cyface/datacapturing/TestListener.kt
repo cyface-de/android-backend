@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -30,7 +30,7 @@ import java.util.Collections
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.3
+ * @version 1.2.4
  * @since 2.0.0
  */
 internal class TestListener : DataCapturingListener {

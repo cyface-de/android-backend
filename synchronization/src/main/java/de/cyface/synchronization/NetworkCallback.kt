@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 Cyface GmbH
+ * Copyright 2018-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -30,7 +30,7 @@ import de.cyface.synchronization.WiFiSurveyor.Companion.TAG
  * newly connected network.
  *
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.0.1
  * @since 3.0.0
  * @property surveyor The object which registered this callback, to access some of it's methods.
  */

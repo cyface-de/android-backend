@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Cyface GmbH
+ * Copyright 2019-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -51,7 +51,7 @@ import java.util.concurrent.locks.ReentrantLock
  * The tests in this class require an emulator or a real device.
  *
  * @author Armin Schnabel
- * @version 2.0.3
+ * @version 2.0.4
  * @since 4.0.0
  */
 @RunWith(AndroidJUnit4::class)

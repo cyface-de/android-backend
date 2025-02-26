@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -29,7 +29,7 @@ import de.cyface.persistence.model.GeoLocation
  * Data access object which provides the API to interact with the [GeoLocation] database table.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.1.0
  * @since 7.5.0
  */
 @Dao

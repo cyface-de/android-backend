@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Cyface GmbH
+ * Copyright 2021-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -33,7 +33,7 @@ import de.cyface.synchronization.BundlesExtrasCodes
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.3
+ * @version 3.0.4
  * @since 2.0.0
  * @param serviceStoppedActionId An app-wide unique identifier. Each service needs to use a
  * different id so that only the service in question receives the expected ping-back.

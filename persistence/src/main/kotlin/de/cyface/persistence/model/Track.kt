@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Cyface GmbH
+ * Copyright 2018-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -27,7 +27,7 @@ package de.cyface.persistence.model
  * very last location is reached.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 3.0.1
  * @since 4.0.0
  * @property geoLocations The [GeoLocation]s collected for this [Track].
  * @property pressures The [Pressure]s collected for this [Track].

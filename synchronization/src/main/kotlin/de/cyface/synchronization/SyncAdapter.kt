@@ -70,7 +70,7 @@ import java.util.UUID
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 4.2.0
+ * @version 4.2.1
  * @since 2.0.0
  * @property authenticator The authenticator to use for synchronization.
  * @property uploader The uploader to use for synchronization.

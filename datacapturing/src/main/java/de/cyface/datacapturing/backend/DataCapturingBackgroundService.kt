@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -67,7 +67,7 @@ import kotlin.math.min
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.2
+ * @version 8.0.3
  * @since 2.0.0
  */
 class DataCapturingBackgroundService : Service(), CapturingProcessListener {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Cyface GmbH
+ * Copyright 2018-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -62,7 +62,7 @@ import de.cyface.uploader.exception.SynchronisationException
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 12.0.0
+ * @version 12.0.1
  * @since 2.0.0
  * @constructor **ATTENTION:** This constructor is only for testing to be able to inject authority and
  * account type. Use the other constructors instead.

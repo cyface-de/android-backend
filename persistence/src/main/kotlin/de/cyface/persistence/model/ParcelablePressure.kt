@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -30,7 +30,7 @@ import java.util.Objects
  * [Pressure] requires the measurement id to be set.
  *
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 3.0.0
  * @since 6.3.0
  * @param timestamp The time at which this data point was captured in milliseconds since 1.1.1970.
  * @param pressure The atmospheric pressure of this data point in hPa (millibar).

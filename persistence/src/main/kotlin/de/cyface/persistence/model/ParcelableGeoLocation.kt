@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Cyface GmbH
+ * Copyright 2023-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -32,7 +32,7 @@ import java.util.Locale
  * [GeoLocation] requires the measurement id to be set.
  *
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 4.0.0
  * @since 1.0.0
  * @param timestamp The time at which this data point was captured in milliseconds since 1.1.1970.
  * @property lat The captured latitude of this data point in decimal coordinates as a value between

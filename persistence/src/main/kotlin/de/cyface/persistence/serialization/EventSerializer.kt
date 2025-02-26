@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Cyface GmbH
+ * Copyright 2021-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -29,7 +29,7 @@ import kotlin.math.pow
  * Serializes [Event]s in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION].
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 7.0.0
  */
 class EventSerializer {

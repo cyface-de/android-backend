@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Cyface GmbH
+ * Copyright 2021-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -30,7 +30,7 @@ import de.cyface.persistence.model.ParcelableGeoLocation
  * A handler for messages received from the capturing service.
  *
  * @author Klemens Muthmann
- * @version 1.0.5
+ * @version 1.0.6
  * @since 2.0.0
  */
 internal class FromServiceMessageHandler : Handler() {

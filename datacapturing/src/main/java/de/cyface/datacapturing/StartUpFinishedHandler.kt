@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -33,7 +33,7 @@ import de.cyface.synchronization.BundlesExtrasCodes
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.2
+ * @version 5.0.3
  * @since 2.0.0
  * @param serviceStartedActionId An app-wide unique identifier. Each service needs to use a different id
  * so that only the service in question receives the expected ping-back.
