@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Cyface GmbH
+ * Copyright 2021-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -34,7 +34,7 @@ import kotlin.math.min
  * Implementation of the [FileIOHandler] which accesses the real file system.
  *
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 4.0.2
  * @since 3.0.0
  */
 class DefaultFileIOHandler : FileIOHandler {

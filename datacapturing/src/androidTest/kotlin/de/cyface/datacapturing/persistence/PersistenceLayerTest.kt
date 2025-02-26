@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Cyface GmbH
+ * Copyright 2018-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -43,7 +43,7 @@ import org.junit.runner.RunWith
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.5.8
+ * @version 1.5.9
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4::class)

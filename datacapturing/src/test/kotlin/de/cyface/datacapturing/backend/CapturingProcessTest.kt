@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -44,7 +44,7 @@ import java.util.Random
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.8
+ * @version 1.0.9
  * @since 2.0.0
  */
 class CapturingProcessTest {
