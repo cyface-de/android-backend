@@ -20,7 +20,7 @@ package de.cyface.datacapturing.backend
 
 import android.hardware.Sensor
 import android.hardware.SensorEventListener
-import android.os.HandlerThread
+import android.hardware.SensorManager
 import android.os.Parcel
 import android.os.Parcelable
 
@@ -42,6 +42,10 @@ class SensorCaptureDisabled() : SensorCapture {
      */
     @Suppress("UNUSED_PARAMETER") // Required by Parcelable interface
     constructor(parcel: Parcel) : this()
+
+    override fun setup(sensorManager: SensorManager) {
+        // Nothing to do
+    }
 
     override fun register(listener: SensorEventListener) {
         // Nothing to do since sensor capturing is disabled

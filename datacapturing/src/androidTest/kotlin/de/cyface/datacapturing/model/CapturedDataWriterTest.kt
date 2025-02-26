@@ -86,7 +86,8 @@ class CapturedDataWriterTest {
     private var capturingBehaviour: CapturingPersistenceBehaviour? = null
 
     /**
-     * Initializes the test case as explained in the [Android documentation](https://developer.android.com/training/testing/integration-testing/content-provider-testing.html#build).
+     * Initializes the test case as explained in the
+     * [Android documentation](https://developer.android.com/training/testing/integration-testing/content-provider-testing.html#build)
      */
     @Before
     fun setUp() {
@@ -284,9 +285,12 @@ class CapturedDataWriterTest {
             // final int testIdentifierTableCount = 1; - currently not deleted at the end of tests because this breaks
             // the life-cycle DataCapturingServiceTests
             MatcherAssert.assertThat(
-                removedEntries, Is.`is`(
+                removedEntries,
+                Is.`is`(
                     IsEqual.equalTo(
-                        testMeasurementsWithPoint3DFiles * point3DFilesPerMeasurement + TEST_LOCATION_COUNT + testMeasurements /* + testIdentifierTableCount */ + testEvents
+                        testMeasurementsWithPoint3DFiles * point3DFilesPerMeasurement +
+                                TEST_LOCATION_COUNT + testMeasurements /* + testIdentifierTableCount */ +
+                                testEvents
                     )
                 )
             )
@@ -769,19 +773,19 @@ class CapturedDataWriterTest {
      * @return An initialized [CapturedData] object with garbage data for testing.
      */
     private fun testData(): CapturedData {
-        val accelerations = ArrayList<ParcelablePoint3D>()
+        val accelerations = mutableListOf<ParcelablePoint3D>()
         accelerations.add(ParcelablePoint3D(1L, 1.0f, 1.0f, 1.0f))
         accelerations.add(ParcelablePoint3D(2L, 2.0f, 2.0f, 2.0f))
         accelerations.add(ParcelablePoint3D(3L, 3.0f, 3.0f, 3.0f))
-        val directions = ArrayList<ParcelablePoint3D>()
+        val directions = mutableListOf<ParcelablePoint3D>()
         directions.add(ParcelablePoint3D(4L, 4.0f, 4.0f, 4.0f))
         directions.add(ParcelablePoint3D(5L, 5.0f, 5.0f, 5.0f))
         directions.add(ParcelablePoint3D(6L, 6.0f, 6.0f, 6.0f))
-        val rotations = ArrayList<ParcelablePoint3D>()
+        val rotations = mutableListOf<ParcelablePoint3D>()
         rotations.add(ParcelablePoint3D(7L, 7.0f, 7.0f, 7.0f))
         rotations.add(ParcelablePoint3D(8L, 8.0f, 8.0f, 8.0f))
         rotations.add(ParcelablePoint3D(9L, 9.0f, 9.0f, 9.0f))
-        val pressures = ArrayList<ParcelablePressure>()
+        val pressures = mutableListOf<ParcelablePressure>()
         pressures.add(ParcelablePressure(10L, 1013.10))
         pressures.add(ParcelablePressure(11L, 1013.11))
         pressures.add(ParcelablePressure(12L, 1013.12))

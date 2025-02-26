@@ -25,7 +25,6 @@ import android.util.Log
 import de.cyface.datacapturing.BuildConfig
 import de.cyface.datacapturing.PongReceiver
 import de.cyface.synchronization.BundlesExtrasCodes
-import de.cyface.utils.Validate.notNull
 
 /**
  * A `BroadcastReceiver` that receives ping messages send to the `DataCapturingBackgroundService`.
@@ -35,27 +34,17 @@ import de.cyface.utils.Validate.notNull
  * @author Armin Schnabel
  * @version 4.0.3
  * @since 2.0.0
+ * @property pingActionId An app and device-wide unique identifier. Each service of this app needs to use
+ * a different id so that only the service in question "replies" to the ping request.
+ * @property pongActionId An app and device-wide unique identifier. Each service of this app needs to use
+ * a different id so that only the service in question "replies" to the ping request.
  */
-class PingReceiver
-/**
- * @param pingActionId An app and device-wide unique identifier. Each service of this app needs to use
- * a different id so that only the service in question "replies" to the ping request.
- * @param pongActionId An app and device-wide unique identifier. Each service of this app needs to use
- * a different id so that only the service in question "replies" to the ping request.
- */(
-    /**
-     * An app-wide unique identifier. Each service of this app needs to use a different id so that only the
-     * service in question "replies" to the ping request
-     */
+class PingReceiver(
     private val pingActionId: String,
-    /**
-     * An app-wide unique identifier. Each service of this app needs to use a different id so that only the
-     * service in question "replies" to the ping request
-     */
-    private val pongActionId: String
+    private val pongActionId: String,
 ) : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        notNull(intent.action)
+        requireNotNull(intent.action)
         Log.v(TAG, "PingReceiver.onReceive()")
 
         if (intent.action == pingActionId) {

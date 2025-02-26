@@ -24,9 +24,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
-import de.cyface.synchronization.CyfaceConnectionStatusListener
-import de.cyface.utils.Validate.isTrue
-import de.cyface.utils.Validate.notNull
 
 /**
  * A [BroadcastReceiver] for the [CyfaceConnectionStatusListener] events. We use this receiver
@@ -64,24 +61,28 @@ class ConnectionStatusReceiver(context: Context) : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        notNull(intent.action)
-        if (intent.action == CyfaceConnectionStatusListener.SYNC_STARTED) {
-            for (listener in connectionStatusListener) {
-                listener.onSyncStarted()
+        requireNotNull(intent.action)
+        when (intent.action) {
+            CyfaceConnectionStatusListener.SYNC_STARTED -> {
+                for (listener in connectionStatusListener) {
+                    listener.onSyncStarted()
+                }
             }
-        } else if (intent.action == CyfaceConnectionStatusListener.SYNC_FINISHED) {
-            for (listener in connectionStatusListener) {
-                listener.onSyncFinished()
+            CyfaceConnectionStatusListener.SYNC_FINISHED -> {
+                for (listener in connectionStatusListener) {
+                    listener.onSyncFinished()
+                }
             }
-        } else if (intent.action == CyfaceConnectionStatusListener.SYNC_PROGRESS) {
-            val percent = intent.getFloatExtra(BundlesExtrasCodes.SYNC_PERCENTAGE_ID, -1.0f)
-            val measurementId =
-                intent.getLongExtra(CyfaceConnectionStatusListener.SYNC_MEASUREMENT_ID, -1L)
-            isTrue(percent >= 0.0f)
-            isTrue(measurementId > 0L)
+            CyfaceConnectionStatusListener.SYNC_PROGRESS -> {
+                val percent = intent.getFloatExtra(BundlesExtrasCodes.SYNC_PERCENTAGE_ID, -1.0f)
+                val measurementId =
+                    intent.getLongExtra(CyfaceConnectionStatusListener.SYNC_MEASUREMENT_ID, -1L)
+                require(percent >= 0.0f)
+                require(measurementId > 0L)
 
-            for (listener in connectionStatusListener) {
-                listener.onProgress(percent, measurementId)
+                for (listener in connectionStatusListener) {
+                    listener.onProgress(percent, measurementId)
+                }
             }
         }
     }

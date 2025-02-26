@@ -31,8 +31,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.FlakyTest
 import androidx.test.platform.app.InstrumentationRegistry
 import de.cyface.testutils.SharedTestUtils.cleanupOldAccounts
-import de.cyface.utils.Validate.isTrue
-import de.cyface.utils.Validate.notNull
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.MatcherAssert.assertThat
@@ -90,7 +88,6 @@ class SetAccountFlagTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val connectivityManager = context
             .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        notNull(connectivityManager)
 
         oocut =
             WiFiSurveyor(context, connectivityManager, TestUtils.AUTHORITY, TestUtils.ACCOUNT_TYPE)
@@ -112,7 +109,7 @@ class SetAccountFlagTest {
         if (oldAccounts.isNotEmpty()) {
             for (oldAccount in oldAccounts) {
                 ContentResolver.removePeriodicSync(oldAccount, TestUtils.AUTHORITY, Bundle.EMPTY)
-                isTrue(accountManager!!.removeAccountExplicitly(oldAccount))
+                require(accountManager!!.removeAccountExplicitly(oldAccount))
             }
         }
         oocut = null

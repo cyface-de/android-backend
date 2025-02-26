@@ -39,7 +39,7 @@ data class Track(
     /**
      * Creates a completely initialized instance of this class.
      */
-    constructor() : this(ArrayList(), ArrayList())
+    constructor() : this(mutableListOf(), mutableListOf())
 
     /**
      * @param location The [GeoLocation] to be added at the end of the [Track].

@@ -54,7 +54,6 @@ import de.cyface.uploader.model.metadata.DeviceMetaData
 import de.cyface.uploader.model.metadata.GeoLocation
 import de.cyface.uploader.model.metadata.MeasurementMetaData
 import de.cyface.utils.CursorIsNullException
-import de.cyface.utils.Validate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
@@ -349,7 +348,7 @@ class SyncAdapter private constructor(
 
     private fun delete(file: File?) {
         if (file != null && file.exists()) {
-            Validate.isTrue(file.delete())
+            require(file.delete())
         }
     }
 
@@ -542,20 +541,20 @@ class SyncAdapter private constructor(
 
     private fun validateMeasurementFormat(measurement: Measurement) {
         val format = measurement.fileFormatVersion
-        Validate.isTrue(format == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
+        require(format == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
     }
 
     private fun validateFileFormat(attachment: de.cyface.persistence.model.Attachment) {
         val format = attachment.fileFormatVersion
         when (attachment.type) {
             FileType.CSV -> {
-                Validate.isTrue(format == 1.toShort())
+                require(format == 1.toShort())
             }
             FileType.JSON -> {
-                Validate.isTrue(format == 1.toShort())
+                require(format == 1.toShort())
             }
             FileType.JPG -> {
-                Validate.isTrue(format == 1.toShort())
+                require(format == 1.toShort())
             }
             else -> {
                 throw IllegalArgumentException("Unsupported format ($format) and type (${attachment.type} ")
@@ -650,7 +649,7 @@ class SyncAdapter private constructor(
         for (track in tracks) {
             locationCount += track.geoLocations.size
         }
-        Validate.isTrue(
+        require(
             tracks.isEmpty() || (tracks[0].geoLocations.size > 0
                     && tracks[tracks.size - 1].geoLocations.size > 0)
         )

@@ -37,7 +37,6 @@ import de.cyface.protos.model.LocationRecords
 import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.DataSerializable
 import de.cyface.utils.CursorIsNullException
-import de.cyface.utils.Validate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -108,7 +107,7 @@ object TransferFileSerializer {
 
         // Ensure we only inject bytes from the correct persistence format version
         val measurement: Measurement? = persistence.loadMeasurement(measurementIdentifier)
-        Validate.isTrue(measurement!!.fileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
+        require(measurement!!.fileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
         if (accelerationFile.exists()) {
             Log.v(
                 TAG,

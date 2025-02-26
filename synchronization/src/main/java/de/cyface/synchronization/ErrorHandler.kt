@@ -25,7 +25,6 @@ import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import de.cyface.synchronization.Constants.TAG
 import de.cyface.synchronization.ErrorHandler.ErrorListener
-import de.cyface.utils.Validate.notNull
 import java.util.Locale
 
 /**
@@ -38,7 +37,7 @@ import java.util.Locale
  * @author Armin Schnabel
  */
 class ErrorHandler : BroadcastReceiver() {
-    private val errorListeners: MutableCollection<ErrorListener> = ArrayList()
+    private val errorListeners: MutableCollection<ErrorListener> = mutableListOf()
 
     /**
      * Adds a party to the list to be informed when errors occur.
@@ -59,11 +58,11 @@ class ErrorHandler : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        notNull(intent.extras)
+        requireNotNull(intent.extras)
         val errorCodeInt = intent.extras!!.getInt(ERROR_CODE_EXTRA)
         val fromBackground = intent.extras!!.getBoolean(ERROR_BACKGROUND_EXTRA)
         val errorCode = ErrorCode.getValueForCode(errorCodeInt)
-        notNull(errorCode)
+        requireNotNull(errorCode)
         val errorMessage: String
         when (errorCode) {
             ErrorCode.UNAUTHORIZED -> errorMessage = context
@@ -207,7 +206,7 @@ class ErrorHandler : BroadcastReceiver() {
          * @param fromBackground `true` if the error was caused without user interaction, e.g. to avoid
          * disturbing the user while he is not using the app.
          */
-        fun onErrorReceive(errorCode: ErrorCode?, errorMessage: String?, fromBackground: Boolean)
+        fun onErrorReceive(errorCode: ErrorCode, errorMessage: String?, fromBackground: Boolean)
     } // The following error handling will be (re)implemented with #CY-3709
     // if (resultExceptionType.equals(MeasurementEntryIsIrretrievableException.class.getSimpleName())) {
     // toastErrorMessage = context.getString(R.string.toast_error_message_unknown_sync_error)

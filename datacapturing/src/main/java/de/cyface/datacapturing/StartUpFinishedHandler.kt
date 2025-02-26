@@ -23,14 +23,11 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import de.cyface.synchronization.BundlesExtrasCodes
-import de.cyface.utils.Validate.isTrue
-import de.cyface.utils.Validate.notNull
 
 /**
  * Handler for start up finished events. Just implement the [.startUpFinished] method with the code you
  * would like to run after the service has been started. This class is used for asynchronous calls to
  * `DataCapturingService` lifecycle methods.
- *
  *
  * To work properly you must register this object as an Android `BroadcastReceiver`..
  *
@@ -38,20 +35,12 @@ import de.cyface.utils.Validate.notNull
  * @author Armin Schnabel
  * @version 5.0.3
  * @since 2.0.0
+ * @param serviceStartedActionId An app-wide unique identifier. Each service needs to use a different id
+ * so that only the service in question receives the expected ping-back.
  * @see DataCapturingService.resume
  * @see DataCapturingService.start
  */
-abstract class StartUpFinishedHandler
-/**
- * Constructs a fully initialized instance of this class.
- *
- * @param serviceStartedActionId An app-wide unique identifier. Each service needs to use a different id
- * so that only the service in question receives the expected ping-back.
- */(
-    /**
-     * An app-wide unique identifier. Each service needs to use a different id so that only the
-     * service in question receives the expected ping-back.
-     */
+abstract class StartUpFinishedHandler(
     private val serviceStartedActionId: String
 ) : BroadcastReceiver() {
     /**
@@ -63,19 +52,22 @@ abstract class StartUpFinishedHandler
     /**
      * Method called if start up has been finished.
      *
-     * @param measurementIdentifier The identifier of the measurement that is captured by the started capturing process.
+     * @param measurementIdentifier The identifier of the measurement that is captured by the
+     * started capturing process.
      */
     abstract fun startUpFinished(measurementIdentifier: Long)
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
-        notNull(action)
-        isTrue(action == serviceStartedActionId)
+        requireNotNull(action)
+        require(action == serviceStartedActionId)
 
         receivedServiceStarted = true
         val measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1L)
         Log.d(TAG, "Received Service started broadcast, mid: $measurementIdentifier")
-        check(measurementIdentifier != -1L) { "No measurement identifier provided on service started message." }
+        check(measurementIdentifier != -1L) {
+            "No measurement identifier provided on service started message."
+        }
         startUpFinished(measurementIdentifier)
 
         try {

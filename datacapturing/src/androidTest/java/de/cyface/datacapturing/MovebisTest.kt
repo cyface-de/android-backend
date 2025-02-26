@@ -31,7 +31,6 @@ import androidx.test.rule.GrantPermissionRule
 import de.cyface.datacapturing.backend.SensorCaptureEnabled
 import de.cyface.testutils.SharedTestUtils.cleanupOldAccounts
 import de.cyface.uploader.exception.SynchronisationException
-import de.cyface.utils.Validate
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.junit.After
@@ -141,7 +140,7 @@ class MovebisTest {
         if (oldAccounts.isNotEmpty()) {
             for (oldAccount in oldAccounts) {
                 ContentResolver.removePeriodicSync(oldAccount, TestUtils.AUTHORITY, Bundle.EMPTY)
-                Validate.isTrue(accountManager!!.removeAccountExplicitly(oldAccount))
+                require(accountManager!!.removeAccountExplicitly(oldAccount))
             }
         }
     }

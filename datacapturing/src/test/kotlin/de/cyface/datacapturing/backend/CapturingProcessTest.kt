@@ -26,7 +26,6 @@ import android.location.LocationManager
 import android.os.SystemClock
 import de.cyface.datacapturing.model.CapturedData
 import de.cyface.persistence.model.ParcelableGeoLocation
-import de.cyface.utils.Validate
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.hamcrest.Matchers
@@ -126,8 +125,8 @@ class CapturingProcessTest {
         }
         MatcherAssert.assertThat(testListener!!.getCapturedData(), Matchers.hasSize(2))
         MatcherAssert.assertThat(
-            testListener!!.getCapturedData()[0].accelerations.size
-                    + testListener!!.getCapturedData()[1].accelerations.size,
+            testListener!!.getCapturedData()[0].getAccelerations().size
+                    + testListener!!.getCapturedData()[1].getAccelerations().size,
             Matchers.`is`(Matchers.equalTo(400))
         )
         MatcherAssert.assertThat(
@@ -209,7 +208,7 @@ class CapturingProcessTest {
      * @return The newly initialized `Sensor`.
      */
     private fun initSensor(@Suppress("SameParameterValue") name: String): Sensor {
-        Validate.notEmpty(name)
+        require(name.isNotEmpty())
         val sensor = Mockito.mock(Sensor::class.java)
         Mockito.`when`(sensor.name).thenReturn(name)
         Mockito.`when`(sensor.vendor).thenReturn("Cyface")
@@ -229,12 +228,12 @@ class CapturingProcessTest {
         /**
          * `GeoLocation` instances this listener was informed about.
          */
-        private val capturedLocations: MutableList<ParcelableGeoLocation> = ArrayList()
+        private val capturedLocations: MutableList<ParcelableGeoLocation> = mutableListOf()
 
         /**
          * Captured sensor data this listener was informed about.
          */
-        private val capturedData: MutableList<CapturedData> = ArrayList()
+        private val capturedData: MutableList<CapturedData> = mutableListOf()
         override fun onLocationCaptured(location: ParcelableGeoLocation) {
             capturedLocations.add(location)
         }

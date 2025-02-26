@@ -26,7 +26,6 @@ import de.cyface.protos.model.File
 import de.cyface.protos.model.LocationRecords
 import de.cyface.protos.model.Measurement
 import de.cyface.protos.model.MeasurementBytes
-import de.cyface.utils.Validate
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.junit.Test
@@ -44,7 +43,7 @@ class ProtoTest {
     fun test_serializedSize_forEmptyMeasurement() {
         // Arrange
         val measurement = Measurement.newBuilder().setFormatVersion(2).build()
-        Validate.isTrue(measurement.isInitialized)
+        require(measurement.isInitialized)
         // Act
         val serializedSize = measurement.serializedSize
 

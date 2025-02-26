@@ -31,7 +31,6 @@ import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.serializer.model.Point3DType
-import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import java.util.Locale
 import java.util.concurrent.ExecutorService
@@ -220,7 +219,7 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
                         || persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))
             ) {
                 refreshIdentifierOfCurrentlyCapturedMeasurement()
-                Validate.isTrue(currentMeasurementIdentifier != null)
+                require(currentMeasurementIdentifier != null)
             }
             if (currentMeasurementIdentifier == null) {
                 throw NoSuchMeasurementException(
@@ -241,22 +240,22 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
      */
     @Throws(NoSuchMeasurementException::class)
     fun updateRecentMeasurement(newStatus: MeasurementStatus) {
-        Validate.isTrue(
+        require(
             newStatus === MeasurementStatus.FINISHED || newStatus === MeasurementStatus.PAUSED || newStatus === MeasurementStatus.OPEN
         )
         val currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().id
         when (newStatus) {
-            MeasurementStatus.OPEN -> Validate.isTrue(
+            MeasurementStatus.OPEN -> require(
                 persistenceLayer
                     .loadMeasurementStatus(currentlyCapturedMeasurementId) === MeasurementStatus.PAUSED
             )
 
-            MeasurementStatus.PAUSED -> Validate.isTrue(
+            MeasurementStatus.PAUSED -> require(
                 persistenceLayer
                     .loadMeasurementStatus(currentlyCapturedMeasurementId) === MeasurementStatus.OPEN
             )
 
-            MeasurementStatus.FINISHED -> Validate.isTrue(
+            MeasurementStatus.FINISHED -> require(
                 persistenceLayer.loadMeasurementStatus(currentlyCapturedMeasurementId) === MeasurementStatus.OPEN
                         || persistenceLayer.loadMeasurementStatus(
                     currentlyCapturedMeasurementId
@@ -285,7 +284,7 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
      */
     @Throws(NoSuchMeasurementException::class)
     fun updateDistance(newDistance: Double) {
-        Validate.isTrue(newDistance >= 0.0)
+        require(newDistance >= 0.0)
         val currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().id
         synchronized(this) {
             persistenceLayer.setDistance(

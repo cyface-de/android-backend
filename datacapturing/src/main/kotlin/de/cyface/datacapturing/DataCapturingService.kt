@@ -19,6 +19,7 @@
 package de.cyface.datacapturing
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -57,7 +58,6 @@ import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
 import de.cyface.synchronization.WiFiSurveyor
-import de.cyface.utils.Validate
 import java.lang.ref.WeakReference
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -481,7 +481,7 @@ abstract class DataCapturingService(
 
             // Resume paused measurement
             val measurement = persistenceLayer.loadCurrentlyCapturedMeasurement()
-            Validate.isTrue(measurement.fileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
+            require(measurement.fileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
             persistenceLayer.logEvent(EventType.LIFECYCLE_RESUME, measurement)
             runService(measurement, finishedHandler)
 
@@ -514,7 +514,7 @@ abstract class DataCapturingService(
                     val hasOpenMeasurement = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
                     val hasPausedMeasurement =
                         persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
-                    Validate.isTrue(!(hasOpenMeasurement && hasPausedMeasurement))
+                    require(!(hasOpenMeasurement && hasPausedMeasurement))
                     if (hasOpenMeasurement || hasPausedMeasurement) {
                         if (hasOpenMeasurement) {
                             // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
@@ -569,9 +569,9 @@ abstract class DataCapturingService(
                     val hasOpenMeasurement = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
                     val hasPausedMeasurement =
                         persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
-                    Validate.isTrue(!(hasOpenMeasurement && hasPausedMeasurement))
+                    require(!(hasOpenMeasurement && hasPausedMeasurement))
                     // There is no good reason why pause is called when there is not even an unfinished measurement
-                    Validate.isTrue(hasOpenMeasurement || hasPausedMeasurement)
+                    require(hasOpenMeasurement || hasPausedMeasurement)
                     if (hasOpenMeasurement) {
                         // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
                         // We just update the {@link MeasurementStatus} and hope all will be okay.
@@ -676,7 +676,7 @@ abstract class DataCapturingService(
                     Log.v(Constants.TAG, "ReconnectCallback.onSuccess(): Binding to service!")
                     bind()
                 } catch (e: DataCapturingException) {
-                    error("Illegal state: unable to bind to background service!")
+                    throw IllegalStateException("Illegal state: unable to bind to background service!", e)
                 }
             }
         }
@@ -732,6 +732,8 @@ abstract class DataCapturingService(
         startUpFinishedHandler: StartUpFinishedHandler
     ) {
         val context = getContext()
+
+        @SuppressLint("UnspecifiedRegisterReceiverFlag")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context!!.registerReceiver(
                 startUpFinishedHandler,
@@ -842,7 +844,7 @@ abstract class DataCapturingService(
     ) {
         val stoppedBroadcastIntent = Intent(MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED)
         // The measurement id should always be set, also if `stoppedSuccessfully=false` [STAD-333]
-        Validate.isTrue(measurementIdentifier > 0L)
+        require(measurementIdentifier > 0L)
         stoppedBroadcastIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, measurementIdentifier)
         stoppedBroadcastIntent.putExtra(
             BundlesExtrasCodes.STOPPED_SUCCESSFULLY,
@@ -908,11 +910,10 @@ abstract class DataCapturingService(
         }
         val hasOpenMeasurements = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
         val hasPausedMeasurements = persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
-        Validate.isTrue(!hasOpenMeasurements, "There is a dead OPEN measurement!")
-        Validate.isTrue(
-            !hasPausedMeasurements,
+        require(!hasOpenMeasurements) { "There is a dead OPEN measurement!" }
+        require(!hasPausedMeasurements) {
             "There is a dead PAUSED measurement or wrong life-cycle call."
-        )
+        }
         return persistenceLayer.newMeasurement(modality)
     }
 
@@ -1111,7 +1112,7 @@ abstract class DataCapturingService(
             if (modalityChanges!!.isNotEmpty()) {
                 val lastModalityChangeEvent = modalityChanges[modalityChanges.size - 1]
                 val lastChangeValue = lastModalityChangeEvent.value
-                Validate.notNull(lastChangeValue)
+                requireNotNull(lastChangeValue)
                 if (lastChangeValue == newModality.databaseIdentifier) {
                     Log.d(
                         Constants.TAG,
@@ -1290,15 +1291,15 @@ abstract class DataCapturingService(
          */
         private fun informShutdownFinishedHandler(messageCode: Int, parcel: Bundle) {
             val dataBundle = parcel.getParcelable<Bundle>("data")
-            Validate.notNull(dataBundle)
-            val measurementId = dataBundle!!.getLong(BundlesExtrasCodes.MEASUREMENT_ID)
+            requireNotNull(dataBundle)
+            val measurementId = dataBundle.getLong(BundlesExtrasCodes.MEASUREMENT_ID)
             when (messageCode) {
                 MessageCodes.SERVICE_STOPPED -> {
                     val stoppedSuccessfully =
                         dataBundle.getBoolean(BundlesExtrasCodes.STOPPED_SUCCESSFULLY)
                     // Success means the background service was still alive. As this is the private
                     // IPC to the background service this must always be true.
-                    Validate.isTrue(stoppedSuccessfully)
+                    require(stoppedSuccessfully)
 
                     // Inform interested parties
                     dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, true)
@@ -1316,7 +1317,7 @@ abstract class DataCapturingService(
                     // The background service already received a stopSelf command but as it's still
                     // bound to this service it should be still alive. We unbind it from this service via the
                     // stopService method (to reduce code duplicity).
-                    Validate.isTrue(dataCapturingService.stopService(synchronizationReceiver))
+                    require(dataCapturingService.stopService(synchronizationReceiver))
 
                     // Thus, no broadcast was sent to the ShutDownFinishedHandler, so we do this here:
                     dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, false)

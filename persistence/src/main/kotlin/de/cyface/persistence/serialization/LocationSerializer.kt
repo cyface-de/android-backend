@@ -25,7 +25,6 @@ import de.cyface.persistence.content.LocationTable
 import de.cyface.protos.model.LocationRecords
 import de.cyface.serializer.Formatter
 import de.cyface.serializer.LocationOffsetter
-import de.cyface.utils.Validate
 
 /**
  * Serializes `Location`s in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION].
@@ -86,7 +85,7 @@ class LocationSerializer {
      * @return the locations in the serialized format.
      */
     fun result(): LocationRecords {
-        Validate.isTrue(builder.isInitialized)
+        require(builder.isInitialized)
         return builder.build()
     }
 }

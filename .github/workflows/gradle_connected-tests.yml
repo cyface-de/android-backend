@@ -13,6 +13,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   androidTest:
     # Faster, but MacOS costs 8 ct/min instead of 0.8 ct/min of on Linux.

@@ -47,7 +47,6 @@ import de.cyface.protos.model.File.FileType
 import de.cyface.protos.model.Measurement
 import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.model.Point3DType
-import de.cyface.utils.Validate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.hamcrest.CoreMatchers
@@ -172,7 +171,7 @@ object SharedTestUtils {
         point3DFile: Point3DFile, timestamp: Long, x: Double,
         y: Double, z: Double
     ) {
-        val points = ArrayList<Point3DImpl?>()
+        val points = mutableListOf<Point3DImpl?>()
         points.add(Point3DImpl(x.toFloat(), y.toFloat(), z.toFloat(), timestamp))
         insertPoint3Ds(point3DFile, points)
     }
@@ -279,46 +278,46 @@ object SharedTestUtils {
         val accelerationFolder =
             fileIOHandler.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         if (accelerationFolder.exists()) {
-            Validate.isTrue(accelerationFolder.isDirectory)
+            require(accelerationFolder.isDirectory)
             val accelerationFiles = accelerationFolder.listFiles()
             if (accelerationFiles != null) {
                 for (file in accelerationFiles) {
-                    Validate.isTrue(file.delete())
+                    require(file.delete())
                 }
                 removedFiles += accelerationFiles.size
             }
             if (removeFolder) {
-                Validate.isTrue(accelerationFolder.delete())
+                require(accelerationFolder.delete())
             }
         }
         val rotationFolder =
             fileIOHandler.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
         if (rotationFolder.exists()) {
-            Validate.isTrue(rotationFolder.isDirectory)
+            require(rotationFolder.isDirectory)
             val rotationFiles = rotationFolder.listFiles()
             if (rotationFiles != null) {
                 for (file in rotationFiles) {
-                    Validate.isTrue(file.delete())
+                    require(file.delete())
                 }
                 removedFiles += rotationFiles.size
             }
             if (removeFolder) {
-                Validate.isTrue(rotationFolder.delete())
+                require(rotationFolder.delete())
             }
         }
         val directionFolder =
             fileIOHandler.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
         if (directionFolder.exists()) {
-            Validate.isTrue(directionFolder.isDirectory)
+            require(directionFolder.isDirectory)
             val directionFiles = directionFolder.listFiles()
             if (directionFiles != null) {
                 for (file in directionFiles) {
-                    Validate.isTrue(file.delete())
+                    require(file.delete())
                 }
                 removedFiles += directionFiles.size
             }
             if (removeFolder) {
-                Validate.isTrue(directionFolder.delete())
+                require(directionFolder.delete())
             }
         }
         return removedFiles
@@ -355,7 +354,7 @@ object SharedTestUtils {
             "Expected $logCount + $imageCount + $videoCount files but found ${sampleFiles.size}"
         }
 
-        val geoLocations: MutableList<ParcelableGeoLocation> = ArrayList()
+        val geoLocations: MutableList<ParcelableGeoLocation> = mutableListOf()
         val measurement = insertMeasurementEntry(persistence, Modality.UNKNOWN)
         val measurementId = measurement.id
         val database = Database.build(context)
@@ -378,9 +377,9 @@ object SharedTestUtils {
             Point3DFile(context, measurementId, Point3DType.ACCELERATION)
         val rotationsFile = Point3DFile(context, measurementId, Point3DType.ROTATION)
         val directionsFile = Point3DFile(context, measurementId, Point3DType.DIRECTION)
-        val aPoints = ArrayList<Point3DImpl?>()
-        val rPoints = ArrayList<Point3DImpl?>()
-        val dPoints = ArrayList<Point3DImpl?>()
+        val aPoints = mutableListOf<Point3DImpl?>()
+        val rPoints = mutableListOf<Point3DImpl?>()
+        val dPoints = mutableListOf<Point3DImpl?>()
         val createLimit = 100000
         var alreadyInserted = 0
         var i = 0
@@ -484,7 +483,7 @@ object SharedTestUtils {
         sampleFiles: List<Path>,
     ): List<ParcelableAttachment> {
         require(sampleFiles.size == count) {"Expected $count files but found ${sampleFiles.size}"}
-        val files: MutableList<ParcelableAttachment> = ArrayList()
+        val files: MutableList<ParcelableAttachment> = mutableListOf()
         for (j in 0 until count) {
             files.add(
                 ParcelableAttachment(
@@ -578,7 +577,7 @@ object SharedTestUtils {
         database: Database,
         measurementIdentifier: Long, geoLocations: List<ParcelableGeoLocation>
     ) {
-        val locations = ArrayList<GeoLocation>()
+        val locations = mutableListOf<GeoLocation>()
         for (geoLocation in geoLocations) {
             locations.add(GeoLocation(geoLocation, measurementIdentifier))
         }
@@ -612,7 +611,7 @@ object SharedTestUtils {
         measurementId: Long,
         files: List<ParcelableAttachment>
     ) {
-        val entries = ArrayList<Attachment>()
+        val entries = mutableListOf<Attachment>()
         for (entry in files) {
             entries.add(Attachment(entry, measurementId))
         }

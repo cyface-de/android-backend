@@ -25,7 +25,6 @@ import de.cyface.datacapturing.MessageCodes
 import de.cyface.datacapturing.TestUtils.TAG
 import de.cyface.datacapturing.model.CapturedData
 import de.cyface.persistence.model.ParcelableGeoLocation
-import de.cyface.utils.Validate.notNull
 
 /**
  * A handler for messages received from the capturing service.
@@ -38,7 +37,7 @@ internal class FromServiceMessageHandler : Handler() {
     /**
      * The data previously captured by the service and send to this handler.
      */
-    private val capturedData: MutableList<CapturedData> = ArrayList()
+    private val capturedData: MutableList<CapturedData> = mutableListOf()
 
     /**
      * A flag that is set to `true` if no permission to access fine location has been granted to the
@@ -64,8 +63,8 @@ internal class FromServiceMessageHandler : Handler() {
             MessageCodes.LOCATION_CAPTURED -> {
                 dataBundle.classLoader = javaClass.classLoader
                 val location = dataBundle.getParcelable<ParcelableGeoLocation>("data")
-                notNull(location)
-                Log.d(TAG, "Test received location ${location!!.lat},${location.lon}")
+                requireNotNull(location)
+                Log.d(TAG, "Test received location ${location.lat},${location.lon}")
             }
 
             MessageCodes.GEOLOCATION_FIX -> Log.d(TAG, "Test received GeoLocation fix.")

@@ -20,6 +20,7 @@ package de.cyface.datacapturing.backend
 
 import android.hardware.Sensor
 import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Parcelable
 
 /**
@@ -32,6 +33,14 @@ import android.os.Parcelable
  * @since 7.13.0
  */
 interface SensorCapture : Parcelable {
+
+    /**
+     * Sets up the Android service for data capturing.
+     *
+     * @param sensorManager The service to register the data capturing from.
+     */
+    fun setup(sensorManager: SensorManager)
+
     /**
      * Registers the requested sensors if available on the device, if not, nothing will happen.
      *

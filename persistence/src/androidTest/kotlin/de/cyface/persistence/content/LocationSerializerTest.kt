@@ -32,7 +32,6 @@ import de.cyface.persistence.model.Modality
 import de.cyface.persistence.serialization.LocationSerializer
 import de.cyface.persistence.serialization.TransferFileSerializer.getLocationCursor
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
-import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
@@ -98,10 +97,10 @@ class LocationSerializerTest {
     }
 
     private fun testReadFrom(numberOfTestEntries: Int) = runBlocking {
-        Validate.isTrue(numberOfTestEntries >= 2, "not supported")
+        require(numberOfTestEntries >= 2) { "not supported" }
 
         // Arrange
-        val locations = arrayListOf<GeoLocation>()
+        val locations = mutableListOf<GeoLocation>()
         for (i in 1.rangeTo(numberOfTestEntries)) {
             val location = GeoLocation(
                 0L,
