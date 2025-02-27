@@ -74,12 +74,14 @@ class CapturingProcessTest {
      */
     private var testListener: TestCapturingProcessListener? = null
 
+    private lateinit var locationCapture: LocationCapture
+
     /**
      * Initializes all required properties and adds the `testListener` to the `CapturingProcess`.
      */
     @Before
     fun setUp() {
-        val locationCapture = LocationCapture().also {
+        locationCapture = LocationCapture().also {
             it.setup(
                 locationManager!!,
                 object : GeoLocationDeviceStatusHandler(locationManager) {
@@ -97,8 +99,11 @@ class CapturingProcessTest {
         testListener = TestCapturingProcessListener()
         oocut!!.addCapturingProcessListener(testListener!!)
         val accelerometer = initSensor("accelerometer")
+        val barometer = initSensor("barometer")
         Mockito.`when`(sensorManager!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER))
             .thenReturn(accelerometer)
+        Mockito.`when`(sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE))
+            .thenReturn(barometer)
     }
 
     /**
@@ -125,8 +130,53 @@ class CapturingProcessTest {
         }
         MatcherAssert.assertThat(testListener!!.getCapturedData(), Matchers.hasSize(2))
         MatcherAssert.assertThat(
-            testListener!!.getCapturedData()[0].getAccelerations().size
-                    + testListener!!.getCapturedData()[1].getAccelerations().size,
+            testListener!!.getCapturedData()[0].accelerations.size
+                    + testListener!!.getCapturedData()[1].accelerations.size,
+            Matchers.`is`(Matchers.equalTo(400))
+        )
+        MatcherAssert.assertThat(
+            testListener!!.getCapturedLocations(), Matchers.hasSize(2)
+        )
+    }
+
+    /**
+     * Tests the happy path of capturing pressure data when sensor capturing is disabled.
+     *
+     * The pressure data should always be captured for SR.
+     */
+    @Test
+    fun testCapturePressureDataWithSensorCaptureDisabled() {
+        val random = Random(System.currentTimeMillis())
+        val sensorCapture = SensorCaptureDisabled().also {
+            it.setup(sensorManager!!)
+        }
+        val capturingWithSensorCaptureDisabled = GeoLocationCapturingProcess(locationCapture, sensorCapture)
+        capturingWithSensorCaptureDisabled.addCapturingProcessListener(testListener!!)
+        for (i in 1..400) {
+            val currentTimestamp = Integer.valueOf(i).toLong() * 5L
+            val barometer = sensorManager!!.getDefaultSensor(Sensor.TYPE_PRESSURE)
+            val sensorEvent = createSensorEvent(
+                barometer!!,
+                (random.nextFloat() + 250.0).toFloat(),
+                (random.nextFloat() + 250.0).toFloat(),
+                (random.nextFloat() + 250.0).toFloat(),
+                currentTimestamp * 1000000L,
+            )
+            // If "SensorCaptureDisabled should not result into sensor events" is returned,
+            // the barometer sensor was not registered as expected.
+            capturingWithSensorCaptureDisabled.onSensorChanged(sensorEvent)
+            if (i % 200 == 0) {
+                val location = Mockito.mock(
+                    Location::class.java
+                )
+                Mockito.`when`(location.time).thenReturn(currentTimestamp)
+                capturingWithSensorCaptureDisabled.onLocationChanged(location)
+            }
+        }
+        MatcherAssert.assertThat(testListener!!.getCapturedData(), Matchers.hasSize(2))
+        MatcherAssert.assertThat(
+            testListener!!.getCapturedData()[0].pressures.size
+                    + testListener!!.getCapturedData()[1].pressures.size,
             Matchers.`is`(Matchers.equalTo(400))
         )
         MatcherAssert.assertThat(
