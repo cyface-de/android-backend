@@ -124,7 +124,7 @@ class SensorCaptureEnabled(private val sensorFrequency: Int) : SensorCapture {
         /**
          * A delay used to bundle capturing of sensor events, to reduce power consumption.
          */
-        private const val SENSOR_VALUE_DELAY_IN_MICROSECONDS = 500_000
+        internal const val SENSOR_VALUE_DELAY_IN_MICROSECONDS = 500_000
 
         /**
          * The number of microseconds in a second.
