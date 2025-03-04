@@ -202,7 +202,8 @@ abstract class DataCapturingService(
      * The identifier used to qualify [Measurement]s from this capturing service with the server receiving
      * the `Measurement`s. This needs to be world wide unique.
      */
-    private val deviceIdentifier: String
+    @Suppress("MemberVisibilityCanBePrivate") // Used by SDK implementing app (SR)
+    val deviceIdentifier: String
 
     /**
      * A receiver for synchronization events.

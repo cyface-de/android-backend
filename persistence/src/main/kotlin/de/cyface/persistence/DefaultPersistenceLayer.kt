@@ -844,7 +844,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         // Extract lifecycle events only
         val lifecycleEvents: MutableList<Event?> = mutableListOf()
         for (event in loadEvents(measurementIdentifier)) {
-            val type = event!!.type
+            val type = event.type
             if (type == EventType.LIFECYCLE_START || type == EventType.LIFECYCLE_PAUSE ||
                 type == EventType.LIFECYCLE_RESUME || type == EventType.LIFECYCLE_STOP) {
                 lifecycleEvents.add(event)
@@ -917,16 +917,16 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return The [Track]s built or an empty `List` if no [GeoLocation]s exist.
      */
     private fun loadTracks(
-        locations: List<GeoLocation?>?, events: List<Event?>?,
-        pressures: List<Pressure?>?
+        locations: List<GeoLocation>, events: List<Event>,
+        pressures: List<Pressure>
     ): List<Track> {
-        if (locations!!.isEmpty()) {
+        if (locations.isEmpty()) {
             return emptyList()
         }
 
         var mutableLocations = locations.toMutableList()
-        val mutableEvents = events!!.toMutableList()
-        var mutablePressures = pressures!!.toMutableList()
+        val mutableEvents = events.toMutableList()
+        var mutablePressures = pressures.toMutableList()
         val tracks = mutableListOf<Track>()
         // The geoLocation iterator always needs to point to the first GeoLocation of the next sub track
         val i = 0
@@ -959,9 +959,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             // Pause reached: Move geoLocationCursor to the first data point of the next sub-track
             // We do this to ignore data points between pause and resume event (STAD-140)
             mutableLocations =
-                mutableLocations.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<GeoLocation?>
+                mutableLocations.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<GeoLocation>
             mutablePressures =
-                mutablePressures.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<Pressure?>
+                mutablePressures.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<Pressure>
         }
 
         // Return if there is no tail (sub track ending at LIFECYCLE_STOP instead of LIFECYCLE_PAUSE)
@@ -982,8 +982,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         locationCleaningStrategy: LocationCleaningStrategy
     ): List<Track> {
 
-        var locations: List<GeoLocation?>?
-        var pressures: List<Pressure?>?
+        var locations: List<GeoLocation>
+        var pressures: List<Pressure>
         val events = loadEvents(measurementIdentifier)
         runBlocking {
             locations = withContext(scope.coroutineContext) {
@@ -993,7 +993,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 pressureDao!!.loadAllByMeasurementId(measurementIdentifier)
             }
         }
-        return if (locations!!.isEmpty()) emptyList() else loadTracks(locations, events, pressures)
+        return if (locations.isEmpty()) emptyList() else loadTracks(locations, events, pressures)
     }
 
     /**
@@ -1006,8 +1006,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return The `Cursor` pointing to the `Event`s of the `Measurement` with the provided
      * {@param measurementId}.
      */
-    fun loadEvents(measurementIdentifier: Long): List<Event?> {
-        var events: List<Event?>
+    fun loadEvents(measurementIdentifier: Long): List<Event> {
+        var events: List<Event>
         runBlocking {
             events = withContext(scope.coroutineContext) {
                 eventRepository!!.loadAllByMeasurementId(measurementIdentifier)!!
@@ -1048,8 +1048,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return The sub `Track`.
      */
     fun collectNextSubTrack(
-        locations: MutableList<GeoLocation?>,
-        pressures: MutableList<Pressure?>, pauseEventTime: Long?
+        locations: MutableList<GeoLocation>,
+        pressures: MutableList<Pressure>, pauseEventTime: Long?
     ): Track {
         val track = Track()
         var location = if (locations.isNotEmpty()) locations[0] else null
