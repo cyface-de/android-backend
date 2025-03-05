@@ -36,6 +36,8 @@ import de.cyface.persistence.strategy.DefaultDistanceCalculation
 import de.cyface.persistence.strategy.DefaultLocationCleaning
 import de.cyface.persistence.strategy.DistanceCalculationStrategy
 import de.cyface.persistence.strategy.LocationCleaningStrategy
+import de.cyface.synchronization.LocationAnonymization
+import de.cyface.synchronization.LocationAnonymizationDisabled
 import de.cyface.synchronization.LoginActivityProvider
 import de.cyface.uploader.exception.SynchronisationException
 
@@ -57,6 +59,7 @@ import de.cyface.uploader.exception.SynchronisationException
  * [Measurement.distance]
  * @param locationCleaningStrategy The [LocationCleaningStrategy] used to filter the
  * `ParcelableGeoLocation`s
+ * @param locationAnonymization The anonymization applied before data upload.
  * @param capturingListener A [DataCapturingListener] that is notified of important events during data
  * capturing.
  * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should
@@ -70,6 +73,7 @@ class CyfaceDataCapturingService private constructor(
     eventHandlingStrategy: EventHandlingStrategy,
     distanceCalculationStrategy: DistanceCalculationStrategy,
     locationCleaningStrategy: LocationCleaningStrategy,
+    locationAnonymization: LocationAnonymization,
     capturingListener: DataCapturingListener,
     sensorCapture: SensorCapture,
     loginActivityProvider: LoginActivityProvider,
@@ -81,6 +85,7 @@ class CyfaceDataCapturingService private constructor(
     DefaultPersistenceLayer(context, CapturingPersistenceBehaviour()),
     distanceCalculationStrategy,
     locationCleaningStrategy,
+    locationAnonymization,
     capturingListener,
     sensorCapture,
 ) {
@@ -121,6 +126,7 @@ class CyfaceDataCapturingService private constructor(
         eventHandlingStrategy,
         DefaultDistanceCalculation(),
         DefaultLocationCleaning(),
+        LocationAnonymizationDisabled(),
         capturingListener,
         SensorCaptureEnabled(sensorFrequency),
         loginActivityProvider,
@@ -180,18 +186,14 @@ class CyfaceDataCapturingService private constructor(
      * Starts the capturing process with a [DataCapturingListener], that is notified of important events occurring
      * while the capturing process is running.
      *
-     *
      * This is an asynchronous method. This method returns as soon as starting the service was initiated. You may not
      * assume the service is running, after the method returns. Please use the [StartUpFinishedHandler] to receive
      * a callback, when the service has been started.
      *
-     *
      * This method is thread safe to call.
-     *
      *
      * **ATTENTION:** If there are errors while starting the service, your handler might never be called. You may
      * need to apply some timeout mechanism to not wait indefinitely.
-     *
      *
      * This wrapper avoids an unrecoverable state after the app crashed with an un[MeasurementStatus.FINISHED]
      * [Measurement]. "Dead" `MeasurementStatus#OPEN` and [MeasurementStatus.PAUSED] measurements are

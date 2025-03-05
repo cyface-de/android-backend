@@ -62,5 +62,5 @@ interface LocationCleaningStrategy : Parcelable {
      * @param measurementId The identifier for the [de.cyface.persistence.model.Measurement] to load the track for.
      * @return A list which contains the "clean" [GeoLocation]s of that measurement.
      */
-    fun loadCleanedLocations(dao: LocationDao, measurementId: Long): List<GeoLocation?>?
+    fun loadCleanedLocations(dao: LocationDao, measurementId: Long): List<GeoLocation>
 }

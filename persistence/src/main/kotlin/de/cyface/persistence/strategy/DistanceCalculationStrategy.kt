@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Cyface GmbH
+ * Copyright 2019-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -19,29 +19,45 @@
 package de.cyface.persistence.strategy
 
 import android.os.Parcelable
+import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.ParcelableGeoLocation
 
 /**
- * Interface for strategies to respond to `DataCapturingBackgroundService#onLocationCaptured()` events
- * to calculate the [de.cyface.persistence.model.Measurement.distance] from [ParcelableGeoLocation] pairs.
+ * Interface for implementations used to calculate distances between geo-locations.
+ *
+ * This is used in:
+ * - `DataCapturingBackgroundService#onLocationCaptured()` events to calculate the
+ * [de.cyface.persistence.model.Measurement.distance] from [ParcelableGeoLocation] pairs.
+ * - `LocationAnonymization` to calculate the distance used to trim location within a radius.
  *
  * Must be `Parcelable` to be passed from the `DataCapturingService` via `Intent`.
  *
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.1.0
  * @since 3.2.0
  */
 interface DistanceCalculationStrategy : Parcelable {
     /**
-     * Implements a strategy to calculate the [de.cyface.persistence.model.Measurement.distance] based on two subsequent
-     * [ParcelableGeoLocation]s.
+     * Calculates the distance between two [ParcelableGeoLocation]s.
      *
-     * @param lastLocation The `GeoLocation` captured before {@param newLocation}
-     * @param newLocation The `GeoLocation` captured after {@param lastLocation}
-     * @return The distance which is added to the `Measurement` based on the provided `GeoLocation`s.
+     * @param location1 The first [ParcelableGeoLocation].
+     * @param location2 The second [ParcelableGeoLocation].
+     * @return The distance between the two [ParcelableGeoLocation]s in meters.
      */
     fun calculateDistance(
-        lastLocation: ParcelableGeoLocation,
-        newLocation: ParcelableGeoLocation
+        location1: ParcelableGeoLocation,
+        location2: ParcelableGeoLocation
+    ): Double
+
+    /**
+     * Calculates the distance based on two [GeoLocation]s.
+     *
+     * @param location1 The first [GeoLocation].
+     * @param location2 The second [GeoLocation].
+     * @return The distance between the two [GeoLocation]s in meters.
+     */
+    fun calculateDistance(
+        location1: GeoLocation,
+        location2: GeoLocation
     ): Double
 }
