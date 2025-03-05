@@ -22,6 +22,7 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.Parcel
 import android.os.Parcelable.Creator
+import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.ParcelableGeoLocation
 
 /**
@@ -52,26 +53,33 @@ class DefaultDistanceCalculation : DistanceCalculationStrategy {
     }
 
     override fun calculateDistance(
-        lastLocation: ParcelableGeoLocation,
-        newLocation: ParcelableGeoLocation
+        location1: ParcelableGeoLocation,
+        location2: ParcelableGeoLocation
     ): Double {
+        return calculateDistance(
+            GeoLocation(location1, 0L),
+            GeoLocation(location2, 0L),
+        )
+    }
+
+    override fun calculateDistance(location1: GeoLocation, location2: GeoLocation): Double {
         // Changed to that the code is more similar to SR-calculated distance [STAD-518]
         val previousLocation = Location(LocationManager.GPS_PROVIDER)
         val nextLocation = Location(LocationManager.GPS_PROVIDER)
-        previousLocation.latitude = lastLocation.lat
-        previousLocation.longitude = lastLocation.lon
-        previousLocation.speed = lastLocation.speed.toFloat()
-        previousLocation.time = lastLocation.timestamp
-        nextLocation.latitude = newLocation.lat
-        nextLocation.longitude = newLocation.lon
-        nextLocation.speed = newLocation.speed.toFloat()
-        nextLocation.time = newLocation.timestamp
+        previousLocation.latitude = location1.lat
+        previousLocation.longitude = location1.lon
+        previousLocation.speed = location1.speed.toFloat()
+        previousLocation.time = location1.timestamp
+        nextLocation.latitude = location2.lat
+        nextLocation.longitude = location2.lon
+        nextLocation.speed = location2.speed.toFloat()
+        nextLocation.time = location2.timestamp
         // w/o `accuracy`, `distanceTo()` returns `0` on Samsung Galaxy S9 Android 10 [STAD-513]
-        if (lastLocation.accuracy != null) {
-            previousLocation.accuracy = lastLocation.accuracy!!.toFloat()
+        if (location1.accuracy != null) {
+            previousLocation.accuracy = location1.accuracy.toFloat()
         }
-        if (newLocation.accuracy != null) {
-            nextLocation.accuracy = newLocation.accuracy!!.toFloat()
+        if (location2.accuracy != null) {
+            nextLocation.accuracy = location2.accuracy.toFloat()
         }
         return previousLocation.distanceTo(nextLocation).toDouble()
     }

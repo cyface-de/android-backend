@@ -57,6 +57,7 @@ import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
+import de.cyface.synchronization.LocationAnonymization
 import de.cyface.synchronization.WiFiSurveyor
 import java.lang.ref.WeakReference
 import java.util.Locale
@@ -86,13 +87,12 @@ import java.util.concurrent.locks.ReentrantLock
  * [WiFiSurveyor]. You should use something world wide unique, like your domain, to avoid
  * collisions between different apps using the Cyface SDK.
  * @param accountType The type of the account to use to synchronize data with.
- * @property eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
- * triggered by the [DataCapturingBackgroundService].
- * @property persistenceLayer The [de.cyface.persistence.PersistenceLayer] required to access the device id
- * @property distanceCalculationStrategy The [DistanceCalculationStrategy] used to calculate the
- * [Measurement.distance]
- * @property locationCleaningStrategy The [LocationCleaningStrategy] used to filter the
- * [ParcelableGeoLocation]s
+ * @property eventHandlingStrategy The strategy used to respond to selected events triggered by this
+ * service.
+ * @property persistenceLayer A facade object providing access to the data stored by this service.
+ * @property distanceCalculationStrategy The strategy used to calculate the [Measurement.distance].
+ * @property locationCleaningStrategy The strategy used to filter locations for the UI view.
+ * @property locationAnonymization The anonymization applied before data upload.
  * @param capturingListener A [DataCapturingListener] that is notified of important events during data
  * capturing.
  * @property sensorCapture The [SensorCapture] implementation which decides if sensor data should
@@ -100,12 +100,13 @@ import java.util.concurrent.locks.ReentrantLock
  */
 abstract class DataCapturingService(
     context: Context,
-    authority: String,
+    private val authority: String,
     accountType: String,
-    eventHandlingStrategy: EventHandlingStrategy,
-    persistenceLayer: DefaultPersistenceLayer<CapturingPersistenceBehaviour>,
-    distanceCalculationStrategy: DistanceCalculationStrategy,
-    locationCleaningStrategy: LocationCleaningStrategy,
+    private val eventHandlingStrategy: EventHandlingStrategy,
+    @JvmField val persistenceLayer: DefaultPersistenceLayer<CapturingPersistenceBehaviour>,
+    private val distanceCalculationStrategy: DistanceCalculationStrategy,
+    private val locationCleaningStrategy: LocationCleaningStrategy,
+    private val locationAnonymization: LocationAnonymization,
     capturingListener: DataCapturingListener,
     private val sensorCapture: SensorCapture,
 ) {
@@ -141,18 +142,12 @@ abstract class DataCapturingService(
      * A weak reference to the calling context. This is a weak reference since the calling context (i.e.
      * `Activity`) might have been destroyed, in which case there is no context anymore.
      */
-    private val context: WeakReference<Context?>
+    private val context: WeakReference<Context?> = WeakReference(context)
 
     /**
      * Connection used to communicate with the background service
      */
     private val serviceConnection: ServiceConnection
-
-    /**
-     * A facade object providing access to the data stored by this `DataCapturingService`.
-     */
-    @JvmField
-    val persistenceLayer: DefaultPersistenceLayer<CapturingPersistenceBehaviour>
 
     /**
      * Messenger that handles messages arriving from the `DataCapturingBackgroundService`.
@@ -186,13 +181,6 @@ abstract class DataCapturingService(
     var uiListener: UIListener? = null
 
     /**
-     * The `ContentProvider` authority required to request a sync operation in the [WiFiSurveyor].
-     * You should use something world wide unique, like your domain, to avoid collisions between different apps using
-     * the Cyface SDK.
-     */
-    private val authority: String
-
-    /**
      * Lock used to protect lifecycle events from each other. This for example prevents a reconnect to disturb a running
      * stop.
      */
@@ -202,39 +190,16 @@ abstract class DataCapturingService(
      * The identifier used to qualify [Measurement]s from this capturing service with the server receiving
      * the `Measurement`s. This needs to be world wide unique.
      */
-    @Suppress("MemberVisibilityCanBePrivate") // Used by SDK implementing app (SR)
-    val deviceIdentifier: String
+    @Suppress("MemberVisibilityCanBePrivate", "unused") // Used by SDK implementing app (SR)
+    val deviceIdentifier: String = persistenceLayer.restoreOrCreateDeviceId()
 
     /**
      * A receiver for synchronization events.
      */
-    private val connectionStatusReceiver: ConnectionStatusReceiver
-
-    /**
-     * The strategy used to respond to selected events triggered by this service.
-     */
-    private val eventHandlingStrategy: EventHandlingStrategy
-
-    /**
-     * The strategy used to calculate the [Measurement.distance] from [ParcelableGeoLocation] pairs
-     */
-    private val distanceCalculationStrategy: DistanceCalculationStrategy
-
-    /**
-     * The strategy used to filter the [ParcelableGeoLocation]s
-     */
-    private val locationCleaningStrategy: LocationCleaningStrategy
+    private val connectionStatusReceiver: ConnectionStatusReceiver = ConnectionStatusReceiver(context)
 
     init {
-        this.context = WeakReference(context)
-        this.authority = authority
-        this.persistenceLayer = persistenceLayer
         serviceConnection = BackgroundServiceConnection()
-        connectionStatusReceiver = ConnectionStatusReceiver(context)
-        this.eventHandlingStrategy = eventHandlingStrategy
-        this.distanceCalculationStrategy = distanceCalculationStrategy
-        this.locationCleaningStrategy = locationCleaningStrategy
-        this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId()
 
         // Mark deprecated measurements
         for (m in persistenceLayer.loadMeasurements()) {
@@ -788,6 +753,8 @@ abstract class DataCapturingService(
             Constants.TAG,
             "Registering finishedHandler for service stop synchronization broadcast."
         )
+
+        @SuppressLint("UnspecifiedRegisterReceiverFlag")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context!!.registerReceiver(
                 finishedHandler,
@@ -801,6 +768,7 @@ abstract class DataCapturingService(
                 IntentFilter(MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED),
             )
         }
+
         val serviceWasActive: Boolean
         try {
             // For some reasons we have to call the unbind here.
@@ -991,7 +959,7 @@ abstract class DataCapturingService(
      *
      * @param listener A listener that is notified of important events during synchronization.
      */
-    // Used by implementing apps (CY)
+    @Suppress("unused") // Used by implementing apps (CY)
     fun addConnectionStatusListener(listener: ConnectionStatusListener) {
         connectionStatusReceiver.addListener(listener)
     }
@@ -1002,7 +970,7 @@ abstract class DataCapturingService(
      *
      * @param listener A listener that is notified of important events during synchronization.
      */
-    // Used by implementing apps (CY)
+    @Suppress("unused") // Used by implementing apps (CY)
     fun removeConnectionStatusListener(listener: ConnectionStatusListener) {
         connectionStatusReceiver.removeListener(listener)
     }

@@ -44,6 +44,7 @@ import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.strategy.DefaultDistanceCalculation
 import de.cyface.persistence.strategy.DefaultLocationCleaning
+import de.cyface.synchronization.ExampleLocationAnonymization
 import de.cyface.uploader.exception.SynchronisationException
 
 /**
@@ -101,6 +102,7 @@ class MovebisDataCapturingService internal constructor(
     DefaultPersistenceLayer(context, CapturingPersistenceBehaviour()),
     DefaultDistanceCalculation(),
     DefaultLocationCleaning(),
+    ExampleLocationAnonymization(DefaultDistanceCalculation()) { 150.0 + Math.random() * 50.0 },
     capturingListener,
     sensorCapture,
 ) {
