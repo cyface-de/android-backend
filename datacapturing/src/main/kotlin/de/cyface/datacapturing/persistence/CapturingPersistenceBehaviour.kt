@@ -113,21 +113,21 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
         if (threadPool!!.isShutdown) {
             return
         }
-        if (accelerationsFile == null) {
+        if (accelerationsFile == null && data.accelerations.isNotEmpty()) {
             accelerationsFile = Point3DFile(
                 persistenceLayer.context!!,
                 measurementIdentifier,
                 Point3DType.ACCELERATION
             )
         }
-        if (rotationsFile == null) {
+        if (rotationsFile == null && data.rotations.isNotEmpty()) {
             rotationsFile = Point3DFile(
                 persistenceLayer.context!!,
                 measurementIdentifier,
                 Point3DType.ROTATION
             )
         }
-        if (directionsFile == null) {
+        if (directionsFile == null && data.directions.isNotEmpty()) {
             directionsFile = Point3DFile(
                 persistenceLayer.context!!,
                 measurementIdentifier,
@@ -135,7 +135,10 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
             )
         }
         val writer = CapturedDataWriter(
-            data, accelerationsFile!!, rotationsFile!!, directionsFile!!,
+            data,
+            accelerationsFile,
+            rotationsFile,
+            directionsFile,
             callback
         )
         threadPool!!.submit(writer)

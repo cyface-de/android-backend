@@ -152,19 +152,32 @@ class CapturingProcessTest {
         }
         val capturingWithSensorCaptureDisabled = GeoLocationCapturingProcess(locationCapture, sensorCapture)
         capturingWithSensorCaptureDisabled.addCapturingProcessListener(testListener!!)
+        val barometer = sensorManager!!.getDefaultSensor(Sensor.TYPE_PRESSURE)
+        val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         for (i in 1..400) {
             val currentTimestamp = Integer.valueOf(i).toLong() * 5L
-            val barometer = sensorManager!!.getDefaultSensor(Sensor.TYPE_PRESSURE)
-            val sensorEvent = createSensorEvent(
-                barometer!!,
-                (random.nextFloat() + 250.0).toFloat(),
-                (random.nextFloat() + 250.0).toFloat(),
-                (random.nextFloat() + 250.0).toFloat(),
-                currentTimestamp * 1000000L,
-            )
-            // If "SensorCaptureDisabled should not result into sensor events" is returned,
-            // the barometer sensor was not registered as expected.
-            capturingWithSensorCaptureDisabled.onSensorChanged(sensorEvent)
+            if (i % 10 == 0) {
+                val sensorEvent = createSensorEvent(
+                    barometer!!,
+                    (random.nextFloat() + 250.0).toFloat(),
+                    (random.nextFloat() + 250.0).toFloat(),
+                    (random.nextFloat() + 250.0).toFloat(),
+                    currentTimestamp * 1000000L,
+                )
+                // If "SensorCaptureDisabled should not result into sensor events" is returned,
+                // the barometer sensor was not registered as expected.
+                capturingWithSensorCaptureDisabled.onSensorChanged(sensorEvent)
+            } else {
+                // Also report accelerometer events to ensure they are ignored
+                val sensorEvent = createSensorEvent(
+                    accelerometer!!,
+                    random.nextFloat(),
+                    random.nextFloat(),
+                    random.nextFloat(),
+                    currentTimestamp * 1000000L,
+                )
+                oocut!!.onSensorChanged(sensorEvent)
+            }
             if (i % 200 == 0) {
                 val location = Mockito.mock(
                     Location::class.java
@@ -177,7 +190,12 @@ class CapturingProcessTest {
         MatcherAssert.assertThat(
             testListener!!.getCapturedData()[0].pressures.size
                     + testListener!!.getCapturedData()[1].pressures.size,
-            Matchers.`is`(Matchers.equalTo(400))
+            Matchers.`is`(Matchers.equalTo(40))
+        )
+        MatcherAssert.assertThat(
+            testListener!!.getCapturedData()[0].accelerations.size
+                    + testListener!!.getCapturedData()[1].accelerations.size,
+            Matchers.`is`(Matchers.equalTo(0))
         )
         MatcherAssert.assertThat(
             testListener!!.getCapturedLocations(), Matchers.hasSize(2)

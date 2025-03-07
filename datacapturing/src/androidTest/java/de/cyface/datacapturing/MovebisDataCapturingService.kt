@@ -31,6 +31,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import de.cyface.datacapturing.backend.SensorCapture
+import de.cyface.datacapturing.backend.SensorCaptureDisabled
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
 import de.cyface.datacapturing.exception.MissingPermissionException
@@ -80,11 +81,9 @@ import de.cyface.uploader.exception.SynchronisationException
  * triggered by the [de.cyface.datacapturing.backend.DataCapturingBackgroundService].
  * @param capturingListener A [DataCapturingListener] that is notified of important events during data
  * capturing.
- * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should
- * be captured.
  */
 // Used by SDK implementing apps (SR)
-class MovebisDataCapturingService internal constructor(
+class MovebisDataCapturingService internal constructor( //FIXME: Rename Movebis and update the copy (see SR repo)
     context: Context,
     authority: String,
     accountType: String,
@@ -92,7 +91,6 @@ class MovebisDataCapturingService internal constructor(
     private val locationUpdateRate: Long,
     eventHandlingStrategy: EventHandlingStrategy,
     capturingListener: DataCapturingListener,
-    sensorCapture: SensorCapture,
 ) : DataCapturingService(
     context,
     authority,
@@ -102,7 +100,7 @@ class MovebisDataCapturingService internal constructor(
     DefaultDistanceCalculation(),
     DefaultLocationCleaning(),
     capturingListener,
-    sensorCapture,
+    SensorCaptureDisabled(),
 ) {
     /**
      * A `LocationManager` that is used to provide location updates for the UI even if no capturing is
@@ -162,7 +160,6 @@ class MovebisDataCapturingService internal constructor(
         locationUpdateRate: Long,
         eventHandlingStrategy: EventHandlingStrategy,
         capturingListener: DataCapturingListener,
-        sensorCapture: SensorCapture,
     ) : this(
         context,
         "de.cyface.provider",
@@ -171,7 +168,6 @@ class MovebisDataCapturingService internal constructor(
         locationUpdateRate,
         eventHandlingStrategy,
         capturingListener,
-        sensorCapture,
     )
 
     init {
