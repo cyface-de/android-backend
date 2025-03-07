@@ -33,8 +33,8 @@ package de.cyface.persistence.model
  * @property pressures The [Pressure]s collected for this [Track].
  */
 data class Track(
-    val geoLocations: MutableList<GeoLocation?>,
-    val pressures: MutableList<Pressure?>
+    val geoLocations: MutableList<GeoLocation>,
+    val pressures: MutableList<Pressure>
 ) {
     /**
      * Creates a completely initialized instance of this class.
