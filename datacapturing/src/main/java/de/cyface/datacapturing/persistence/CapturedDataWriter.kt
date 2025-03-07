@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -26,44 +26,24 @@ import de.cyface.persistence.serialization.Point3DFile
 /**
  * A class responsible for writing captured sensor data to the underlying persistence layer.
  *
- *
  * This is a throw away runnable. You should never run this twice. Doing so will cause duplicates inside the
  * persistence layer. Instead create a new instance per `CapturedData` to save.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.2
+ * @version 5.0.0
  * @since 1.0.0
+ * @property data The data to write.
+ * @property accelerationsFile The file to write the data to or `null` if `SensorCaptureDisabled`.
+ * @property rotationsFile The file to write the data to or `null` if `SensorCaptureDisabled`.
+ * @property directionsFile The file to write the data to or `null` if `SensorCaptureDisabled`.
+ * @property callback Callback which is called after writing data has finished.
  */
-class CapturedDataWriter
-/**
- * Creates a new completely initialized writer for captured data.
- *
- * @param data The data to write.
- * @param accelerationsFile The file to write the data to.
- * @param rotationsFile The file to write the data to.
- * @param directionsFile The file to write the data to.
- * @param callback Callback which is called after writing data has finished.
- */ internal constructor(
-    /**
-     * The data to write.
-     */
+class CapturedDataWriter internal constructor(
     private val data: CapturedData,
-    /**
-     * The [Point3DFile] to write acceleration points to.
-     */
-    private val accelerationsFile: Point3DFile,
-    /**
-     * The [Point3DFile] to write rotation points to.
-     */
-    private val rotationsFile: Point3DFile,
-    /**
-     * The [Point3DFile] to write direction points to.
-     */
-    private val directionsFile: Point3DFile,
-    /**
-     * Callback which is called after writing data has finished.
-     */
+    private val accelerationsFile: Point3DFile?,
+    private val rotationsFile: Point3DFile?,
+    private val directionsFile: Point3DFile?,
     private val callback: WritingDataCompletedCallback
 ) : Runnable {
     private fun writeCapturedData() {
@@ -71,9 +51,15 @@ class CapturedDataWriter
             TAG, "appending " + data.accelerations.size + "/" + data.rotations.size + "/"
                     + data.directions.size + " A/R/MPs on: " + Thread.currentThread().name
         )
-        accelerationsFile.append(data.accelerations)
-        rotationsFile.append(data.rotations)
-        directionsFile.append(data.directions)
+        if (data.accelerations.isNotEmpty()) {
+            accelerationsFile!!.append(data.accelerations)
+        }
+        if (data.rotations.isNotEmpty()) {
+            rotationsFile!!.append(data.rotations)
+        }
+        if (data.directions.isNotEmpty()) {
+            directionsFile!!.append(data.directions)
+        }
     }
 
     override fun run() {

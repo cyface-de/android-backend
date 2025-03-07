@@ -28,7 +28,6 @@ import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
-import de.cyface.datacapturing.backend.SensorCaptureEnabled
 import de.cyface.testutils.SharedTestUtils.cleanupOldAccounts
 import de.cyface.uploader.exception.SynchronisationException
 import org.hamcrest.CoreMatchers
@@ -125,7 +124,6 @@ class MovebisTest {
                     0L,
                     IgnoreEventsStrategy(),
                     testListener!!,
-                    SensorCaptureEnabled(100),
                 )
             }
 
