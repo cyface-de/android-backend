@@ -581,7 +581,7 @@ class SyncAdapter private constructor(
         syncResult: SyncResult,
         fromBackground: Boolean
     ) {
-        Log.w(TAG, e.javaClass.simpleName + ": " + e.message)
+        Log.w(TAG, "Authentication error in ${e.javaClass.simpleName}: ${e.message}")
         syncResult.stats.numAuthExceptions++
         ErrorHandler.sendErrorIntent(
             context,

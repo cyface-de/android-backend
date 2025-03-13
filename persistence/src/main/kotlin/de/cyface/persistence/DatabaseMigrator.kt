@@ -802,10 +802,18 @@ class DatabaseMigrator(val context: Context) {
      */
     @Throws(Exception::class)
     private fun sqLiteDatabaseVersion(file: File): Int {
-        val fileAccess = RandomAccessFile(file, "r")
-        fileAccess.seek(60)
-        val buff = ByteArray(4)
-        fileAccess.read(buff, 0, 4)
-        return ByteBuffer.wrap(buff).int
+        // Open database including changes in -wal` file, see "Unsupported version 0" [STAD-657]
+        val db = SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY)
+        return db.use { database ->
+            val cursor = database.rawQuery("PRAGMA user_version;", null)
+            if (cursor.moveToFirst()) {
+                val version = cursor.getInt(0)
+                cursor.close()
+                version
+            } else {
+                cursor.close()
+                error("Failed to read SQLite user_version")
+            }
+        }
     }
 }
