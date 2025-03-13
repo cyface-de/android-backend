@@ -45,7 +45,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.nio.ByteBuffer
 
 /**
  * This class tests the migration functionality of the [de.cyface.persistence.DatabaseMigrator].
@@ -110,11 +109,17 @@ class DatabaseMigratorTest {
     @Test(expected = RuntimeException::class)
     fun testMigrationV17ToV18_withUnsupportedV6DatabaseVersion_fails() {
         // Arrange
-        // Generate first bytes of a database file which contains a version > 1 at byte 60...64
         val dbVersion = 2
         val dbV6File = context!!.getDatabasePath("v6")
-        val versionBytes = ByteBuffer.allocate(4).putInt(dbVersion).array()
-        dbV6File.writeBytes(ByteArray(60) + versionBytes)
+
+        // Create a proper SQLite database and set version using PRAGMA
+        val db = SQLiteDatabase.openOrCreateDatabase(dbV6File, null)
+        try {
+            db.execSQL("PRAGMA user_version = $dbVersion;") // Set version properly
+        } finally {
+            db.close()
+        }
+
         try {
             // Create main database
             helper.createDatabase(TEST_DB_NAME, 17)
