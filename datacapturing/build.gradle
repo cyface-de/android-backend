@@ -120,8 +120,8 @@ dependencies {
 
     // Cyface dependencies
     api "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
-    implementation project(":persistence")
-    implementation project(":synchronization")
+    api project(":persistence")
+    api project(":synchronization")
 
     // Dependencies for instrumentation tests
     androidTestImplementation project(":testutils")
