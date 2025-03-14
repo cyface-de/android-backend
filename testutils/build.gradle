@@ -24,7 +24,7 @@
 plugins {
     id 'com.android.library'
     id 'kotlin-android'
-    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Upgrade together with `kotlin_version`
+    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Only upgrade together with `kotlin_version`
     id 'androidx.room'
 }
 

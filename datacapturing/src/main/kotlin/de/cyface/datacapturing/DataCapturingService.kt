@@ -788,6 +788,7 @@ abstract class DataCapturingService(
             Constants.TAG,
             "Registering finishedHandler for service stop synchronization broadcast."
         )
+        @SuppressLint("UnspecifiedRegisterReceiverFlag")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context!!.registerReceiver(
                 finishedHandler,
