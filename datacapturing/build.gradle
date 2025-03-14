@@ -120,8 +120,9 @@ dependencies {
 
     // Cyface dependencies
     api "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
-    api project(":persistence")
-    api project(":synchronization")
+    // Not `api`: e.g. SR app fails w/"Could not find android-backend:synchronization:unspecified."
+    implementation project(":persistence")
+    implementation project(":synchronization")
 
     // Dependencies for instrumentation tests
     androidTestImplementation project(":testutils")
