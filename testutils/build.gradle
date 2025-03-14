@@ -79,7 +79,6 @@ dependencies {
     ksp "androidx.room:room-compiler:$rootProject.ext.roomVersion"
 
     // Cyface dependencies
-    implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
     api "de.cyface:serializer:$rootProject.ext.cyfaceSerializationVersion"
     // No circular dependency: persistence.dependency.testImplementation(testutils) is not imported transitively
     implementation project(':persistence')
