@@ -64,7 +64,7 @@ class WiFiSurveyor(
     private val context = WeakReference(context)
 
     /**
-     * If `true` the `MovebisDataCapturingService` synchronizes data only if
+     * If `true` the `SRDataCapturingService` synchronizes data only if
      * connected to a WiFi network; if `false` it synchronizes as soon as a data connection is
      * available. The second option might use up the users data plan rapidly so use it sparingly.
      */
@@ -215,7 +215,7 @@ class WiFiSurveyor(
      *
      * @param username The username of the account to delete.
      */
-    @Suppress("unused") // {@link MovebisDataCapturingService} uses this to deregister a token
+    @Suppress("unused") // {@link SRDataCapturingService} uses this to deregister a token
     fun deleteAccount(username: String) {
         val accountManager = AccountManager.get(context.get())
         val account = Account(username, accountType)
@@ -234,16 +234,16 @@ class WiFiSurveyor(
      * @param username The username of the account to be created.
      * @param password The password of the account to be created. May be null if a custom
      * [CyfaceAuthenticator] is used instead of a `LoginActivity` to return tokens as in
-     * `MovebisDataCapturingService`.
+     * `SRDataCapturingService`.
      * @return The created `Account`
      */
-    @Suppress("unused") // Is used by MovebisDataCapturingService
+    @Suppress("unused") // Is used by SRDataCapturingService
     fun createAccount(username: String, password: String?): Account {
         val accountManager = AccountManager.get(context.get())
         val newAccount = Account(username, accountType)
 
         synchronized(this) {
-            // When the account already exists this softly ignores this to support MovebisDataCapturingService
+            // When the account already exists this softly ignores this to support SRDataCapturingService
             accountManager.addAccountExplicitly(newAccount, password, Bundle.EMPTY)
             require(accountManager.getAccountsByType(accountType).size == 1)
             Log.v(TAG, "New account added")
@@ -484,7 +484,7 @@ class WiFiSurveyor(
      * Allows to enable or disable synchronization completely.
      *
      * This second interface for [setSyncEnabled] with the account parameter is required as
-     * `MovebisDataCapturingService#registerJwtAuthToken()` just activate the account before
+     * `SRDataCapturingService#registerJwtAuthToken()` just activate the account before
      * the account is linked as [currentSynchronizationAccount] by [startSurveillance].
      *
      * @param account The `Account` to update.

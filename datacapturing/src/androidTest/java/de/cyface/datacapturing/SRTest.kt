@@ -44,7 +44,7 @@ import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 
 /**
- * Tests whether the specific features required for the Movebis project work as expected.
+ * Tests whether the specific features required for the SR project work as expected.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -53,7 +53,7 @@ import java.util.concurrent.locks.ReentrantLock
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
-class MovebisTest {
+class SRTest {
     /**
      * Grants the access fine location permission to this test.
      */
@@ -69,9 +69,9 @@ class MovebisTest {
         .grant(Manifest.permission.ACCESS_COARSE_LOCATION)
 
     /**
-     * A `MovebisDataCapturingService` as object of class under test, used for testing.
+     * A `SRDataCapturingService` as object of class under test, used for testing.
      */
-    private var oocut: MovebisDataCapturingService? = null
+    private var oocut: SRDataCapturingService? = null
 
     /**
      * A lock used to wait for asynchronous calls to the service, before continuing with the test execution.
@@ -116,7 +116,7 @@ class MovebisTest {
         testUIListener = TestUIListener(lock!!, condition!!)
         InstrumentationRegistry.getInstrumentation()
             .runOnMainSync {
-                oocut = MovebisDataCapturingService(
+                oocut = SRDataCapturingService(
                     context!!,
                     TestUtils.AUTHORITY,
                     TestUtils.ACCOUNT_TYPE,
@@ -146,8 +146,7 @@ class MovebisTest {
     /**
      * Tests that registering a JWT auth token (and with that, creating an account) works.
      *
-     *
-     * This tests the code used by movebis and reproduced bug MOV-631
+     * This tests the code used by SR and reproduced bug MOV-631
      *
      * @throws SynchronisationException This should not happen in the test environment. Occurs if no Android
      * `Context` is available.

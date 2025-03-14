@@ -5,7 +5,7 @@ import android.location.Location;
 import de.cyface.datacapturing.DataCapturingService;
 
 /**
- * A listener the user interface might register with the <code>MovebisDataCapturingListener</code> to be notified of
+ * A listener the user interface might register with the <code>SRDataCapturingListener</code> to be notified of
  * user interface relevant events.
  *
  * @author Klemens Muthmann
