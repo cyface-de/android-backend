@@ -29,9 +29,9 @@ plugins {
     // use `:datacapturing:publishToMavenLocal` instead of `publishToMavenLocal` (see custom task `publishAll`)
     // Don't move to root `build.gradle` as this forces SDK and camera_service to define this, too.
     // Keep version in sync with other modules!
-    id 'de.cyface.android-publish' version '1.1.0'
+    id 'de.cyface.android-publish' version '1.1.2'
     id 'kotlin-android'
-    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Upgrade together with `kotlin_version`
+    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Only upgrade together with `kotlin_version`
     id 'androidx.room'
 }
 
@@ -120,13 +120,13 @@ dependencies {
     testImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     testImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
     // Optional - For better debuggable asserts
-    testImplementation "org.hamcrest:hamcrest-all:$rootProject.ext.hamcrestVersion"
+    testImplementation "org.hamcrest:hamcrest:$rootProject.ext.hamcrestVersion"
     testImplementation "org.robolectric:robolectric:$rootProject.ext.robolectricVersion"
     testImplementation "androidx.test:core:$rootProject.ext.androidxTestCoreVersion"
 
     // Dependencies for instrumentation tests
     androidTestImplementation project(":testutils")
-    androidTestImplementation "org.hamcrest:hamcrest-all:$rootProject.ext.hamcrestVersion"
+    androidTestImplementation "org.hamcrest:hamcrest:$rootProject.ext.hamcrestVersion"
     androidTestImplementation "androidx.room:room-testing:$rootProject.ext.roomVersion"
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"

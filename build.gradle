@@ -26,7 +26,7 @@
  */
 
 buildscript {
-    ext.gradle_version = "8.2.2"
+    ext.gradle_version = "8.5.0"
     ext.kotlin_version = "2.0.21" // Upgrade together with `com.google.devtools.ksp`
     ext.room_version = "2.6.1" // Keep in Sync with version in `plugins` section below
 
@@ -46,7 +46,7 @@ plugins {
     // To generate Proto DataStore
     id 'com.google.protobuf' version '0.9.4' apply false // Maybe keep in sync with other usages
 
-    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Upgrade together with `kotlin_version`
+    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Only upgrade together with `kotlin_version`
 
     // Replaces manual Room schema configuration
     // Keep in Sync with version in `buildscript` section above
@@ -58,7 +58,7 @@ ext {
     cyfaceAndroidBackendVersion = "0.0.0" // Automatically overwritten by CI
 
     // Cyface dependencies
-    cyfaceUtilsVersion = "4.2.0"
+    cyfaceUtilsVersion = "4.2.2" // explicitly used in `utils` and `persistence` module
     // (!) Match versions `android-app`, `SDK` and `camera-service`.
     // When `android-app` is checkout out, `rootProject.uploaderVersion` in the submodules will point
     // to `android-app/build.gradle` instead of `submodule/build.gradle`.
@@ -71,32 +71,30 @@ ext {
     compileSdkVersion = 34 // allows newest APIs to be used and to see deprecations, use latest
 
     // Android dependencies
-    desugaringVersion = "2.0.3"
-    androidxAnnotationVersion = '1.6.0'
-    androidxAppCompatVersion = "1.7.0"
+    desugaringVersion = "2.1.5"
+    androidxAnnotationVersion = '1.9.1'
     localbroadcastmanagerVersion = '1.1.0'
     roomVersion = "2.6.1"
-    datastoreVersion = "1.1.1"
 
     // Kotlin components
-    coroutinesVersion = "1.7.3"
+    coroutinesVersion = "1.10.1"
 
     // Other dependencies
     appAuthVersion = "0.11.1" // Can't move to uploader lib because of dependency issues
-    protobufVersion = '3.22.2' // For Proto Datastore. Maybe keep in sync with other versions.
+    protobufVersion = '4.30.0' // For Proto Datastore. Maybe keep in sync with other versions.
 
     // Testing
     junitVersion = "1.2.1"
-    mockitoVersion = '5.15.2'
+    mockitoVersion = '5.16.0'
     mockitoKotlinVersion = '5.4.0'
-    hamcrestVersion = "1.3"
+    hamcrestVersion = "3.0"
     rulesVersion = "1.6.1"
     robolectricVersion = "4.14.1"
-    androidxTestCoreVersion = "1.4.0"
+    androidxTestCoreVersion = "1.6.1"
 
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-    kotlinTargetJavaVersion = "17"
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    kotlinTargetJavaVersion = "21"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 }

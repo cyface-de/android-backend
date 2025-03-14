@@ -29,9 +29,9 @@ plugins {
     // use `:datacapturing:publishToMavenLocal` instead of `publishToMavenLocal` (see custom task `publishAll`)
     // Don't move to root `build.gradle` as this forces SDK and camera_service to define this, too.
     // Keep version in sync with other modules!
-    id 'de.cyface.android-publish' version '1.1.0'
+    id 'de.cyface.android-publish' version '1.1.2'
     id 'kotlin-android'
-    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Upgrade together with `kotlin_version`
+    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Only upgrade together with `kotlin_version`
     id 'androidx.room'
 }
 
@@ -104,7 +104,6 @@ android {
 dependencies {
     // Android dependencies
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
-    implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     implementation "androidx.localbroadcastmanager:localbroadcastmanager:$rootProject.ext.localbroadcastmanagerVersion"
     // Add support desugaring with for NIO
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs_nio:$rootProject.ext.desugaringVersion"
@@ -120,9 +119,9 @@ dependencies {
     api "org.jetbrains.kotlinx:kotlinx-coroutines-android:$rootProject.ext.coroutinesVersion"
 
     // Cyface dependencies
-    implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
-    implementation project(":persistence")
-    implementation project(":synchronization")
+    api "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
+    api project(":persistence")
+    api project(":synchronization")
 
     // Dependencies for instrumentation tests
     androidTestImplementation project(":testutils")
@@ -135,6 +134,6 @@ dependencies {
     testImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     testImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
     // Optional - For better debuggable asserts
-    testImplementation "org.hamcrest:hamcrest-all:$rootProject.ext.hamcrestVersion"
+    testImplementation "org.hamcrest:hamcrest:$rootProject.ext.hamcrestVersion"
     testImplementation "org.robolectric:robolectric:$rootProject.ext.robolectricVersion"
 }
