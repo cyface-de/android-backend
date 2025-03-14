@@ -69,9 +69,9 @@ class MovebisTest {
         .grant(Manifest.permission.ACCESS_COARSE_LOCATION)
 
     /**
-     * A `MovebisDataCapturingService` as object of class under test, used for testing.
+     * A `SRDataCapturingService` as object of class under test, used for testing.
      */
-    private var oocut: MovebisDataCapturingService? = null
+    private var oocut: SRDataCapturingService? = null
 
     /**
      * A lock used to wait for asynchronous calls to the service, before continuing with the test execution.
@@ -116,7 +116,7 @@ class MovebisTest {
         testUIListener = TestUIListener(lock!!, condition!!)
         InstrumentationRegistry.getInstrumentation()
             .runOnMainSync {
-                oocut = MovebisDataCapturingService(
+                oocut = SRDataCapturingService(
                     context!!,
                     TestUtils.AUTHORITY,
                     TestUtils.ACCOUNT_TYPE,

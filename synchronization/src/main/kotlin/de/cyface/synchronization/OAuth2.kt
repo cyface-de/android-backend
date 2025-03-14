@@ -222,7 +222,7 @@ class OAuth2(context: Context, settings: SynchronizationSettings, caller: String
         val userData = Bundle()
         userData.putString("refresh_token", refreshToken)
         // As we use OAuth2 the password is not known to this client and is set to `null`.
-        // The same occurs in alternative Authenticators such as in `MovebisDataCapturingService`.
+        // The same occurs in alternative Authenticators such as in `SRDataCapturingService`.
         require(accountManager.addAccountExplicitly(newAccount, null, userData))
         accountManager.setAuthToken(newAccount, AUTH_TOKEN_TYPE, accessToken)
         require(accountManager.getAccountsByType(accountType).size == 1)

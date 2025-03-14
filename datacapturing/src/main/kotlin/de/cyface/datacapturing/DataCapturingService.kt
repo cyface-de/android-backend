@@ -862,7 +862,7 @@ abstract class DataCapturingService(
      * @param context Current `Activity` context.
      * @return Either `true` if permission was or has been granted; `false` otherwise.
      */
-    @Suppress("MemberVisibilityCanBePrivate") //Used by MovebisDataCapturingService
+    @Suppress("MemberVisibilityCanBePrivate") //Used by SRDataCapturingService
     fun checkFineLocationAccess(context: Context): Boolean {
         val permissionAlreadyGranted = ActivityCompat.checkSelfPermission(
             context,

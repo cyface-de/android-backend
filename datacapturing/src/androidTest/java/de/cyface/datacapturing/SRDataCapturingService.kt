@@ -83,7 +83,7 @@ import de.cyface.uploader.exception.SynchronisationException
  * capturing.
  */
 // Used by SDK implementing apps (SR)
-class MovebisDataCapturingService internal constructor( //FIXME: Rename Movebis and update the copy (see SR repo)
+class SRDataCapturingService internal constructor( //FIXME: Rename Movebis and update the copy (see SR repo)
     context: Context,
     authority: String,
     accountType: String,
@@ -138,7 +138,7 @@ class MovebisDataCapturingService internal constructor( //FIXME: Rename Movebis 
     private var uiUpdatesActive = false
 
     /**
-     * Creates a new completely initialized [MovebisDataCapturingService].
+     * Creates a new completely initialized [SRDataCapturingService].
      *
      * @param context The context (i.e. `Activity`) handling this service.
      * @param uiListener A listener for events which the UI might be interested in.

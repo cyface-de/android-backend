@@ -207,7 +207,7 @@ The core of our SDK is the `DataCapturingService` which controls the capturing p
 We provide a default interface for this service: `CyfaceDataCapturingService`.
 Unless you need a custom `DataCapturingService` extension, use this one.
 
-NOTE: This documentation is out of date as it describes a former extension `MovebisDataCapturingService`
+NOTE: This documentation is out of date as it describes a former extension `SRDataCapturingService`
 in the samples but the interface for `CyfaceDataCapturingService` is mostly the same.
 
 The following steps are required to communicate with this service.
@@ -218,7 +218,7 @@ and to control the capture status.
 [[implement-ui-listener]]
 ==== Implement UI Listener
 
-This is only required for `MovebisDataCapturingService`.
+This is only required for `SRDataCapturingService`.
 
 [[implement-event-handling-strategy]]
 ==== Implement Event Handling Strategy
@@ -291,7 +291,7 @@ and reuse this instance when you need to communicate with it.
 ----
 class MainFragment extends Fragment {
 
-    private MovebisDataCapturingService dataCapturingService;
+    private SRDataCapturingService dataCapturingService;
     private DataCapturingButton dataCapturingButton;
 
     @Override
@@ -299,7 +299,7 @@ class MainFragment extends Fragment {
             final Bundle savedInstanceState) {
 
         final static int SENSOR_FREQUENCY = 100;
-        dataCapturingService = new MovebisDataCapturingService(context,
+        dataCapturingService = new SRDataCapturingService(context,
             uiListener, locationUpdateRate, eventHandlingStrategy, capturingListener, SENSOR_FREQUENCY);
     }
 
@@ -523,12 +523,12 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
 [[de-register-jwt-auth-tokens]]
 ==== De-/Register JWT Auth Tokens
 
-This is only required for `MovebisDataCapturingService`.
+This is only required for `SRDataCapturingService`.
 
 [[start-stop-ui-location-updates]]
 ==== Start/Stop UI Location Updates
 
-This is only required for `MovebisDataCapturingService`.
+This is only required for `SRDataCapturingService`.
 
 [[implement-data-capturing-listener]]
 ==== Implement Data Capturing Listener
