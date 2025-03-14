@@ -436,7 +436,7 @@ class CustomApplication : Application() {
         CyfaceAuthenticator.settings = DefaultSynchronizationSettings( // synchronization
             this,
             "https://example.com/api/v4", // Set the Data Collector URL
-            // Movebis variant can replace oauth config with `JsonObject()`
+            // SR variant can replace oauth config with `JsonObject()`
             OAuth2.oauthConfig(BuildConfig.oauthRedirect, BuildConfig.oauthDiscovery)
         )
     }

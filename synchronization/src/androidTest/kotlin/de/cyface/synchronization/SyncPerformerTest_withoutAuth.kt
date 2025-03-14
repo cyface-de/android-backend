@@ -65,8 +65,8 @@ import java.io.File
 import java.io.IOException
 
 /**
- * Tests the actual data transmission code. Since this test requires a running Movebis API server, and communicates with
- * that server, it is a flaky test and a large test.
+ * Tests the actual data transmission code. Since this test requires a running SR Collector API server,
+ * and communicates with that server, it is a flaky test and a large test.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
