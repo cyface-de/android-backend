@@ -316,7 +316,7 @@ class DataCapturingServiceTest {
     private suspend fun stopAndCheckThatStopped(measurementIdentifier: Long) {
 
         // Do not reuse the lock/condition!
-        val lock: Lock = ReentrantLock()
+        val lock = ReentrantLock()
         val condition = lock.newCondition()
         val shutDownFinishedHandler = TestShutdownFinishedHandler(
             lock,

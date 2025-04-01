@@ -256,8 +256,9 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
             newStatus === MeasurementStatus.OPEN
         )
 
+        // Do not move `loadCurrentlyCapturedMeasurement()` into mutex as it calls a mutex itself
+        val currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().id
         mutex.withLock {
-            val currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().id
             val currentStatus = persistenceLayer.loadMeasurementStatus(currentlyCapturedMeasurementId)
 
             when (newStatus) {
