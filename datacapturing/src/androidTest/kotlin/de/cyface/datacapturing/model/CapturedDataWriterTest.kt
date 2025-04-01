@@ -90,7 +90,7 @@ class CapturedDataWriterTest {
      * [Android documentation](https://developer.android.com/training/testing/integration-testing/content-provider-testing.html#build)
      */
     @Before
-    fun setUp() {
+    fun setUp() = runBlocking {
         context = InstrumentationRegistry.getInstrumentation().targetContext
         capturingBehaviour = CapturingPersistenceBehaviour()
         oocut = DefaultPersistenceLayer(context!!, capturingBehaviour!!)
@@ -114,8 +114,7 @@ class CapturedDataWriterTest {
      */
     @Test
     @Throws(NoSuchMeasurementException::class)
-    fun testCreateNewMeasurement() {
-
+    fun testCreateNewMeasurement() = runBlocking {
         // Create a measurement
         val (id) = oocut!!.newMeasurement(Modality.UNKNOWN)
         MatcherAssert.assertThat(id > 0L, Is.`is`(IsEqual.equalTo(true)))
@@ -243,8 +242,7 @@ class CapturedDataWriterTest {
      */
     @Test
     @Ignore("Flaky, removedEntries sometimes removes 11 instead of 8 entries")
-    fun testCascadingClearMeasurements() {
-
+    fun testCascadingClearMeasurements() = runBlocking {
         // Insert test measurements
         val testMeasurements = 2
         oocut!!.newMeasurement(Modality.UNKNOWN)
@@ -330,7 +328,7 @@ class CapturedDataWriterTest {
      * working as expected.
      */
     @Test
-    fun testLoadMeasurements() {
+    fun testLoadMeasurements() = runBlocking {
         oocut!!.newMeasurement(Modality.UNKNOWN)
         oocut!!.newMeasurement(Modality.CAR)
         val loadedMeasurements = oocut!!.loadMeasurements()
@@ -409,8 +407,7 @@ class CapturedDataWriterTest {
      * storing an event when the test assumes otherwise.
      */
     @Test
-    fun testLoadTrack_startPauseResumeStop() {
-
+    fun testLoadTrack_startPauseResumeStop() = runBlocking {
         // Arrange
         val measurement = oocut!!.newMeasurement(Modality.UNKNOWN)
 
@@ -444,15 +441,15 @@ class CapturedDataWriterTest {
         MatcherAssert.assertThat(tracks[0].geoLocations.size, Is.`is`(IsEqual.equalTo(2)))
         MatcherAssert.assertThat(tracks[1].geoLocations.size, Is.`is`(IsEqual.equalTo(2)))
         MatcherAssert.assertThat(
-            tracks[0].geoLocations[1]!!.timestamp,
+            tracks[0].geoLocations[1].timestamp,
             Is.`is`(IsEqual.equalTo(2L))
         )
         MatcherAssert.assertThat(
-            tracks[1].geoLocations[0]!!.timestamp,
+            tracks[1].geoLocations[0].timestamp,
             Is.`is`(IsEqual.equalTo(6L))
         )
         MatcherAssert.assertThat(
-            tracks[1].geoLocations[1]!!.timestamp,
+            tracks[1].geoLocations[1].timestamp,
             Is.`is`(IsEqual.equalTo(8L))
         )
     }
@@ -469,8 +466,7 @@ class CapturedDataWriterTest {
      * moveToNext() when searching for the next GeoLocation while iterating through the points between pause and resume.
      */
     @Test
-    fun testLoadTrack_startPauseResumeStop_withGeoLocationAfterStartAndAfterPause_withoutGeoLocationsAfterResume() {
-
+    fun testLoadTrack_startPauseResumeStop_withGeoLocationAfterStartAndAfterPause_withoutGeoLocationsAfterResume() = runBlocking {
         // Arrange
         val measurement = oocut!!.newMeasurement(Modality.UNKNOWN)
 
@@ -501,7 +497,7 @@ class CapturedDataWriterTest {
         MatcherAssert.assertThat(tracks.size, Is.`is`(IsEqual.equalTo(1)))
         MatcherAssert.assertThat(tracks[0].geoLocations.size, Is.`is`(IsEqual.equalTo(2)))
         MatcherAssert.assertThat(
-            tracks[0].geoLocations[1]!!.timestamp,
+            tracks[0].geoLocations[1].timestamp,
             Is.`is`(IsEqual.equalTo(2L))
         )
     }
@@ -519,8 +515,7 @@ class CapturedDataWriterTest {
      * collectNextSubTrack().
      */
     @Test
-    fun testLoadTrack_startPauseResumeStop_withGeoLocationAfterStart_withoutGeoLocationsAfterPauseAndAfterResume() {
-
+    fun testLoadTrack_startPauseResumeStop_withGeoLocationAfterStart_withoutGeoLocationsAfterPauseAndAfterResume() = runBlocking {
         // Arrange
         val measurement = oocut!!.newMeasurement(Modality.UNKNOWN)
 
@@ -542,7 +537,7 @@ class CapturedDataWriterTest {
         MatcherAssert.assertThat(tracks.size, Is.`is`(IsEqual.equalTo(1)))
         MatcherAssert.assertThat(tracks[0].geoLocations.size, Is.`is`(IsEqual.equalTo(1)))
         MatcherAssert.assertThat(
-            tracks[0].geoLocations[0]!!.timestamp,
+            tracks[0].geoLocations[0].timestamp,
             Is.`is`(IsEqual.equalTo(2L))
         )
     }
@@ -555,8 +550,7 @@ class CapturedDataWriterTest {
      * storing an event when the test assumes otherwise.
      */
     @Test
-    fun testLoadTrack_startPauseResumePauseStop() {
-
+    fun testLoadTrack_startPauseResumePauseStop() = runBlocking {
         // Arrange
         val measurement = oocut!!.newMeasurement(Modality.UNKNOWN)
 
@@ -595,15 +589,15 @@ class CapturedDataWriterTest {
         MatcherAssert.assertThat(tracks[0].geoLocations.size, Is.`is`(IsEqual.equalTo(2)))
         MatcherAssert.assertThat(tracks[1].geoLocations.size, Is.`is`(IsEqual.equalTo(3)))
         MatcherAssert.assertThat(
-            tracks[1].geoLocations[0]!!.timestamp,
+            tracks[1].geoLocations[0].timestamp,
             Is.`is`(IsEqual.equalTo(6L))
         )
         MatcherAssert.assertThat(
-            tracks[1].geoLocations[1]!!.timestamp,
+            tracks[1].geoLocations[1].timestamp,
             Is.`is`(IsEqual.equalTo(8L))
         )
         MatcherAssert.assertThat(
-            tracks[1].geoLocations[2]!!.timestamp,
+            tracks[1].geoLocations[2].timestamp,
             Is.`is`(IsEqual.equalTo(10L))
         )
     }
@@ -612,8 +606,7 @@ class CapturedDataWriterTest {
      * Tests whether loading a track of geo locations is possible via the [DefaultPersistenceLayer] object.
      */
     @Test
-    fun testLoadTrack_startPauseStop() {
-
+    fun testLoadTrack_startPauseStop() = runBlocking {
         // Arrange
         val measurement = oocut!!.newMeasurement(Modality.UNKNOWN)
         oocut!!.logEvent(EventType.LIFECYCLE_START, measurement, System.currentTimeMillis())
@@ -636,7 +629,7 @@ class CapturedDataWriterTest {
         MatcherAssert.assertThat(tracks.size, Is.`is`(IsEqual.equalTo(1)))
         MatcherAssert.assertThat(tracks[0].geoLocations.size, Is.`is`(IsEqual.equalTo(3)))
         MatcherAssert.assertThat(
-            tracks[0].geoLocations[2]!!.timestamp,
+            tracks[0].geoLocations[2].timestamp,
             Is.`is`(IsEqual.equalTo(timestamp))
         )
     }
@@ -645,8 +638,7 @@ class CapturedDataWriterTest {
      * Tests whether loading a track of geo locations is possible via the [DefaultPersistenceLayer] object.
      */
     @Test
-    fun testLoadTrack_startStop() {
-
+    fun testLoadTrack_startStop() = runBlocking {
         // Arrange
         val measurement = oocut!!.newMeasurement(Modality.UNKNOWN)
         oocut!!.logEvent(EventType.LIFECYCLE_START, measurement, System.currentTimeMillis())
@@ -667,7 +659,7 @@ class CapturedDataWriterTest {
         MatcherAssert.assertThat(tracks.size, Is.`is`(IsEqual.equalTo(1)))
         MatcherAssert.assertThat(tracks[0].geoLocations.size, Is.`is`(IsEqual.equalTo(2)))
         MatcherAssert.assertThat(
-            tracks[0].geoLocations[1]!!.timestamp,
+            tracks[0].geoLocations[1].timestamp,
             Is.`is`(IsEqual.equalTo(timestamp))
         )
     }
@@ -676,8 +668,7 @@ class CapturedDataWriterTest {
      * Tests whether loading a cleaned track of [ParcelableGeoLocation]s returns the expected filtered locations.
      */
     @Test
-    fun testLoadCleanedTrack() {
-
+    fun testLoadCleanedTrack() = runBlocking {
         // Arrange
         val measurement = oocut!!.newMeasurement(Modality.UNKNOWN)
         val startTime = 1000000000L
@@ -727,14 +718,14 @@ class CapturedDataWriterTest {
         // Assert
         MatcherAssert.assertThat(cleanedTracks.size, Is.`is`(IsEqual.equalTo(2)))
         MatcherAssert.assertThat(cleanedTracks[0].geoLocations.size, Is.`is`(IsEqual.equalTo(1)))
-        val location1 = cleanedTracks[0].geoLocations[0] as GeoLocation
+        val location1 = cleanedTracks[0].geoLocations[0]
         location1.id = 0 // We don't care about the database id being different after loading
         MatcherAssert.assertThat(
             location1,
             Is.`is`(IsEqual.equalTo(GeoLocation(locationWithHighEnoughSpeed, measurement.id)))
         )
         MatcherAssert.assertThat(cleanedTracks[1].geoLocations.size, Is.`is`(IsEqual.equalTo(1)))
-        val location2 = cleanedTracks[1].geoLocations[0] as GeoLocation
+        val location2 = cleanedTracks[1].geoLocations[0]
         location2.id = 0 // We don't care about the database id being different after loading
         MatcherAssert.assertThat(
             location2,
@@ -743,17 +734,19 @@ class CapturedDataWriterTest {
     }
 
     @Test
-    fun testProvokeAnr() {
+    fun testProvokeAnr(){
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             try {
-                if (!oocut!!.hasMeasurement(MeasurementStatus.OPEN)) {
-                    oocut!!.newMeasurement(Modality.BICYCLE)
-                }
-                if (!oocut!!.hasMeasurement(MeasurementStatus.OPEN)) {
-                    oocut!!.newMeasurement(Modality.BICYCLE)
-                }
-                if (oocut!!.hasMeasurement(MeasurementStatus.OPEN)) {
-                    capturingBehaviour!!.updateRecentMeasurement(MeasurementStatus.FINISHED)
+                runBlocking {
+                    if (!oocut!!.hasMeasurement(MeasurementStatus.OPEN)) {
+                        oocut!!.newMeasurement(Modality.BICYCLE)
+                    }
+                    if (!oocut!!.hasMeasurement(MeasurementStatus.OPEN)) {
+                        oocut!!.newMeasurement(Modality.BICYCLE)
+                    }
+                    if (oocut!!.hasMeasurement(MeasurementStatus.OPEN)) {
+                        capturingBehaviour!!.updateRecentMeasurement(MeasurementStatus.FINISHED)
+                    }
                 }
             } catch (e: NoSuchMeasurementException) {
                 throw IllegalStateException(e)

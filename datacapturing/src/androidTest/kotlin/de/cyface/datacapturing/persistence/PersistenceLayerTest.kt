@@ -92,7 +92,7 @@ class PersistenceLayerTest {
      */
     @Test
     @Throws(NoSuchMeasurementException::class)
-    fun testLoadFinishedMeasurements_oneFinishedOneRunning() {
+    fun testLoadFinishedMeasurements_oneFinishedOneRunning() = runBlocking {
         oocut!!.newMeasurement(Modality.UNKNOWN)
         assertThat(oocut!!.hasMeasurement(MeasurementStatus.OPEN), equalTo(true))
         capturingBehaviour!!.updateRecentMeasurement(MeasurementStatus.FINISHED)
@@ -108,7 +108,7 @@ class PersistenceLayerTest {
      *
      */
     @Test
-    fun testLoadFinishedMeasurements_noMeasurements() {
+    fun testLoadFinishedMeasurements_noMeasurements() = runBlocking {
         assertThat(oocut!!.loadMeasurements(MeasurementStatus.FINISHED).isEmpty(), equalTo(true))
     }
 
@@ -123,7 +123,7 @@ class PersistenceLayerTest {
      */
     @Test
     @Throws(NoSuchMeasurementException::class)
-    fun testLoadMeasurementSuccessfully() {
+    fun testLoadMeasurementSuccessfully() = runBlocking {
         val measurement = oocut!!.newMeasurement(Modality.UNKNOWN)
         val loadedOpenMeasurement = oocut!!.loadMeasurement(measurement.id)
         assertThat(
@@ -149,7 +149,7 @@ class PersistenceLayerTest {
      */
     @Test
     @Throws(NoSuchMeasurementException::class)
-    fun testMarkMeasurementAsSynced() {
+    fun testMarkMeasurementAsSynced() = runBlocking {
         val (id) = oocut!!.newMeasurement(Modality.UNKNOWN)
         capturingBehaviour!!.updateRecentMeasurement(MeasurementStatus.FINISHED)
         oocut!!.markFinishedAs(MeasurementStatus.SYNCED, id)
@@ -226,8 +226,7 @@ class PersistenceLayerTest {
      */
     @Test
     @Throws(NoSuchMeasurementException::class)
-    fun testUpdateDistanceDuringCapturing() {
-
+    fun testUpdateDistanceDuringCapturing() = runBlocking {
         // Arrange
         val (id) = oocut!!.newMeasurement(Modality.UNKNOWN)
 
