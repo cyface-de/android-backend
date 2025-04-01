@@ -575,9 +575,9 @@ class DatabaseMigrator(val context: Context) {
                             val locationMeasurementId =
                                 locationCursor.getInt(locationCursor.getColumnIndexOrThrow("measurement_fk"))
                             // v6.1 `altitude` and `verticalAccuracy` are already in the same format
-                            database.execSQL(
-                                "INSERT INTO `Location` (`_id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
-                                        + " VALUES ('" + id + "', '" + timestamp + "', '" + lat + "', '" + lon + "', '" + altitude + "', '" + speed + "', '" + accuracy + "', '" + verticalAccuracy + "', '" + locationMeasurementId + "');"
+                            database.execSQL( // Auto-generating id to avoid id conflict [STAD-690]
+                                "INSERT INTO `Location` (`timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
+                                        + " VALUES ('" + timestamp + "', '" + lat + "', '" + lon + "', '" + altitude + "', '" + speed + "', '" + accuracy + "', '" + verticalAccuracy + "', '" + locationMeasurementId + "');"
                             )
                         }
                     }
@@ -585,9 +585,9 @@ class DatabaseMigrator(val context: Context) {
                     else {
                         // Insert the data from old table
                         /// `accuracy` in `measures` version `17` is already in meters
-                        database.execSQL(
-                            "INSERT INTO `Location` (`_id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
-                                    + " SELECT `_id`, `gps_time`, `lat`, `lon`, null, `speed`, `accuracy`, null, `measurement_fk` FROM `locations`"
+                        database.execSQL( // Auto-generating id to avoid id conflict [STAD-690]
+                            "INSERT INTO `Location` (`timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
+                                    + " SELECT `gps_time`, `lat`, `lon`, null, `speed`, `accuracy`, null, `measurement_fk` FROM `locations`"
                                     + " WHERE measurement_fk = $measurementId;"
                         )
                     }
