@@ -208,7 +208,7 @@ class CyfaceDataCapturingService private constructor(
      */
     @Suppress("unused") // This is called by the SDK implementing app to start a measurement
     @Throws(DataCapturingException::class, MissingPermissionException::class)
-    override fun start(modality: Modality, finishedHandler: StartUpFinishedHandler) {
+    override suspend fun start(modality: Modality, finishedHandler: StartUpFinishedHandler) {
         try {
             super.start(modality, finishedHandler)
         } catch (e: CorruptedMeasurementException) {

@@ -139,10 +139,11 @@ class SyncAdapter private constructor(
             }
 
             try {
-                val deviceId = persistence.restoreOrCreateDeviceId()
+                // It's safe to call `runBlocking` as this is never called from a UI thread
+                val deviceId = runBlocking { persistence.restoreOrCreateDeviceId() }
                 notifySyncStarted()
 
-                val syncableMeasurements = loadSyncableMeasurements(persistence)
+                val syncableMeasurements = runBlocking { loadSyncableMeasurements(persistence) }
                 if (syncableMeasurements.isEmpty()) return@performActionWithFreshTokens
 
                 runBlocking {
@@ -313,7 +314,6 @@ class SyncAdapter private constructor(
 
                         if (isSyncRequestAborted(account, authority)) return
 
-                        @Suppress("SpellCheckingInspection")
                         val indexWithinMeasurement = 1 + syncedAttachments + attachmentIndex // ccyf is index 0
                         val progressListener = DefaultUploadProgressListener(
                             measurementCount,
@@ -417,33 +417,40 @@ class SyncAdapter private constructor(
                 } else {
                     // Update sync status of measurement
                     try {
-                        when (result) {
-                            Result.UPLOAD_SKIPPED -> {
-                                persistence.markFinishedAs(
-                                    MeasurementStatus.SKIPPED,
-                                    measurement.id
-                                )
-                                Log.d(TAG, "Measurement marked as ${MeasurementStatus.SKIPPED.name.lowercase()}")
-                            }
-                            Result.UPLOAD_SUCCESSFUL -> {
-                                // UPLOADING means only the attachments have to be synced
-                                persistence.markFinishedAs(
-                                    MeasurementStatus.SYNCABLE_ATTACHMENTS,
-                                    measurement.id
-                                )
-                                Log.d(
-                                    TAG,
-                                    "Measurement marked as ${MeasurementStatus.SYNCABLE_ATTACHMENTS.name.lowercase()}"
-                                )
-                            }
-                            else -> {
-                                throw IllegalArgumentException(
-                                    String.format(
-                                        Locale.getDefault(),
-                                        "Unknown result: %s",
-                                        result
+                        runBlocking {
+                            when (result) {
+                                Result.UPLOAD_SKIPPED -> {
+                                    persistence.markFinishedAs(
+                                        MeasurementStatus.SKIPPED,
+                                        measurement.id
                                     )
-                                )
+                                    Log.d(
+                                        TAG,
+                                        "Measurement marked as ${MeasurementStatus.SKIPPED.name.lowercase()}"
+                                    )
+                                }
+
+                                Result.UPLOAD_SUCCESSFUL -> {
+                                    // UPLOADING means only the attachments have to be synced
+                                    persistence.markFinishedAs(
+                                        MeasurementStatus.SYNCABLE_ATTACHMENTS,
+                                        measurement.id
+                                    )
+                                    Log.d(
+                                        TAG,
+                                        "Measurement marked as ${MeasurementStatus.SYNCABLE_ATTACHMENTS.name.lowercase()}"
+                                    )
+                                }
+
+                                else -> {
+                                    throw IllegalArgumentException(
+                                        String.format(
+                                            Locale.getDefault(),
+                                            "Unknown result: %s",
+                                            result
+                                        )
+                                    )
+                                }
                             }
                         }
                         resultDeferred.complete(true)
@@ -507,25 +514,27 @@ class SyncAdapter private constructor(
                 } else {
                     // Update sync status of attachment
                     try {
-                        when (result) {
-                            Result.UPLOAD_SKIPPED -> {
-                                persistence.markSavedAs(AttachmentStatus.SKIPPED, attachmentId)
-                                Log.d(TAG, "Attachment marked as ${AttachmentStatus.SKIPPED.name.lowercase()}")
-                            }
+                        runBlocking {
+                            when (result) {
+                                Result.UPLOAD_SKIPPED -> {
+                                    persistence.markSavedAs(AttachmentStatus.SKIPPED, attachmentId)
+                                    Log.d(TAG, "Attachment marked as ${AttachmentStatus.SKIPPED.name.lowercase()}")
+                                }
 
-                            Result.UPLOAD_SUCCESSFUL -> {
-                                persistence.markSavedAs(AttachmentStatus.SYNCED, attachmentId)
-                                Log.d(TAG, "Attachment marked as ${AttachmentStatus.SYNCED.name.lowercase()}")
-                            }
+                                Result.UPLOAD_SUCCESSFUL -> {
+                                    persistence.markSavedAs(AttachmentStatus.SYNCED, attachmentId)
+                                    Log.d(TAG, "Attachment marked as ${AttachmentStatus.SYNCED.name.lowercase()}")
+                                }
 
-                            else -> {
-                                throw IllegalArgumentException(
-                                    String.format(
-                                        Locale.getDefault(),
-                                        "Unknown result: %s",
-                                        result
+                                else -> {
+                                    throw IllegalArgumentException(
+                                        String.format(
+                                            Locale.getDefault(),
+                                            "Unknown result: %s",
+                                            result
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                         resultDeferred.complete(true)
@@ -562,7 +571,7 @@ class SyncAdapter private constructor(
         }
     }
 
-    private fun loadSyncableMeasurements(
+    private suspend fun loadSyncableMeasurements(
         persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>
     ): List<Measurement> {
         val partiallyUploaded = persistence.loadMeasurements(MeasurementStatus.SYNCABLE_ATTACHMENTS)
@@ -636,7 +645,7 @@ class SyncAdapter private constructor(
      * @throws CursorIsNullException when accessing the `ContentProvider` failed
      */
     @Throws(CursorIsNullException::class)
-    private fun loadMeasurementMeta(
+    private suspend fun loadMeasurementMeta(
         measurement: Measurement,
         persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>,
         deviceId: String,
@@ -656,13 +665,13 @@ class SyncAdapter private constructor(
         val lastTrack = if (tracks.isNotEmpty()) tracks[tracks.size - 1].geoLocations else null
         var startLocation: GeoLocation? = null
         if (tracks.isNotEmpty()) {
-            val l = tracks[0].geoLocations[0]!!
+            val l = tracks[0].geoLocations[0]
             startLocation = GeoLocation(l.timestamp, l.lat, l.lon)
         }
         var endLocation: GeoLocation? = null
         if (lastTrack != null) {
             val l = lastTrack[lastTrack.size - 1]
-            endLocation = GeoLocation(l!!.timestamp, l.lat, l.lon)
+            endLocation = GeoLocation(l.timestamp, l.lat, l.lon)
         }
 
         return runBlocking {

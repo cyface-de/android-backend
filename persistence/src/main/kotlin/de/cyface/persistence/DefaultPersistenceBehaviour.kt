@@ -44,7 +44,7 @@ class DefaultPersistenceBehaviour : PersistenceBehaviour {
     }
 
     @Throws(NoSuchMeasurementException::class)
-    override fun loadCurrentlyCapturedMeasurement(): Measurement {
+    override suspend fun loadCurrentlyCapturedMeasurement(): Measurement {
 
         // The {@code DefaultPersistenceBehaviour} does not have a cache for this so load it from the persistence
         return persistenceLayer!!.loadCurrentlyCapturedMeasurementFromPersistence()
