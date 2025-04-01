@@ -48,11 +48,7 @@ import de.cyface.persistence.serialization.NoSuchFileException
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.serializer.model.Point3DType
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.util.UUID
 import kotlin.math.abs
@@ -94,19 +90,6 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     override val pressureDao: PressureDao?
 
     override val attachmentDao: AttachmentDao?
-
-    /**
-     * A `SupervisorJob` is used so that the failure of one async task started by this supervisor
-     * does not cancel all other tasks started by that supervisor.
-     */
-    private val job = SupervisorJob()
-
-    /**+
-     * The scope tracks coroutines, can cancel them and is notified about failures.
-     *
-     * No need to cancel this scope as it'll be torn down with the process.
-     */
-    private val scope = CoroutineScope(Dispatchers.IO + job)
 
     /**
      * **This constructor is only for testing.**
@@ -176,7 +159,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         }
     }
 
-    override fun newMeasurement(modality: Modality): Measurement {
+    override suspend fun newMeasurement(modality: Modality): Measurement {
         val timestamp = System.currentTimeMillis()
         val measurement = Measurement(
             MeasurementStatus.OPEN,
@@ -186,25 +169,16 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             timestamp,
             0,
         )
-        runBlocking {
-            val measurementId = withContext(scope.coroutineContext) {
-                measurementRepository!!.insert(measurement)
-            }
-            measurement.id = measurementId
-        }
+        val measurementId = measurementRepository!!.insert(measurement)
+        measurement.id = measurementId
         requireNotNull(measurement.id) // Ensure the blocking code altered the object
         return measurement
     }
 
-    override fun hasMeasurement(status: MeasurementStatus): Boolean {
+    override suspend fun hasMeasurement(status: MeasurementStatus): Boolean {
         Log.v(TAG, "Checking if app has an $status measurement.")
-        var measurements: List<Measurement?>?
-        runBlocking {
-            measurements = withContext(scope.coroutineContext) {
-                measurementRepository!!.loadAllByStatus(status)
-            }
-        }
-        val hasMeasurement = measurements!!.isNotEmpty()
+        val measurements = measurementRepository!!.loadAllByStatus(status)
+        val hasMeasurement = measurements.isNotEmpty()
         Log.v(
             TAG,
             if (hasMeasurement) "At least one measurement is $status." else "No measurement is $status."
@@ -212,34 +186,16 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return hasMeasurement
     }
 
-    override fun loadCompletedMeasurements(): List<Measurement> {
-        var measurements: List<Measurement>
-        runBlocking {
-            measurements = withContext(scope.coroutineContext) {
-                measurementRepository!!.loadAllCompleted()
-            }
-        }
-        return measurements
+    override suspend fun loadCompletedMeasurements(): List<Measurement> {
+        return measurementRepository!!.loadAllCompleted()
     }
 
-    override fun loadMeasurements(): List<Measurement> {
-        var measurements: List<Measurement>
-        runBlocking {
-            measurements = withContext(scope.coroutineContext) {
-                measurementRepository!!.getAll()
-            }
-        }
-        return measurements
+    override suspend fun loadMeasurements(): List<Measurement> {
+        return measurementRepository!!.getAll()
     }
 
-    override fun loadMeasurement(measurementIdentifier: Long): Measurement? {
-        var measurement: Measurement?
-        runBlocking {
-            measurement = withContext(scope.coroutineContext) {
-                measurementRepository!!.loadById(measurementIdentifier)
-            }
-        }
-        return measurement
+    override suspend fun loadMeasurement(measurementIdentifier: Long): Measurement? {
+        return measurementRepository!!.loadById(measurementIdentifier)
     }
 
     /**
@@ -252,15 +208,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param eventId The device wide unique identifier of the `Event` to load.
      * @return The loaded `Event` if it exists; `null` otherwise.
      */
-    // Sdk implementing apps (CY)
-    fun loadEvent(eventId: Long): Event? {
-        var event: Event?
-        runBlocking {
-            event = withContext(scope.coroutineContext) {
-                eventRepository!!.loadById(eventId)
-            }
-        }
-        return event
+    @Suppress("unused") // Was used by a SDK implementing app (CY)
+    suspend fun loadEvent(eventId: Long): Event? {
+        return eventRepository!!.loadById(eventId)
     }
 
     /**
@@ -275,7 +225,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @throws NoSuchMeasurementException If the [Measurement] does not exist.
      */
     @Throws(NoSuchMeasurementException::class)
-    fun loadMeasurementStatus(measurementIdentifier: Long): MeasurementStatus {
+    suspend fun loadMeasurementStatus(measurementIdentifier: Long): MeasurementStatus {
         return loadMeasurement(measurementIdentifier)!!.status
     }
 
@@ -288,14 +238,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * such measurements, but never `null`.
      */
     // Implementing apps (SR) use this api to load the finished measurements
-    fun loadMeasurements(status: MeasurementStatus): List<Measurement> {
-        var measurements: List<Measurement>
-        runBlocking {
-            measurements = withContext(scope.coroutineContext) {
-                measurementRepository!!.loadAllByStatus(status)
-            }
-        }
-        return measurements
+    suspend fun loadMeasurements(status: MeasurementStatus): List<Measurement> {
+        return measurementRepository!!.loadAllByStatus(status)
     }
 
     /**
@@ -308,7 +252,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @throws NoSuchMeasurementException If the [Measurement] does not exist.
      */
     @Throws(NoSuchMeasurementException::class)
-    fun markFinishedAs(newStatus: MeasurementStatus, measurementId: Long) {
+    suspend fun markFinishedAs(newStatus: MeasurementStatus, measurementId: Long) {
 
         // The status in the database could be different from the one in the object so load it again
         require(loadMeasurementStatus(measurementId) === MeasurementStatus.FINISHED)
@@ -344,20 +288,18 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
 
         // Also delete syncable attachments binaries when the measurement is skipped or deprecated
         if (newStatus == MeasurementStatus.SKIPPED || newStatus == MeasurementStatus.DEPRECATED) {
-            runBlocking {
-                val attachments = attachmentDao!!.loadAllByMeasurementIdAndStatus(measurementId, AttachmentStatus.SAVED)
-                attachments.forEach {
-                    // When re-writing this in a non-blocking way, ensure sync can handle this
-                    val newAttachmentStatus = when (newStatus) {
-                        MeasurementStatus.SKIPPED -> AttachmentStatus.SKIPPED
-                        MeasurementStatus.DEPRECATED -> AttachmentStatus.DEPRECATED
-                        else -> throw IllegalArgumentException("Unexpected status: $newStatus")
-                    }
-                    markSavedAs(newAttachmentStatus, it)
-                    Log.d(TAG, "Cleaned up attachment (id ${it.id}): $newAttachmentStatus")
+            val attachments = attachmentDao!!.loadAllByMeasurementIdAndStatus(measurementId, AttachmentStatus.SAVED)
+            attachments.forEach {
+                // When re-writing this in a non-blocking way, ensure sync can handle this
+                val newAttachmentStatus = when (newStatus) {
+                    MeasurementStatus.SKIPPED -> AttachmentStatus.SKIPPED
+                    MeasurementStatus.DEPRECATED -> AttachmentStatus.DEPRECATED
+                    else -> throw IllegalArgumentException("Unexpected status: $newStatus")
                 }
-                cleanupEmptyFolder(measurementId)
+                markSavedAs(newAttachmentStatus, it)
+                Log.d(TAG, "Cleaned up attachment (id ${it.id}): $newAttachmentStatus")
             }
+            cleanupEmptyFolder(measurementId)
         }
     }
 
@@ -371,7 +313,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @throws NoSuchMeasurementException If the [Measurement] does not exist.
      */
     @Throws(NoSuchMeasurementException::class)
-    fun markSyncableAttachmentsAs(newStatus: MeasurementStatus, measurementId: Long) {
+    suspend fun markSyncableAttachmentsAs(newStatus: MeasurementStatus, measurementId: Long) {
 
         // The status in the database could be different from the one in the object so load it again
         require(loadMeasurementStatus(measurementId) === MeasurementStatus.SYNCABLE_ATTACHMENTS)
@@ -380,7 +322,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         cleanupEmptyFolder(measurementId)
     }
 
-    private fun cleanupEmptyFolder(measurementId: Long) = runBlocking {
+    private suspend fun cleanupEmptyFolder(measurementId: Long) {
         val attachment = attachmentDao!!.loadOneByMeasurementId(measurementId)
         attachment?.let {
             val parentDir = it.path.toFile().parentFile
@@ -404,13 +346,10 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      *
      * @param attachmentId The id of the [Attachment] to remove.
      */
-    fun markSavedAs(newStatus: AttachmentStatus, attachmentId: Long) {
-
+    suspend fun markSavedAs(newStatus: AttachmentStatus, attachmentId: Long) {
         // The status in the database could be different from the one in the object so load it again
-        runBlocking {
-            val attachment = attachmentDao!!.loadById(attachmentId)!!
-            markSavedAs(newStatus, attachment)
-        }
+        val attachment = attachmentDao!!.loadById(attachmentId)!!
+        markSavedAs(newStatus, attachment)
     }
 
     /**
@@ -421,7 +360,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      *
      * @param attachment The [Attachment] to remove.
      */
-    private fun markSavedAs(newStatus: AttachmentStatus, attachment: Attachment) {
+    private suspend fun markSavedAs(newStatus: AttachmentStatus, attachment: Attachment) {
 
         // The status in the database could be different from the one in the object so load it again
         require(attachment.status === AttachmentStatus.SAVED) {
@@ -431,16 +370,14 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             newStatus == AttachmentStatus.SYNCED || newStatus == AttachmentStatus.SKIPPED ||
                     newStatus == AttachmentStatus.DEPRECATED
         ) { "Unexpected status change from ${attachment.status} to $newStatus" }
-        runBlocking {
-            attachmentDao!!.updateStatus(attachment.id, newStatus)
-        }
+        attachmentDao!!.updateStatus(attachment.id, newStatus)
 
         // Deleting first as a second upload approach would be handled by the API
         val file = attachment.path.toFile()
         require(file.delete())
     }
 
-    override fun restoreOrCreateDeviceId(): String {
+    override suspend fun restoreOrCreateDeviceId(): String {
         return try {
             loadDeviceId().deviceId
         } catch (e: NoDeviceIdException) {
@@ -455,22 +392,15 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @throws NoDeviceIdException when there are no [Identifier]s found
      */
     @Throws(NoDeviceIdException::class)
-    private fun loadDeviceId(): Identifier {
-        var identifier: Identifier?
-        runBlocking {
-            val identifiers: List<Identifier?> = withContext(scope.coroutineContext) {
-                identifierDao!!.getAll()
-            }
-
-            require(identifiers.size <= 1) { "More entries than expected" }
-            if (identifiers.isEmpty()) {
-                throw NoDeviceIdException("No entries in IdentifierTable.")
-            } else {
-                val did = identifiers[0]
-                identifier = did!!
-            }
+    private suspend fun loadDeviceId(): Identifier {
+        val identifiers = identifierDao!!.getAll()
+        require(identifiers.size <= 1) { "More entries than expected" }
+        if (identifiers.isEmpty()) {
+            throw NoDeviceIdException("No entries in IdentifierTable.")
+        } else {
+            val did = identifiers[0]
+            return did
         }
-        return identifier!!
     }
 
     /**
@@ -478,27 +408,19 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      *
      * @return The created device identifier.
      */
-    private fun createDeviceId(): String {
+    private suspend fun createDeviceId(): String {
         val deviceId = UUID.randomUUID().toString()
-        runBlocking {
-            withContext(scope.coroutineContext) {
-                identifierDao!!.insert(Identifier(deviceId))
-            }
-        }
+        identifierDao!!.insert(Identifier(deviceId))
 
         // Show info in log so that we see if this happens more than once (or on app data reset)
         Log.i(TAG, "Created new device id: $deviceId")
         return deviceId
     }
 
-    override fun delete(measurementIdentifier: Long) {
+    override suspend fun delete(measurementIdentifier: Long) {
         deletePoint3DData(measurementIdentifier)
-        runBlocking {
-            withContext(scope.coroutineContext) {
-                // measurement data like locations are deleted automatically because of `ForeignKey`
-                measurementRepository!!.deleteItemById(measurementIdentifier)
-            }
-        }
+        // measurement data like locations are deleted automatically because of `ForeignKey`
+        measurementRepository!!.deleteItemById(measurementIdentifier)
     }
 
     /**
@@ -506,13 +428,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      *
      * @param eventId The id of the `Event` to remove.
      */
-    // Sdk implementing apps (CY) use this
-    fun deleteEvent(eventId: Long) {
-        runBlocking {
-            withContext(scope.coroutineContext) {
-                eventRepository!!.deleteItemById(eventId)
-            }
-        }
+    @Suppress("unused") // Was called by a SDK implementing app (CY)
+    suspend fun deleteEvent(eventId: Long) {
+        eventRepository!!.deleteItemById(eventId)
     }
 
     /**
@@ -568,7 +486,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return The average speed in meters per second.
      */
     @Suppress("unused") // Part of the API
-    fun loadAverageSpeed(
+    suspend fun loadAverageSpeed(
         measurementIdentifier: Long,
         locationCleaningStrategy: LocationCleaningStrategy
     ): Double {
@@ -580,7 +498,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             var counter = 0
             for (location in track.geoLocations) {
                 if (locationCleaningStrategy.isClean(location)) {
-                    sum += location!!.speed
+                    sum += location.speed
                     counter += 1
                 }
             }
@@ -601,7 +519,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return The maximum speed in meters per second.
      */
     @Suppress("unused") // Part of the API
-    fun loadMaxSpeed(
+    suspend fun loadMaxSpeed(
         measurementIdentifier: Long,
         locationCleaningStrategy: LocationCleaningStrategy
     ): Double {
@@ -610,7 +528,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         for (track in tracks) {
             for (location in track.geoLocations) {
                 if (locationCleaningStrategy.isClean(location)) {
-                    maxSpeed = max(location!!.speed, maxSpeed)
+                    maxSpeed = max(location.speed, maxSpeed)
                 }
             }
         }
@@ -634,7 +552,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     @Suppress("unused") // Part of the API
     @JvmOverloads
-    fun loadAscend(measurementIdentifier: Long, forceGnssAscend: Boolean = false): Double? {
+    suspend fun loadAscend(measurementIdentifier: Long, forceGnssAscend: Boolean = false): Double? {
 
         // Check if locations with altitude values are available
         val tracks = loadTracks(measurementIdentifier)
@@ -673,7 +591,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     @Suppress("unused") // Part of the API
     @JvmOverloads
-    fun loadAltitudes(measurementIdentifier: Long, forceGnssAltitudes: Boolean = false): List<List<Double>>? {
+    suspend fun loadAltitudes(measurementIdentifier: Long, forceGnssAltitudes: Boolean = false): List<List<Double>>? {
 
         // Check if locations with altitude values are available
         val tracks = loadTracks(measurementIdentifier)
@@ -710,7 +628,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             // This filter did not affect ascend calculation of devices without the bug: Pixel 3a
             val pressures: MutableList<Double> = mutableListOf()
             for (pressure in track.pressures) {
-                pressures.add(pressure!!.pressure)
+                pressures.add(pressure.pressure)
             }
             val averagePressures = averages(pressures, slidingWindowSize) ?: continue
             val altitudes = mutableListOf<Double>()
@@ -741,7 +659,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         for (track in tracks) {
             val altitudes = mutableListOf<Double>()
             for (location in track.geoLocations) {
-                val altitude = location!!.altitude
+                val altitude = location.altitude
                 val verticalAccuracy = location.verticalAccuracy
                 if (verticalAccuracy == null || verticalAccuracy <= VERTICAL_ACCURACY_THRESHOLD_METERS) {
                     if (altitude != null) {
@@ -839,7 +757,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     @Suppress("unused") // Part of the API
     @Throws(NoSuchMeasurementException::class)
-    fun loadDuration(measurementIdentifier: Long): Long {
+    suspend fun loadDuration(measurementIdentifier: Long): Long {
 
         // Extract lifecycle events only
         val lifecycleEvents: MutableList<Event?> = mutableListOf()
@@ -887,24 +805,10 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return duration
     }
 
-    override fun loadTracks(measurementIdentifier: Long): List<Track> {
-
-        var events: List<Event>
-        var locations: List<GeoLocation>
-        var pressures: List<Pressure>
-        runBlocking {
-            events = withContext(scope.coroutineContext) {
-                eventRepository!!.loadAllByMeasurementId(measurementIdentifier)!!
-            }
-
-            // Load GeoLocation and Pressure
-            locations = withContext(scope.coroutineContext) {
-                locationDao!!.loadAllByMeasurementId(measurementIdentifier)
-            }
-            pressures = withContext(scope.coroutineContext) {
-                pressureDao!!.loadAllByMeasurementId(measurementIdentifier)
-            }
-        }
+    override suspend fun loadTracks(measurementIdentifier: Long): List<Track> {
+        val events = eventRepository!!.loadAllByMeasurementId(measurementIdentifier)!!
+        val locations = locationDao!!.loadAllByMeasurementId(measurementIdentifier)
+        val pressures = pressureDao!!.loadAllByMeasurementId(measurementIdentifier)
         return loadTracks(locations, events, pressures)
     }
 
@@ -959,9 +863,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             // Pause reached: Move geoLocationCursor to the first data point of the next sub-track
             // We do this to ignore data points between pause and resume event (STAD-140)
             mutableLocations =
-                mutableLocations.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<GeoLocation>
+                mutableLocations.filter { p -> p.timestamp >= resumeEventTime } as MutableList<GeoLocation>
             mutablePressures =
-                mutablePressures.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<Pressure>
+                mutablePressures.filter { p -> p.timestamp >= resumeEventTime } as MutableList<Pressure>
         }
 
         // Return if there is no tail (sub track ending at LIFECYCLE_STOP instead of LIFECYCLE_PAUSE)
@@ -977,22 +881,13 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return tracks
     }
 
-    override fun loadTracks(
+    override suspend fun loadTracks(
         measurementIdentifier: Long,
         locationCleaningStrategy: LocationCleaningStrategy
     ): List<Track> {
-
-        var locations: List<GeoLocation>
-        var pressures: List<Pressure>
         val events = loadEvents(measurementIdentifier)
-        runBlocking {
-            locations = withContext(scope.coroutineContext) {
-                locationCleaningStrategy.loadCleanedLocations(locationDao!!, measurementIdentifier)
-            }
-            pressures = withContext(scope.coroutineContext) {
-                pressureDao!!.loadAllByMeasurementId(measurementIdentifier)
-            }
-        }
+        val locations = locationCleaningStrategy.loadCleanedLocations(locationDao!!, measurementIdentifier)
+        val pressures = pressureDao!!.loadAllByMeasurementId(measurementIdentifier)
         return if (locations.isEmpty()) emptyList() else loadTracks(locations, events, pressures)
     }
 
@@ -1006,14 +901,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return The `Cursor` pointing to the `Event`s of the `Measurement` with the provided
      * {@param measurementId}.
      */
-    fun loadEvents(measurementIdentifier: Long): List<Event> {
-        var events: List<Event>
-        runBlocking {
-            events = withContext(scope.coroutineContext) {
-                eventRepository!!.loadAllByMeasurementId(measurementIdentifier)!!
-            }
-        }
-        return events
+    suspend fun loadEvents(measurementIdentifier: Long): List<Event> {
+        return eventRepository!!.loadAllByMeasurementId(measurementIdentifier)!!
     }
 
     /**
@@ -1026,14 +915,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * specified {@param eventType}. An empty list if there are no such Events, but never `null`.
      */
     // Implementing apps (CY) use this
-    fun loadEvents(measurementId: Long, eventType: EventType): List<Event>? {
-        var events: List<Event>?
-        runBlocking {
-            events = withContext(scope.coroutineContext) {
-                eventRepository!!.loadAllByMeasurementIdAndType(measurementId, eventType)
-            }
-        }
-        return events
+    suspend fun loadEvents(measurementId: Long, eventType: EventType): List<Event>? {
+        return eventRepository!!.loadAllByMeasurementIdAndType(measurementId, eventType)
     }
 
     /**
@@ -1073,20 +956,15 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         persistenceBehaviour!!.shutdown()
     }
 
-    override fun storePersistenceFileFormatVersion(
+    override suspend fun storePersistenceFileFormatVersion(
         persistenceFileFormatVersion: Short,
         measurementId: Long
     ) {
         Log.d(TAG, "Storing persistenceFileFormatVersion.")
-        var updates: Int?
-        runBlocking {
-            updates = withContext(scope.coroutineContext) {
-                measurementRepository!!.updateFileFormatVersion(
-                    measurementId,
-                    persistenceFileFormatVersion
-                )
-            }
-        }
+        val updates = measurementRepository!!.updateFileFormatVersion(
+            measurementId,
+            persistenceFileFormatVersion
+        )
         require(updates == 1)
     }
 
@@ -1101,7 +979,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     @Throws(NoSuchMeasurementException::class)
     // Implementing apps use this to get the ongoing measurement info
-    fun loadCurrentlyCapturedMeasurement(): Measurement {
+    suspend fun loadCurrentlyCapturedMeasurement(): Measurement {
         return persistenceBehaviour!!.loadCurrentlyCapturedMeasurement()
     }
 
@@ -1116,7 +994,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * an actual [MeasurementStatus.OPEN] or [MeasurementStatus.PAUSED] measurement.
      */
     @Throws(NoSuchMeasurementException::class)
-    fun loadCurrentlyCapturedMeasurementFromPersistence(): Measurement {
+    suspend fun loadCurrentlyCapturedMeasurementFromPersistence(): Measurement {
         Log.v(TAG, "Trying to load currently captured measurement from PersistenceLayer!")
         val openMeasurements = loadMeasurements(MeasurementStatus.OPEN)
         val pausedMeasurements = loadMeasurements(MeasurementStatus.PAUSED)
@@ -1143,17 +1021,12 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * {@param measurementIdentifier}.
      */
     @Throws(NoSuchMeasurementException::class)
-    fun setStatus(
+    suspend fun setStatus(
         measurementIdentifier: Long,
         newStatus: MeasurementStatus,
         allowCorruptedState: Boolean
     ) {
-        var updates: Int?
-        runBlocking {
-            updates = withContext(scope.coroutineContext) {
-                measurementRepository!!.update(measurementIdentifier, newStatus)
-            }
-        }
+        val updates = measurementRepository!!.update(measurementIdentifier, newStatus)
         require(updates == 1)
         @Suppress("REDUNDANT_ELSE_IN_WHEN")
         when (newStatus) {
@@ -1185,17 +1058,12 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * {@param measurementIdentifier}.
      */
     @Throws(NoSuchMeasurementException::class)
-    fun setDistance(measurementIdentifier: Long, newDistance: Double) {
-        var updates: Int?
-        runBlocking {
-            updates = withContext(scope.coroutineContext) {
-                measurementRepository!!.updateDistance(measurementIdentifier, newDistance)
-            }
-        }
+    suspend fun setDistance(measurementIdentifier: Long, newDistance: Double) {
+        val updates = measurementRepository!!.updateDistance(measurementIdentifier, newDistance)
         require(updates == 1)
     }
 
-    override fun logEvent(eventType: EventType, measurement: Measurement, timestamp: Long) {
+    override suspend fun logEvent(eventType: EventType, measurement: Measurement, timestamp: Long) {
         logEvent(eventType, measurement, timestamp, null)
     }
 
@@ -1208,7 +1076,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param value The (optional) [Event.value]
      * @return The id of the added `Event`
      */
-    fun logEvent(
+    suspend fun logEvent(
         eventType: EventType, measurement: Measurement,
         timestamp: Long, value: String?
     ): Long {
@@ -1219,13 +1087,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         )
 
         // value may be null when the type does not require a value, e.g. LIFECYCLE_START
-        var id: Long?
-        runBlocking {
-            id = withContext(scope.coroutineContext) {
-                eventRepository!!.insert(Event(timestamp, eventType, value, measurement.id))
-            }
-        }
-        return id!!
+        return eventRepository!!.insert(Event(timestamp, eventType, value, measurement.id))
     }
 
     override val cacheDir: java.io.File

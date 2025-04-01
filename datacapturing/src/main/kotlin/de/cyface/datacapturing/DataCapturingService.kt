@@ -58,6 +58,7 @@ import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
 import de.cyface.synchronization.WiFiSurveyor
+import kotlinx.coroutines.runBlocking
 import java.lang.ref.WeakReference
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -81,6 +82,7 @@ import java.util.concurrent.locks.ReentrantLock
  * @author Armin Schnabel
  * @version 22.0.0
  * @since 1.0.0
+ * @constructor You need to call [initialize] before using the class to initialize the async parts.
  * @property context The context (i.e. `Activity`) handling this service.
  * @property authority The `ContentProvider` authority required to request a sync operation in the
  * [WiFiSurveyor]. You should use something world wide unique, like your domain, to avoid
@@ -203,7 +205,8 @@ abstract class DataCapturingService(
      * the `Measurement`s. This needs to be world wide unique.
      */
     @Suppress("MemberVisibilityCanBePrivate") // Used by SDK implementing app (SR)
-    val deviceIdentifier: String
+    lateinit var deviceIdentifier: String
+        private set
 
     /**
      * A receiver for synchronization events.
@@ -234,6 +237,20 @@ abstract class DataCapturingService(
         this.eventHandlingStrategy = eventHandlingStrategy
         this.distanceCalculationStrategy = distanceCalculationStrategy
         this.locationCleaningStrategy = locationCleaningStrategy
+
+        val connectivityManager = context
+            .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        wiFiSurveyor = WiFiSurveyor(context, connectivityManager, authority, accountType)
+        fromServiceMessageHandler = FromServiceMessageHandler(context, this)
+        // The listeners are automatically removed when the service is destroyed (e.g. app kill)
+        fromServiceMessageHandler.addListener(capturingListener)
+        fromServiceMessenger = Messenger(fromServiceMessageHandler)
+        lifecycleLock = ReentrantLock()
+        isRunning = false
+        isStoppingOrHasStopped = false
+    }
+
+    suspend fun initialize() {
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId()
 
         // Mark deprecated measurements
@@ -253,16 +270,6 @@ abstract class DataCapturingService(
                 )
             }
         }
-        val connectivityManager = context
-            .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        wiFiSurveyor = WiFiSurveyor(context, connectivityManager, authority, accountType)
-        fromServiceMessageHandler = FromServiceMessageHandler(context, this)
-        // The listeners are automatically removed when the service is destroyed (e.g. app kill)
-        fromServiceMessageHandler.addListener(capturingListener)
-        fromServiceMessenger = Messenger(fromServiceMessageHandler)
-        lifecycleLock = ReentrantLock()
-        isRunning = false
-        isStoppingOrHasStopped = false
     }
 
     /**
@@ -294,7 +301,7 @@ abstract class DataCapturingService(
         MissingPermissionException::class,
         CorruptedMeasurementException::class
     )
-    open fun start(modality: Modality, finishedHandler: StartUpFinishedHandler) {
+    open suspend fun start(modality: Modality, finishedHandler: StartUpFinishedHandler) {
         Log.d(Constants.TAG, "Starting asynchronously.")
         if (getContext() == null) {
             Log.w(Constants.TAG, "Context is null, ignoring start command.")
@@ -359,7 +366,7 @@ abstract class DataCapturingService(
      */
     @Throws(NoSuchMeasurementException::class)
     // used by sdk implementing apps (e.g. SR)
-    fun stop(finishedHandler: ShutDownFinishedHandler) {
+    suspend fun stop(finishedHandler: ShutDownFinishedHandler) {
         Log.d(Constants.TAG, "Stopping asynchronously!")
         if (getContext() == null) {
             return
@@ -399,7 +406,7 @@ abstract class DataCapturingService(
      */
     @Throws(NoSuchMeasurementException::class)
     // used by sdk implementing apps (e.g. SR)
-    fun pause(finishedHandler: ShutDownFinishedHandler) {
+    suspend fun pause(finishedHandler: ShutDownFinishedHandler) {
         Log.d(Constants.TAG, "Pausing asynchronously.")
         if (getContext() == null) {
             return
@@ -450,7 +457,7 @@ abstract class DataCapturingService(
         NoSuchMeasurementException::class
     )
     // used by sdk implementing apps (e.g. SR)
-    fun resume(finishedHandler: StartUpFinishedHandler) {
+    suspend fun resume(finishedHandler: StartUpFinishedHandler) {
         val persistenceBehavior = persistenceLayer.persistenceBehaviour
         Log.d(Constants.TAG, "Resuming asynchronously.")
         if (getContext() == null) {
@@ -512,27 +519,30 @@ abstract class DataCapturingService(
 
             override fun timedOut() {
                 try {
-                    val hasOpenMeasurement = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
-                    val hasPausedMeasurement =
-                        persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
-                    require(!(hasOpenMeasurement && hasPausedMeasurement))
-                    if (hasOpenMeasurement || hasPausedMeasurement) {
-                        if (hasOpenMeasurement) {
-                            // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
+                    runBlocking {
+                        val hasOpenMeasurement =
+                            persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
+                        val hasPausedMeasurement =
+                            persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
+                        require(!(hasOpenMeasurement && hasPausedMeasurement))
+                        if (hasOpenMeasurement || hasPausedMeasurement) {
+                            if (hasOpenMeasurement) {
+                                // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
+                                Log.w(
+                                    Constants.TAG,
+                                    "handleStopFailed: open no-running measurement found, update finished."
+                                )
+                            }
+                            // When a paused measurement is found, all is normal so no warning needed
+                            persistenceLayer.persistenceBehaviour!!.updateRecentMeasurement(
+                                MeasurementStatus.FINISHED
+                            )
+                        } else {
                             Log.w(
                                 Constants.TAG,
-                                "handleStopFailed: open no-running measurement found, update finished."
+                                "handleStopFailed: no unfinished measurement found, nothing to do."
                             )
                         }
-                        // When a paused measurement is found, all is normal so no warning needed
-                        persistenceLayer.persistenceBehaviour!!.updateRecentMeasurement(
-                            MeasurementStatus.FINISHED
-                        )
-                    } else {
-                        Log.w(
-                            Constants.TAG,
-                            "handleStopFailed: no unfinished measurement found, nothing to do."
-                        )
                     }
 
                     // The background service was not active. This is normal when we stop a paused measurement.
@@ -567,27 +577,29 @@ abstract class DataCapturingService(
 
             override fun timedOut() {
                 try {
-                    val hasOpenMeasurement = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
-                    val hasPausedMeasurement =
-                        persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
-                    require(!(hasOpenMeasurement && hasPausedMeasurement))
-                    // There is no good reason why pause is called when there is not even an unfinished measurement
-                    require(hasOpenMeasurement || hasPausedMeasurement)
-                    if (hasOpenMeasurement) {
-                        // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
-                        // We just update the {@link MeasurementStatus} and hope all will be okay.
-                        Log.w(
-                            Constants.TAG,
-                            "handlePauseFailed: open no-running measurement found, update state to pause."
-                        )
-                        persistenceLayer.persistenceBehaviour!!.updateRecentMeasurement(
-                            MeasurementStatus.PAUSED
-                        )
-                    } else {
-                        Log.w(
-                            Constants.TAG,
-                            "handlePauseFailed: paused measurement found, nothing to do."
-                        )
+                    runBlocking {
+                        val hasOpenMeasurement = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
+                        val hasPausedMeasurement =
+                            persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
+                        require(!(hasOpenMeasurement && hasPausedMeasurement))
+                        // There is no good reason why pause is called when there is not even an unfinished measurement
+                        require(hasOpenMeasurement || hasPausedMeasurement)
+                        if (hasOpenMeasurement) {
+                            // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
+                            // We just update the {@link MeasurementStatus} and hope all will be okay.
+                            Log.w(
+                                Constants.TAG,
+                                "handlePauseFailed: open no-running measurement found, update state to pause."
+                            )
+                            persistenceLayer.persistenceBehaviour!!.updateRecentMeasurement(
+                                MeasurementStatus.PAUSED
+                            )
+                        } else {
+                            Log.w(
+                                Constants.TAG,
+                                "handlePauseFailed: paused measurement found, nothing to do."
+                            )
+                        }
                     }
 
                     // The background service was not active and, thus, could not be stopped.
@@ -903,7 +915,7 @@ abstract class DataCapturingService(
         DataCapturingException::class,
         MissingPermissionException::class
     )
-    private fun prepareStart(modality: Modality): Measurement {
+    private suspend fun prepareStart(modality: Modality): Measurement {
         if (context.get() == null) {
             throw DataCapturingException("No context to start service!")
         }
@@ -934,7 +946,7 @@ abstract class DataCapturingService(
      * an actual [MeasurementStatus.OPEN] or [MeasurementStatus.PAUSED] measurement.
      */
     @Throws(NoSuchMeasurementException::class)
-    fun loadCurrentlyCapturedMeasurement(): Measurement {
+    suspend fun loadCurrentlyCapturedMeasurement(): Measurement {
         return persistenceLayer.loadCurrentlyCapturedMeasurement()
     }
 
@@ -992,7 +1004,7 @@ abstract class DataCapturingService(
      *
      * @param listener A listener that is notified of important events during synchronization.
      */
-    // Used by implementing apps (CY)
+    @Suppress("unused") // Was used by implementing apps (CY)
     fun addConnectionStatusListener(listener: ConnectionStatusListener) {
         connectionStatusReceiver.addListener(listener)
     }
@@ -1003,7 +1015,7 @@ abstract class DataCapturingService(
      *
      * @param listener A listener that is notified of important events during synchronization.
      */
-    // Used by implementing apps (CY)
+    @Suppress("unused") // Was used by implementing apps (CY)
     fun removeConnectionStatusListener(listener: ConnectionStatusListener) {
         connectionStatusReceiver.removeListener(listener)
     }
@@ -1091,7 +1103,7 @@ abstract class DataCapturingService(
      *
      * @param newModality the identifier of the new [Modality]
      */
-    fun changeModalityType(newModality: Modality) {
+    suspend fun changeModalityType(newModality: Modality) {
         val timestamp = System.currentTimeMillis()
         try {
             val hasOpenMeasurements = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
@@ -1140,7 +1152,7 @@ abstract class DataCapturingService(
      * @throws NoSuchMeasurementException If the [Measurement] does not exist.
      */
     @Throws(NoSuchMeasurementException::class)
-    private fun markDeprecated(measurementIdentifier: Long, status: MeasurementStatus) {
+    private suspend fun markDeprecated(measurementIdentifier: Long, status: MeasurementStatus) {
         Log.d(
             Constants.TAG,
             String.format(

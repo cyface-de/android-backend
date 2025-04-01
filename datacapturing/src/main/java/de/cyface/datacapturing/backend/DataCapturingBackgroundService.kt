@@ -54,6 +54,7 @@ import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.utils.DiskConsumption
 import de.cyface.utils.PlaceholderNotificationBuilder
+import kotlinx.coroutines.runBlocking
 import java.lang.ref.WeakReference
 import kotlin.math.max
 import kotlin.math.min
@@ -314,7 +315,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         this.currentMeasurementIdentifier = measurementIdentifier
 
         // Load Distance (or else we would reset the distance when resuming a measurement)
-        val measurement = persistenceLayer.loadMeasurement(currentMeasurementIdentifier)
+        val measurement = runBlocking { persistenceLayer.loadMeasurement(currentMeasurementIdentifier)  }
         lastDistance = measurement!!.distance
 
         // Ensure we resume measurements with a known file format version
@@ -509,7 +510,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         )
         val newDistance = lastDistance + distanceToAdd
         try {
-            capturingBehaviour!!.updateDistance(newDistance)
+            runBlocking { capturingBehaviour!!.updateDistance(newDistance) }
         } catch (e: NoSuchMeasurementException) {
             throw IllegalStateException(e)
         }

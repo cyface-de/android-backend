@@ -30,7 +30,6 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
 import androidx.core.app.ActivityCompat
-import de.cyface.datacapturing.backend.SensorCapture
 import de.cyface.datacapturing.backend.SensorCaptureDisabled
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
@@ -138,7 +137,10 @@ class SRDataCapturingService internal constructor(
     private var uiUpdatesActive = false
 
     /**
-     * Creates a new completely initialized [SRDataCapturingService].
+     * Creates a new [SRDataCapturingService].
+     *
+     * **Attention:**
+     * You need to call [initialize] before using the class to initialize the async parts.
      *
      * @param context The context (i.e. `Activity`) handling this service.
      * @param uiListener A listener for events which the UI might be interested in.
@@ -150,8 +152,6 @@ class SRDataCapturingService internal constructor(
      * triggered by the [de.cyface.datacapturing.backend.DataCapturingBackgroundService].
      * @param capturingListener A [DataCapturingListener] that is notified of important events during data
      * capturing.
-     * @param sensorCapture The [SensorCapture] implementation which decides if sensor data should
-     * be captured.
      */
     @Suppress("unused") // Used by SDK implementing apps (SR)
     constructor(
@@ -328,7 +328,7 @@ class SRDataCapturingService internal constructor(
         DataCapturingException::class,
         MissingPermissionException::class
     )  // This is called by the SDK implementing app to start a measurement
-    override fun start(modality: Modality, finishedHandler: StartUpFinishedHandler) {
+    override suspend fun start(modality: Modality, finishedHandler: StartUpFinishedHandler) {
         try {
             super.start(modality, finishedHandler)
         } catch (e: CorruptedMeasurementException) {
