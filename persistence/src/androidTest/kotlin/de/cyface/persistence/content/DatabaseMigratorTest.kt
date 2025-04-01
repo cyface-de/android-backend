@@ -139,6 +139,54 @@ class DatabaseMigratorTest {
     }
 
     /**
+     * Test which attempts to reproduce possible cause for [STAD-690]:
+     * - locations & pressures in main and v6 both have auto-generated ids (e.g. 1, 2, 3)
+     * - even though measurements differ, the ids conflict
+     *
+     * Solution: let SQLite generate new ids during migration.
+     */
+    @Test(expected = android.database.sqlite.SQLiteConstraintException::class)
+    fun testMigrationV17ToV18_conflictingIds_throwsConstraintException() {
+        // Arrange
+        val v6DatabaseName = "v6"
+        val v6Db = createV6Database(context!!, v6DatabaseName, 1)
+        try {
+            createV6Tables(v6Db)
+
+            // Insert v6 location + pressure for measurement 44 with uid=1 (conflicts with measures)
+            addV6LocationsAndPressures(
+                db = v6Db,
+                measurementId = 44L,
+                1, // Location._id conflict
+                1, // no pressure conflict possible, as `main` does not contains pressure
+                500.0
+            )
+            v6Db.close()
+
+            // Create main DB with measurement 43 that also uses _id=1 for both location and pressure
+            var db = helper.createDatabase(TEST_DB_NAME, 17).apply {
+                execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'device-1')")
+                addDatabaseV17Measurement(this, 43L, 1, 5.0)
+                addDatabaseV17Measurement(this, 44L, 1, 5.0)
+                close()
+            }
+
+            // Act
+            db = helper.runMigrationsAndValidate(
+                TEST_DB_NAME,
+                18,
+                true,
+                migrator!!.MIGRATION_17_18
+            )
+
+            // Assert (will not reach here because of exception)
+            // Once fixed, you'd query both Location + Pressure tables to verify correct migration.
+        } finally {
+            context!!.deleteDatabase(v6DatabaseName)
+        }
+    }
+
+    /**
      * Tests the migration when a user has installed SDK 6.3 or SDK 7.4 and upgrades to SDK 7.5.
      *
      * In this case a secondary database `v6` version `1` was created next to `measures` db.
