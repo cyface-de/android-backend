@@ -139,11 +139,10 @@ class DatabaseMigratorTest {
     }
 
     /**
-     * Test which attempts to reproduce possible cause for [STAD-690]:
-     * - locations & pressures in main and v6 both have auto-generated ids (e.g. 1, 2, 3)
-     * - even though measurements differ, the ids conflict
-     *
-     * Solution: let SQLite generate new ids during migration.
+     * Test which reproduced possible cause for [STAD-690]:
+     * - locations in `measures` and `v6` database have auto-generated ids (e.g. 1, 2, 3)
+     * - when `measures.-` and `v6.locations` for difference measurements are merged, ids conflict
+     * - this test failed until we fixed the cause by auto-generating location ids during migration
      */
     @Test
     fun testMigrationV17ToV18_conflictingIds() {
