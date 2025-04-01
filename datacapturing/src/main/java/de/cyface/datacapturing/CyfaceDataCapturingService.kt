@@ -46,6 +46,8 @@ import de.cyface.uploader.exception.SynchronisationException
  * @author Armin Schnabel
  * @version 15.0.1
  * @since 2.0.0
+ * @constructor **ATTENTION:** This constructor is only for testing to be able to inject authority and
+ * account type. Use the other constructors instead.
  * @param context The context (i.e. `Activity`) handling this service.
  * @param authority The `ContentProvider` authority used to identify the content provider used by this
  * `DataCapturingService`. You should use something world wide unique, like your domain, to
@@ -89,7 +91,10 @@ class CyfaceDataCapturingService private constructor(
     }
 
     /**
-     * Creates a new completely initialized [DataCapturingService].
+     * Creates a new [DataCapturingService].
+     *
+     * **Attention:**
+     * You need to call [initialize] before using the class to initialize the async parts.
      *
      * @param context The context (i.e. `Activity`) handling this service.
      * @param authority The `ContentProvider` authority used to identify the content provider used by this

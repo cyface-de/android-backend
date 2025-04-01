@@ -133,8 +133,7 @@ class PingPongTest {
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testWithRunningService() {
-
+    fun testWithRunningService() = runBlocking {
         // Arrange
         // Instantiate DataCapturingService
         val testListener: DataCapturingListener = TestListener()
@@ -153,7 +152,7 @@ class PingPongTest {
                     testListener,
                     100,
                     CyfaceAuthenticator(context!!)
-                )
+                ).apply { runBlocking { initialize() } }
             } catch (e: SetupException) {
                 throw IllegalStateException(e)
             }
