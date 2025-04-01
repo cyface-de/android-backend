@@ -145,8 +145,8 @@ class DatabaseMigratorTest {
      *
      * Solution: let SQLite generate new ids during migration.
      */
-    @Test(expected = android.database.sqlite.SQLiteConstraintException::class)
-    fun testMigrationV17ToV18_conflictingIds_throwsConstraintException() {
+    @Test
+    fun testMigrationV17ToV18_conflictingIds() {
         // Arrange
         val v6DatabaseName = "v6"
         val v6Db = createV6Database(context!!, v6DatabaseName, 1)
@@ -159,15 +159,17 @@ class DatabaseMigratorTest {
                 measurementId = 44L,
                 1, // Location._id conflict
                 1, // no pressure conflict possible, as `main` does not contains pressure
-                500.0
+                500.0,
+                0, // This is important to ensure we generate conflicting id `1`
             )
             v6Db.close()
 
             // Create main DB with measurement 43 that also uses _id=1 for both location and pressure
             var db = helper.createDatabase(TEST_DB_NAME, 17).apply {
                 execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'device-1')")
-                addDatabaseV17Measurement(this, 43L, 1, 5.0)
-                addDatabaseV17Measurement(this, 44L, 1, 5.0)
+                // idBase = 0 is important to ensure we generate conflicting id `1` (and `2`)
+                addDatabaseV17Measurement(this, 43L, 1, 5.0, 0)
+                addDatabaseV17Measurement(this, 44L, 1, 5.0, 1)
                 close()
             }
 
@@ -1072,29 +1074,31 @@ class DatabaseMigratorTest {
      * @param measurementId the id of the measurement to generate
      * @param locations number of locations to generate for the measurement to be generated
      * @param accuracy The accuracy to be used in the locations
+     * @param idBase The base for the location and pressure ids to be generated, to reproduce
+     * id-conflicts like in [STAD-690]. Defaults to `[measurementId] * 1000000`.
      */
     private fun addDatabaseV17Measurement(
         db: SupportSQLiteDatabase,
         @Suppress("SameParameterValue") measurementId: Long,
         @Suppress("SameParameterValue") locations: Long,
-        accuracy: Double
+        accuracy: Double,
+        idBase: Long = measurementId * 1000000,
     ) {
         db.execSQL(
             ("INSERT INTO measurements (_id,status,modality,file_format_version,distance,timestamp) VALUES "
                     + " ($measurementId,'FINISHED','BICYCLE',1,5396.62473698979,1551431485000)")
         )
-        val idOffset = measurementId * 1000000
         db.execSQL(
             ("INSERT INTO events (_id,timestamp,type,value,measurement_fk) VALUES "
-                    + " (${idOffset + 1},1551431485000,'MODALITY_TYPE_CHANGE','CAR',$measurementId)")
+                    + " (${measurementId * 1000000 + 1},1551431485000,'MODALITY_TYPE_CHANGE','CAR',$measurementId)")
         )
         db.execSQL(
             ("INSERT INTO events (_id,timestamp,type,value,measurement_fk) VALUES "
-                    + " (${idOffset + 2},1551431485000,'LIFECYCLE_START',null,$measurementId)")
+                    + " (${measurementId * 1000000 + 2},1551431485000,'LIFECYCLE_START',null,$measurementId)")
         )
         // Insert locations - execSQL only supports one insert per commend
         for (i in 0 until locations) {
-            val id = measurementId * 1000000 + i
+            val id = idBase + i
             val timestamp = 1551431485000L + i
             val speed = 1.01
             db.execSQL(
@@ -1136,17 +1140,20 @@ class DatabaseMigratorTest {
      * @param locations number of locations to generate for the measurement to be generated
      * @param pressures number of pressures to generate for the measurement to be generated
      * @param accuracyInCm The accuracy to be used in the locations
+     * @param idBase The base for the location and pressure ids to be generated, to reproduce
+     * id-conflicts like in [STAD-690]. Defaults to `[measurementId] * 1000000`.
      */
     private fun addV6LocationsAndPressures(
         db: SQLiteDatabase,
         @Suppress("SameParameterValue") measurementId: Long,
         @Suppress("SameParameterValue") locations: Int,
         @Suppress("SameParameterValue") pressures: Int,
-        accuracyInCm: Double
+        accuracyInCm: Double,
+        idBase: Long = measurementId * 1000000
     ) {
         // Insert Location - execSQL only supports one insert per commend
         for (i in 0 until locations) {
-            val id = measurementId * 1000000 + i
+            val id = idBase + i
             val timestamp = 1551431485000L + i
             val speed = 1.01
             val verticalAccuracy = 20.0
@@ -1161,7 +1168,7 @@ class DatabaseMigratorTest {
         }
         // Insert Pressure
         for (i in 0 until pressures) {
-            val id = measurementId * 1000000 + i
+            val id = idBase + i
             val timestamp = 1551431485000L + i
             db.execSQL(
                 ("INSERT INTO Pressure (uid,pressure,timestamp,measurement_fk) VALUES "
