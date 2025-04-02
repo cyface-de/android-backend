@@ -312,35 +312,36 @@ abstract class DataCapturingService(
             Log.w(Constants.TAG, "Context is null, ignoring start command.")
             return
         }
+
+        // Ensure there are no unfinished measurements (wrong life-cycle call)
+        if (persistenceLayer.hasMeasurement(MeasurementStatus.OPEN) ||
+            persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)) {
+            throw CorruptedMeasurementException("Unfinished measurement on start() found.")
+        }
+
+        // Start new measurement
+        val measurement = prepareStart(modality)
+        val timestamp = System.currentTimeMillis()
+        persistenceLayer.logEvent(EventType.LIFECYCLE_START, measurement, timestamp)
+        persistenceLayer.logEvent(
+            EventType.MODALITY_TYPE_CHANGE, measurement, timestamp, modality.databaseIdentifier
+        )
+
+        var shouldRun = false
+
         lifecycleLock.withLock {
             Log.v(Constants.TAG, "Locking in asynchronous start.")
-            if (isRunning) {
-                Log.w(
-                    Constants.TAG,
-                    "DataCapturingService assumes that the service is running and thus returns."
-                )
-                return
+            if (!isRunning) {
+                // This is necessary to allow the App using the SDK to reconnect and prevent it
+                // from reconnecting while stopping the service.
+                isStoppingOrHasStopped = false
+                shouldRun = true
+            } else {
+                Log.w(Constants.TAG, "Service is already running, skipping start.")
             }
-            // This is necessary to allow the App using the SDK to reconnect and prevent it from reconnecting while
-            // stopping the service.
-            isStoppingOrHasStopped = false
+        }
 
-            // Ensure there are no unfinished measurements (wrong life-cycle call)
-            if (persistenceLayer.hasMeasurement(MeasurementStatus.OPEN) || persistenceLayer.hasMeasurement(
-                    MeasurementStatus.PAUSED
-                )
-            ) {
-                throw CorruptedMeasurementException("Unfinished measurement on start() found.")
-            }
-
-            // Start new measurement
-            val measurement = prepareStart(modality)
-            val timestamp = System.currentTimeMillis()
-            persistenceLayer.logEvent(EventType.LIFECYCLE_START, measurement, timestamp)
-            persistenceLayer.logEvent(
-                EventType.MODALITY_TYPE_CHANGE, measurement, timestamp,
-                modality.databaseIdentifier
-            )
+        if (shouldRun) {
             runService(measurement, finishedHandler)
         }
     }
@@ -451,42 +452,44 @@ abstract class DataCapturingService(
     )
     // used by sdk implementing apps (e.g. SR)
     suspend fun resume(finishedHandler: StartUpFinishedHandler) {
-        val persistenceBehavior = persistenceLayer.persistenceBehaviour
         Log.d(Constants.TAG, "Resuming asynchronously.")
-        if (getContext() == null) {
+        val context = getContext() ?: return
+        val persistenceBehavior = requireNotNull(persistenceLayer.persistenceBehaviour)
+
+        if (!checkFineLocationAccess(context)) {
+            persistenceBehavior.updateRecentMeasurement(MeasurementStatus.FINISHED)
+            throw MissingPermissionException()
+        }
+
+        // Ignore resume when paused measurements (supported wrong life-cycle call #MOV-460)
+        if (!persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)) {
+            Log.w(Constants.TAG, "Ignoring resume() as there is no paused measurement.")
             return
         }
+
+        // Resume paused measurement
+        val measurement = persistenceLayer.loadCurrentlyCapturedMeasurement()
+        require(measurement.fileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
+        persistenceLayer.logEvent(EventType.LIFECYCLE_RESUME, measurement)
+
+        var shouldRun = false
+
         lifecycleLock.withLock {
             Log.v(Constants.TAG, "Locking in asynchronous resume.")
-            if (isRunning) {
-                Log.w(
-                    Constants.TAG,
-                    "Ignoring duplicate resume call because service is already running"
-                )
-                return
+            if (!isRunning) {
+                // This is necessary to allow the App using the SDK to reconnect and prevent it from
+                // reconnecting while stopping the service.
+                isStoppingOrHasStopped = false
+                shouldRun = true
+            } else {
+                Log.w(Constants.TAG, "Ignoring duplicate resume call because service is already running")
             }
-            // This is necessary to allow the App using the SDK to reconnect and prevent it from reconnecting while
-            // stopping the service.
-            isStoppingOrHasStopped = false
-            if (!checkFineLocationAccess(getContext()!!)) {
-                persistenceBehavior!!.updateRecentMeasurement(MeasurementStatus.FINISHED)
-                throw MissingPermissionException()
-            }
+        }
 
-            // Ignore resume if there are no paused measurements (wrong life-cycle call which we support #MOV-460)
-            if (!persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)) {
-                Log.w(Constants.TAG, "Ignoring resume() as there is no paused measurement.")
-                return
-            }
-
-            // Resume paused measurement
-            val measurement = persistenceLayer.loadCurrentlyCapturedMeasurement()
-            require(measurement.fileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
-            persistenceLayer.logEvent(EventType.LIFECYCLE_RESUME, measurement)
+        if (shouldRun) {
             runService(measurement, finishedHandler)
-
             // We only update the {@link MeasurementStatus} if {@link #runService()} was successful
-            persistenceBehavior!!.updateRecentMeasurement(MeasurementStatus.OPEN)
+            persistenceBehavior.updateRecentMeasurement(MeasurementStatus.OPEN)
         }
     }
 

@@ -73,6 +73,7 @@ import java.util.concurrent.locks.ReentrantLock
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
+@SuppressWarnings("LargeClass")
 class DataCapturingServiceTest {
     /**
      * Rule used to run
@@ -463,6 +464,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
+    @SuppressWarnings("LongMethod")
     fun testMultipleStartStopWithoutDelay() = runBlocking {
         // Do not reuse the lock/condition!
         val lock1: Lock = ReentrantLock()
@@ -1036,7 +1038,7 @@ We should consider refactoring the code before to use startCommandReceived as in
      * DataCapturingService in the correct state (`isDataCapturingServiceRunning` is `false`.
      */
     @Test
-    fun testReconnectOnNonRunningServer() {
+    fun testReconnectOnNonRunningServer(): Unit = runBlocking {
         assertThat(oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), `is`(false))
         assertThat(oocut!!.isRunning, `is`(equalTo(false)))
     }
