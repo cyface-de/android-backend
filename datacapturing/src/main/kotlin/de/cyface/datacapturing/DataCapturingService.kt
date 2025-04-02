@@ -60,11 +60,13 @@ import de.cyface.synchronization.ConnectionStatusReceiver
 import de.cyface.synchronization.WiFiSurveyor
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.lang.ref.WeakReference
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -684,26 +686,25 @@ abstract class DataCapturingService(
     /**
      * Reconnects your app to this service.
      *
-     * This might be especially useful if your app has been disconnected in a via `Activity#onStop()`.
-     * You must call this to receive [DataCapturingListener] events again.
+     * Useful when your app was previously disconnected, e.g. in `Activity#onStop()`.
+     * Call this to rebind and receive [DataCapturingListener] events again.
      *
-     * @param isRunningTimeout the number of ms to wait for the callback, see
-     * [.isRunning]. Default is [.IS_RUNNING_CALLBACK_TIMEOUT]
-     * @return True if the background service was running and, thus, the binding method was called. The success of the
-     * binding determines the `#getIsRunning()` value, see `#bind()`.
+     * @param isRunningTimeout Timeout in milliseconds to wait for the background service to respond.
+     *                         See [.isRunning]. Default is [.IS_RUNNING_CALLBACK_TIMEOUT].
+     * @return `true` if the service was running and binding succeeded, `false` if it wasn't running.
      * @throws IllegalStateException If communication with background service is not successful.
-     * @throws kotlinx.coroutines.TimeoutCancellationException see `kotlinx.coroutines.withTimeout`
      */
     // Used by DataCapturingListeners (CY)
-    suspend fun reconnect(isRunningTimeout: Long): Boolean = withTimeout(isRunningTimeout) {
-        val isServiceRunning = suspendIsRunning(isRunningTimeout, TimeUnit.MILLISECONDS)
-        if (!isServiceRunning) return@withTimeout false
-
-        try {
-            bind()
-            true
-        } catch (e: DataCapturingException) {
-            Log.e(Constants.TAG, "Reconnect failed during bind", e)
+    suspend fun reconnect(isRunningTimeout: Long): Boolean {
+        return try {
+            withTimeout(isRunningTimeout) {
+                val isServiceRunning = suspendIsRunning(isRunningTimeout, TimeUnit.MILLISECONDS)
+                if (!isServiceRunning) return@withTimeout false
+                bind()
+                true
+            }
+        } catch (e: TimeoutCancellationException) {
+            Log.w(Constants.TAG, "Reconnect timed out", e)
             false
         }
     }

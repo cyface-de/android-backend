@@ -1034,8 +1034,9 @@ We should consider refactoring the code before to use startCommandReceived as in
     }
 
     /**
-     * Tests whether reconnect throws no exception when called without a running background service and leaves the
-     * DataCapturingService in the correct state (`isDataCapturingServiceRunning` is `false`.
+     * Tests whether reconnect throws no exception when called without a running background service
+     * and leaves the [DataCapturingService] in the correct state ([isDataCapturingServiceRunning]
+     * is `false`).
      */
     @Test
     fun testReconnectOnNonRunningServer(): Unit = runBlocking {
