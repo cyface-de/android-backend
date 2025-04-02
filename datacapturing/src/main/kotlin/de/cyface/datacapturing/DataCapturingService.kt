@@ -66,7 +66,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
 import java.lang.ref.WeakReference
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -98,7 +97,8 @@ import java.util.concurrent.locks.ReentrantLock
  * @param accountType The type of the account to use to synchronize data with.
  * @property eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
  * triggered by the [DataCapturingBackgroundService].
- * @property persistenceLayer The [de.cyface.persistence.PersistenceLayer] required to access the device id
+ * @property persistenceLayer A facade object providing access to the data stored by this
+ * `DataCapturingService`.
  * @property distanceCalculationStrategy The [DistanceCalculationStrategy] used to calculate the
  * [Measurement.distance]
  * @property locationCleaningStrategy The [LocationCleaningStrategy] used to filter the
@@ -110,10 +110,10 @@ import java.util.concurrent.locks.ReentrantLock
  */
 abstract class DataCapturingService(
     context: Context,
-    authority: String,
+    private val authority: String,
     accountType: String,
     eventHandlingStrategy: EventHandlingStrategy,
-    persistenceLayer: DefaultPersistenceLayer<CapturingPersistenceBehaviour>,
+    @JvmField val persistenceLayer: DefaultPersistenceLayer<CapturingPersistenceBehaviour>,
     distanceCalculationStrategy: DistanceCalculationStrategy,
     locationCleaningStrategy: LocationCleaningStrategy,
     capturingListener: DataCapturingListener,
@@ -159,12 +159,6 @@ abstract class DataCapturingService(
     private val serviceConnection: ServiceConnection
 
     /**
-     * A facade object providing access to the data stored by this `DataCapturingService`.
-     */
-    @JvmField
-    val persistenceLayer: DefaultPersistenceLayer<CapturingPersistenceBehaviour>
-
-    /**
      * Messenger that handles messages arriving from the `DataCapturingBackgroundService`.
      */
     private val fromServiceMessenger: Messenger
@@ -196,15 +190,8 @@ abstract class DataCapturingService(
     var uiListener: UIListener? = null
 
     /**
-     * The `ContentProvider` authority required to request a sync operation in the [WiFiSurveyor].
-     * You should use something world wide unique, like your domain, to avoid collisions between different apps using
-     * the Cyface SDK.
-     */
-    private val authority: String
-
-    /**
-     * Lock used to protect lifecycle events from each other. This for example prevents a reconnect to disturb a running
-     * stop.
+     * Lock used to protect lifecycle events from each other. This for example prevents a reconnect
+     * to disturb a running stop.
      */
     private val lifecycleLock: Mutex
 
@@ -237,8 +224,6 @@ abstract class DataCapturingService(
     private val locationCleaningStrategy: LocationCleaningStrategy
 
     init {
-        this.authority = authority
-        this.persistenceLayer = persistenceLayer
         serviceConnection = BackgroundServiceConnection()
         connectionStatusReceiver = ConnectionStatusReceiver(context)
         this.eventHandlingStrategy = eventHandlingStrategy
@@ -344,7 +329,7 @@ abstract class DataCapturingService(
         }
 
         if (shouldRun) {
-            runService(measurement, finishedHandler)
+            runService(measurement.id, finishedHandler)
         }
     }
 
@@ -489,7 +474,7 @@ abstract class DataCapturingService(
         }
 
         if (shouldRun) {
-            runService(measurement, finishedHandler)
+            runService(measurement.id, finishedHandler)
             // We only update the {@link MeasurementStatus} if {@link #runService()} was successful
             persistenceBehavior.updateRecentMeasurement(MeasurementStatus.OPEN)
         }
@@ -721,13 +706,13 @@ abstract class DataCapturingService(
      * Starts the associated [DataCapturingBackgroundService] and calls the provided
      * [startUpFinishedHandler], after it successfully started.
      *
-     * @param measurement The measurement to store the captured data to.
+     * @param measurementId The identifier of the [Measurement] to store the captured data to.
      * @param startUpFinishedHandler A handler called if the service started successfully.
      * @throws DataCapturingException If service could not be started.
      */
     @Throws(DataCapturingException::class)
     private suspend fun runService(
-        measurement: Measurement,
+        measurementId: Long,
         startUpFinishedHandler: StartUpFinishedHandler
     ) {
         val context = getContext()
@@ -749,11 +734,12 @@ abstract class DataCapturingService(
             StartUpFinishedHandler.TAG,
             "DataCapturingService: StartUpFinishedHandler registered for broadcasts."
         )
-        Log.d(Constants.TAG, "Starting the background service for measurement $measurement!")
+
+        Log.d(Constants.TAG, "Starting the background service for measurement $measurementId!")
         val startIntent = Intent(context, DataCapturingBackgroundService::class.java)
         // Binding the intent to the package of the app which runs this SDK [DAT-1509].
         startIntent.setPackage(context.packageName)
-        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, measurement.id)
+        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, measurementId)
         startIntent.putExtra(BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy)
         startIntent.putExtra(
             BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID,
@@ -786,6 +772,7 @@ abstract class DataCapturingService(
             Constants.TAG,
             "Registering finishedHandler for service stop synchronization broadcast."
         )
+
         @SuppressLint("UnspecifiedRegisterReceiverFlag")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context!!.registerReceiver(
@@ -800,6 +787,7 @@ abstract class DataCapturingService(
                 IntentFilter(MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED),
             )
         }
+
         val serviceWasActive: Boolean
         try {
             // For some reasons we have to call the unbind here.
@@ -827,6 +815,7 @@ abstract class DataCapturingService(
             val stopIntent = Intent(context, DataCapturingBackgroundService::class.java)
             serviceWasActive = context.stopService(stopIntent)
         }
+
         return serviceWasActive
     }
 
