@@ -32,7 +32,7 @@ import java.util.concurrent.locks.ReentrantLock
  * This stores the instance in a shared preferences file, and provides thread-safe access and
  * mutation.
  */
-class AuthStateManager private constructor(private val context: Context) {
+class AuthStateManager private constructor(context: Context) {
     private val mPrefs: SharedPreferences = context.getSharedPreferences(STORE_NAME, Context.MODE_PRIVATE)
     private val mPrefsLock: ReentrantLock = ReentrantLock()
     private val mCurrentAuthState: AtomicReference<AuthState> = AtomicReference()
@@ -100,7 +100,7 @@ class AuthStateManager private constructor(private val context: Context) {
             try {
                 AuthState.jsonDeserialize(currentState)
             } catch (ex: JSONException) {
-                Log.w(TAG, "Failed to deserialize stored auth state - discarding")
+                Log.w(TAG, "Failed to deserialize stored auth state - discarding", ex)
                 AuthState()
             }
         } finally {
