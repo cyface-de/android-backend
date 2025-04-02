@@ -73,6 +73,7 @@ import java.util.concurrent.locks.ReentrantLock
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
+@SuppressWarnings("LargeClass")
 class DataCapturingServiceTest {
     /**
      * Rule used to run
@@ -445,7 +446,14 @@ class DataCapturingServiceTest {
     }
 
     /**
-     * Tests that a double start-stop combination without waiting for the callback does not break the service.
+     * Tests multiple start/stop calls without waiting for previous operations to finish.
+     *
+     * ⚠️ This test is expected to fail because it triggers race conditions between start() and stop().
+     * The first stop may not have fully completed (e.g. measurement status not updated yet) when the next
+     * start() begins. As a result, the second start may reuse the same measurement ID or throw a
+     * CorruptedMeasurementException due to detecting an unfinished measurement.
+     *
+     * A correct lifecycle requires awaiting completion of stop() before starting again.
      *
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
@@ -463,6 +471,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
+    @SuppressWarnings("LongMethod")
     fun testMultipleStartStopWithoutDelay() = runBlocking {
         // Do not reuse the lock/condition!
         val lock1: Lock = ReentrantLock()
@@ -855,7 +864,8 @@ We should consider refactoring the code before to use startCommandReceived as in
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test
-    @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
+    // We re-enabled this test 2025-04-02 to see if the refactoring fixed the flaky behaviour.
+    // @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
     @Throws(
         MissingPermissionException::class,
         DataCapturingException::class,
@@ -863,7 +873,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         CorruptedMeasurementException::class
     )
     fun testStartPauseStop_MultipleTimes() = runBlocking {
-        for (i in 0..19) {
+        for (i in 1..3) { // reduced to 3 as 20 takes over a minute to execute
             Log.d(TestUtils.TAG, "ITERATION: $i")
             val measurementIdentifier = startAndCheckThatLaunched()
             pauseAndCheckThatStopped(measurementIdentifier)
@@ -945,7 +955,8 @@ We should consider refactoring the code before to use startCommandReceived as in
      * @throws MissingPermissionException Should not happen since a `GrantPermissionRule` is used.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
-    @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
+    // We re-enabled this test 2025-04-02 to see if the refactoring fixed the flaky behaviour.
+    // @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
     @Test
     @Throws(
         DataCapturingException::class,
@@ -954,7 +965,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         CorruptedMeasurementException::class
     )
     fun testStartPauseResumeStop_MultipleTimes() = runBlocking {
-        for (i in 0..49) {
+        for (i in 1..3) { // reduced to 3 as 50 takes over 2.5 minutes to execute
             Log.d(TestUtils.TAG, "ITERATION: $i")
             startPauseResumeStop()
 
@@ -1032,11 +1043,12 @@ We should consider refactoring the code before to use startCommandReceived as in
     }
 
     /**
-     * Tests whether reconnect throws no exception when called without a running background service and leaves the
-     * DataCapturingService in the correct state (`isDataCapturingServiceRunning` is `false`.
+     * Tests whether reconnect throws no exception when called without a running background service
+     * and leaves the [DataCapturingService] in the correct state ([isDataCapturingServiceRunning]
+     * is `false`).
      */
     @Test
-    fun testReconnectOnNonRunningServer() {
+    fun testReconnectOnNonRunningServer(): Unit = runBlocking {
         assertThat(oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), `is`(false))
         assertThat(oocut!!.isRunning, `is`(equalTo(false)))
     }
