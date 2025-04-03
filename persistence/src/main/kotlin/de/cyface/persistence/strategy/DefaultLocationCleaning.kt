@@ -23,7 +23,6 @@ import android.os.Parcelable.Creator
 import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.ParcelableGeoLocation
-import kotlinx.coroutines.runBlocking
 
 /**
  * An implementation of the [LocationCleaningStrategy] which uses simple lightweight filters
@@ -70,11 +69,11 @@ class DefaultLocationCleaning : LocationCleaningStrategy {
                 speed < UPPER_SPEED_THRESHOLD
     }
 
-    override fun loadCleanedLocations(
+    override suspend fun loadCleanedLocations(
         dao: LocationDao,
         measurementId: Long
-    ): List<GeoLocation> = runBlocking {
-        return@runBlocking dao.loadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt(
+    ): List<GeoLocation> {
+        return dao.loadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt(
             measurementId,
             LOWER_SPEED_THRESHOLD,
             UPPER_ACCURACY_THRESHOLD,

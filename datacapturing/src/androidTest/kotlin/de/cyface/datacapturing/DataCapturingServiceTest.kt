@@ -73,6 +73,7 @@ import java.util.concurrent.locks.ReentrantLock
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
+@SuppressWarnings("LargeClass")
 class DataCapturingServiceTest {
     /**
      * Rule used to run
@@ -140,7 +141,7 @@ class DataCapturingServiceTest {
                     testListener!!,
                     100,
                     CyfaceAuthenticator(context!!)
-                )
+                ).apply { runBlocking { initialize() } }
             } catch (e: SetupException) {
                 throw IllegalStateException(e)
             }
@@ -172,7 +173,9 @@ class DataCapturingServiceTest {
                 condition,
                 MessageCodes.GLOBAL_BROADCAST_SERVICE_STOPPED,
             )
-            oocut!!.stop(shutDownFinishedHandler)
+            runBlocking {
+                oocut!!.stop(shutDownFinishedHandler)
+            }
 
             // Ensure the zombie sent a stopped message back to the DataCapturingService
             TestUtils.lockAndWait(
@@ -230,7 +233,7 @@ class DataCapturingServiceTest {
         DataCapturingException::class,
         CorruptedMeasurementException::class
     )
-    private fun startAndCheckThatLaunched(): Long {
+    private suspend fun startAndCheckThatLaunched(): Long {
         // Do not reuse the lock/condition!
         val lock: Lock = ReentrantLock()
         val condition = lock.newCondition()
@@ -252,7 +255,7 @@ class DataCapturingServiceTest {
      * prior to pausing.
      */
     @Throws(NoSuchMeasurementException::class)
-    private fun pauseAndCheckThatStopped(measurementIdentifier: Long) {
+    private suspend fun pauseAndCheckThatStopped(measurementIdentifier: Long) {
 
         // Do not reuse the lock/condition!
         val lock: Lock = ReentrantLock()
@@ -284,7 +287,7 @@ class DataCapturingServiceTest {
         DataCapturingException::class,
         NoSuchMeasurementException::class
     )
-    private fun resumeAndCheckThatLaunched(measurementIdentifier: Long) {
+    private suspend fun resumeAndCheckThatLaunched(measurementIdentifier: Long) {
 
         // Do not reuse the lock/condition!
         val lock: Lock = ReentrantLock()
@@ -311,10 +314,10 @@ class DataCapturingServiceTest {
      * prior to stopping.
      */
     @Throws(NoSuchMeasurementException::class)
-    private fun stopAndCheckThatStopped(measurementIdentifier: Long) {
+    private suspend fun stopAndCheckThatStopped(measurementIdentifier: Long) {
 
         // Do not reuse the lock/condition!
-        val lock: Lock = ReentrantLock()
+        val lock = ReentrantLock()
         val condition = lock.newCondition()
         val shutDownFinishedHandler = TestShutdownFinishedHandler(
             lock,
@@ -409,7 +412,7 @@ class DataCapturingServiceTest {
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testStartStop() {
+    fun testStartStop() = runBlocking {
         val receivedMeasurementIdentifier = startAndCheckThatLaunched()
         stopAndCheckThatStopped(receivedMeasurementIdentifier)
     }
@@ -431,7 +434,7 @@ class DataCapturingServiceTest {
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testMultipleStartStopWithDelay() {
+    fun testMultipleStartStopWithDelay() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
         var measurements: List<Measurement?> = persistence!!.loadMeasurements()
         assertThat(measurements.size, `is`(equalTo(1)))
@@ -443,7 +446,14 @@ class DataCapturingServiceTest {
     }
 
     /**
-     * Tests that a double start-stop combination without waiting for the callback does not break the service.
+     * Tests multiple start/stop calls without waiting for previous operations to finish.
+     *
+     * ⚠️ This test is expected to fail because it triggers race conditions between start() and stop().
+     * The first stop may not have fully completed (e.g. measurement status not updated yet) when the next
+     * start() begins. As a result, the second start may reuse the same measurement ID or throw a
+     * CorruptedMeasurementException due to detecting an unfinished measurement.
+     *
+     * A correct lifecycle requires awaiting completion of stop() before starting again.
      *
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
@@ -461,7 +471,8 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testMultipleStartStopWithoutDelay() {
+    @SuppressWarnings("LongMethod")
+    fun testMultipleStartStopWithoutDelay() = runBlocking {
         // Do not reuse the lock/condition!
         val lock1: Lock = ReentrantLock()
         val condition1 = lock1.newCondition()
@@ -594,7 +605,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testDisconnectReconnect() {
+    fun testDisconnectReconnect() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
         oocut!!.disconnect()
         assertThat(
@@ -618,7 +629,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testDoubleStart() {
+    fun testDoubleStart() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
 
         // Second start - should not launch anything
@@ -652,7 +663,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testDoubleStop() {
+    fun testDoubleStop() = runBlocking {
         val measurementId = startAndCheckThatLaunched()
         stopAndCheckThatStopped(measurementId)
         // Do not reuse the lock/condition!
@@ -682,7 +693,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testDoubleDisconnect() {
+    fun testDoubleDisconnect() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
         oocut!!.disconnect()
         oocut!!.disconnect() // must throw DataCapturingException
@@ -703,7 +714,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testStopNonConnectedService() {
+    fun testStopNonConnectedService() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
         oocut!!.disconnect()
         stopAndCheckThatStopped(measurementIdentifier)
@@ -723,7 +734,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testDoubleReconnect() {
+    fun testDoubleReconnect() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
         oocut!!.disconnect()
         assertThat(oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), `is`(true))
@@ -745,7 +756,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testDisconnectReconnectTwice() {
+    fun testDisconnectReconnectTwice() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
         oocut!!.disconnect()
         assertThat(oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), `is`(true))
@@ -768,7 +779,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testRestart() {
+    fun testRestart() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
         stopAndCheckThatStopped(measurementIdentifier)
         val measurementIdentifier2 = startAndCheckThatLaunched()
@@ -791,7 +802,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testResumeTwice() {
+    fun testResumeTwice() = runBlocking {
         // Start, pause
         val measurementIdentifier = startAndCheckThatLaunched()
         pauseAndCheckThatStopped(measurementIdentifier)
@@ -837,7 +848,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testStartPauseStop() {
+    fun testStartPauseStop() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
         pauseAndCheckThatStopped(measurementIdentifier)
         stopAndCheckThatStopped(measurementIdentifier) // stop paused returns mid, too [STAD-333]
@@ -853,15 +864,16 @@ We should consider refactoring the code before to use startCommandReceived as in
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test
-    @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
+    // We re-enabled this test 2025-04-02 to see if the refactoring fixed the flaky behaviour.
+    // @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
     @Throws(
         MissingPermissionException::class,
         DataCapturingException::class,
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testStartPauseStop_MultipleTimes() {
-        for (i in 0..19) {
+    fun testStartPauseStop_MultipleTimes() = runBlocking {
+        for (i in 1..3) { // reduced to 3 as 20 takes over a minute to execute
             Log.d(TestUtils.TAG, "ITERATION: $i")
             val measurementIdentifier = startAndCheckThatLaunched()
             pauseAndCheckThatStopped(measurementIdentifier)
@@ -884,7 +896,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testRemoveDataCapturingListener() {
+    fun testRemoveDataCapturingListener() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
         // This happens in SDK implementing apps (SR) when the app is paused and resumed
         oocut!!.removeDataCapturingListener(testListener!!)
@@ -918,16 +930,16 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testStartPauseResumeStop_EventsAreLogged() {
+    fun testStartPauseResumeStop_EventsAreLogged() = runBlocking {
         val measurementIdentifier = startPauseResumeStop()
         val events = oocut!!.persistenceLayer.loadEvents(measurementIdentifier)
         // start, pause, resume, stop and initial MODALITY_TYPE_CHANGE event
         assertThat(events.size, `is`(equalTo(5)))
-        assertThat(events[0]!!.type, `is`(equalTo(EventType.LIFECYCLE_START)))
-        assertThat(events[1]!!.type, `is`(equalTo(EventType.MODALITY_TYPE_CHANGE)))
-        assertThat(events[2]!!.type, `is`(equalTo(EventType.LIFECYCLE_PAUSE)))
-        assertThat(events[3]!!.type, `is`(equalTo(EventType.LIFECYCLE_RESUME)))
-        assertThat(events[4]!!.type, `is`(equalTo(EventType.LIFECYCLE_STOP)))
+        assertThat(events[0].type, `is`(equalTo(EventType.LIFECYCLE_START)))
+        assertThat(events[1].type, `is`(equalTo(EventType.MODALITY_TYPE_CHANGE)))
+        assertThat(events[2].type, `is`(equalTo(EventType.LIFECYCLE_PAUSE)))
+        assertThat(events[3].type, `is`(equalTo(EventType.LIFECYCLE_RESUME)))
+        assertThat(events[4].type, `is`(equalTo(EventType.LIFECYCLE_STOP)))
     }
 
     /**
@@ -943,7 +955,8 @@ We should consider refactoring the code before to use startCommandReceived as in
      * @throws MissingPermissionException Should not happen since a `GrantPermissionRule` is used.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
-    @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
+    // We re-enabled this test 2025-04-02 to see if the refactoring fixed the flaky behaviour.
+    // @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
     @Test
     @Throws(
         DataCapturingException::class,
@@ -951,8 +964,8 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testStartPauseResumeStop_MultipleTimes() {
-        for (i in 0..49) {
+    fun testStartPauseResumeStop_MultipleTimes() = runBlocking {
+        for (i in 1..3) { // reduced to 3 as 50 takes over 2.5 minutes to execute
             Log.d(TestUtils.TAG, "ITERATION: $i")
             startPauseResumeStop()
 
@@ -969,7 +982,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         CorruptedMeasurementException::class,
         MissingPermissionException::class
     )
-    private fun startPauseResumeStop(): Long {
+    private suspend fun startPauseResumeStop(): Long {
         val measurementIdentifier = startAndCheckThatLaunched()
         val measurements = persistence!!.loadMeasurements()
         assertThat(measurements.size, `is`(equalTo(1)))
@@ -1018,7 +1031,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         CorruptedMeasurementException::class,
         InterruptedException::class
     )
-    fun testSensorDataCapturing() {
+    fun testSensorDataCapturing() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
 
         // Check sensor data
@@ -1030,11 +1043,12 @@ We should consider refactoring the code before to use startCommandReceived as in
     }
 
     /**
-     * Tests whether reconnect throws no exception when called without a running background service and leaves the
-     * DataCapturingService in the correct state (`isDataCapturingServiceRunning` is `false`.
+     * Tests whether reconnect throws no exception when called without a running background service
+     * and leaves the [DataCapturingService] in the correct state ([isDataCapturingServiceRunning]
+     * is `false`).
      */
     @Test
-    fun testReconnectOnNonRunningServer() {
+    fun testReconnectOnNonRunningServer(): Unit = runBlocking {
         assertThat(oocut!!.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), `is`(false))
         assertThat(oocut!!.isRunning, `is`(equalTo(false)))
     }
@@ -1054,7 +1068,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testChangeModality_EventLogContainsTwoModalities() {
+    fun testChangeModality_EventLogContainsTwoModalities() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
         oocut!!.changeModalityType(Modality.CAR)
         stopAndCheckThatStopped(measurementIdentifier)
@@ -1082,7 +1096,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testChangeModalityToSameModalityTwice_EventLogStillContainsOnlyTwoModalities() {
+    fun testChangeModalityToSameModalityTwice_EventLogStillContainsOnlyTwoModalities() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
         oocut!!.changeModalityType(Modality.CAR)
         oocut!!.changeModalityType(Modality.CAR)
@@ -1108,7 +1122,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         NoSuchMeasurementException::class,
         CorruptedMeasurementException::class
     )
-    fun testChangeModalityWhilePaused_EventLogStillContainsModalityChange() {
+    fun testChangeModalityWhilePaused_EventLogStillContainsModalityChange() = runBlocking {
         val measurementIdentifier = startAndCheckThatLaunched()
         pauseAndCheckThatStopped(measurementIdentifier)
         oocut!!.changeModalityType(Modality.CAR)
