@@ -30,6 +30,7 @@ import de.cyface.datacapturing.exception.MissingPermissionException
 import de.cyface.persistence.SetupException
 import de.cyface.persistence.model.Modality
 import de.cyface.synchronization.CyfaceAuthenticator
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.json.JSONException
@@ -98,7 +99,7 @@ class DataCapturingServiceWithoutPermissionTest {
                     listener,
                     100,
                     CyfaceAuthenticator(context!!),
-                )
+                ).apply { runBlocking { initialize() } }
             } catch (e: SetupException) {
                 throw IllegalStateException(e)
             }
@@ -122,7 +123,7 @@ class DataCapturingServiceWithoutPermissionTest {
         DataCapturingException::class,
         CorruptedMeasurementException::class,
     )
-    fun testServiceDoesNotStartWithoutPermission() {
+    fun testServiceDoesNotStartWithoutPermission() = runBlocking {
         val startUpFinishedHandler = TestStartUpFinishedHandler(
             lock!!,
             condition!!,
@@ -138,7 +139,7 @@ class DataCapturingServiceWithoutPermissionTest {
     @Test
     @Throws(CorruptedMeasurementException::class)
     @SuppressWarnings("SwallowedException")
-    fun testUIListenerIsInformedOfMissingPermission() {
+    fun testUIListenerIsInformedOfMissingPermission() = runBlocking {
         val uiListener = TestUIListener()
         oocut!!.uiListener = uiListener
 

@@ -71,7 +71,6 @@ import java.util.LinkedList
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class UploadProgressTest {
-
     private lateinit var persistence: PersistenceLayer<PersistenceBehaviour>
     private var context: Context? = null
     private var contentResolver: ContentResolver? = null
@@ -81,7 +80,7 @@ class UploadProgressTest {
     private var account: Account? = null
 
     @Before
-    fun setUp() = runBlocking {
+    fun setUp(): Unit = runBlocking {
         context = InstrumentationRegistry.getInstrumentation().targetContext
         contentResolver = context!!.contentResolver
         persistence = DefaultPersistenceLayer(context!!, DefaultPersistenceBehaviour())
@@ -100,8 +99,8 @@ class UploadProgressTest {
     }
 
     @After
-    fun tearDown() {
-        runBlocking { clearPersistenceLayer(context!!, persistence) }
+    fun tearDown(): Unit = runBlocking {
+        clearPersistenceLayer(context!!, persistence)
         val oldAccounts = accountManager!!.getAccountsByType(TestUtils.ACCOUNT_TYPE)
         if (oldAccounts.isNotEmpty()) {
             for (oldAccount in oldAccounts) {
@@ -117,7 +116,7 @@ class UploadProgressTest {
     @Throws(
         NoSuchMeasurementException::class
     )
-    fun testUploadProgressHappyPath() = runBlocking {
+    fun testUploadProgressHappyPath(): Unit = runBlocking {
         val receiver = TestReceiver()
         val filter = IntentFilter()
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED)

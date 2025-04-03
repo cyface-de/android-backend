@@ -18,7 +18,6 @@
  */
 package de.cyface.datacapturing.backend
 
-import android.os.Build
 import android.os.Parcelable
 import de.cyface.datacapturing.EventHandlingStrategy
 import de.cyface.datacapturing.MessageCodes
@@ -32,6 +31,7 @@ import de.cyface.persistence.model.ParcelablePressure
 import de.cyface.persistence.strategy.DistanceCalculationStrategy
 import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.testutils.SharedTestUtils.generateGeoLocation
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.MatcherAssert
 import org.hamcrest.Matchers
 import org.junit.Before
@@ -46,7 +46,6 @@ import org.mockito.Spy
 import org.mockito.junit.MockitoJUnit
 import org.mockito.junit.MockitoRule
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 import java.util.Random
 import kotlin.math.abs
 
@@ -60,7 +59,7 @@ import kotlin.math.abs
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [Build.VERSION_CODES.O_MR1]) // To be able to execute tests with Java 8 (instead of 9)
+//@Config(sdk = [Build.VERSION_CODES.O_MR1]) // To be able to execute tests with Java 8 (instead of 9)
 class DataCapturingLocalTest {
 
     /**
@@ -147,10 +146,12 @@ class DataCapturingLocalTest {
         oocut!!.onLocationCaptured(location3) // Now the two distances should be added
 
         // Assert
-        Mockito.verify(mockBehaviour, Mockito.times(1))!!
-            .updateDistance(expectedDistance.toDouble())
-        Mockito.verify(mockBehaviour, Mockito.times(1))!!
-            .updateDistance((2 * expectedDistance).toDouble())
+        runBlocking {
+            Mockito.verify(mockBehaviour, Mockito.times(1))!!
+                .updateDistance(expectedDistance.toDouble())
+            Mockito.verify(mockBehaviour, Mockito.times(1))!!
+                .updateDistance((2 * expectedDistance).toDouble())
+        }
     }
 
     /**
@@ -198,12 +199,14 @@ class DataCapturingLocalTest {
         oocut!!.onLocationCaptured(location3) // Now the two distances should be added
 
         // Assert
-        Mockito.verify(mockBehaviour, Mockito.times(1))!!
-            .updateDistance(expectedDistance.toDouble())
-        Mockito.verify(mockBehaviour, Mockito.times(1))!!
-            .updateDistance((2 * expectedDistance).toDouble())
-        Mockito.verify(mockBehaviour, Mockito.times(0))!!
-            .updateDistance((3 * expectedDistance).toDouble())
+        runBlocking {
+            Mockito.verify(mockBehaviour, Mockito.times(1))!!
+                .updateDistance(expectedDistance.toDouble())
+            Mockito.verify(mockBehaviour, Mockito.times(1))!!
+                .updateDistance((2 * expectedDistance).toDouble())
+            Mockito.verify(mockBehaviour, Mockito.times(0))!!
+                .updateDistance((3 * expectedDistance).toDouble())
+        }
     }
 
     /**
@@ -285,10 +288,10 @@ class DataCapturingLocalTest {
         var receivedDirections = 0
         var receivedPressures = 0
         for (dataFromCall in captor.allValues) {
-            receivedAccelerations += dataFromCall.getAccelerations().size
-            receivedRotations += dataFromCall.getRotations().size
-            receivedDirections += dataFromCall.getDirections().size
-            receivedPressures += dataFromCall.getPressures().size
+            receivedAccelerations += dataFromCall.accelerations.size
+            receivedRotations += dataFromCall.rotations.size
+            receivedDirections += dataFromCall.directions.size
+            receivedPressures += dataFromCall.pressures.size
         }
         MatcherAssert.assertThat(
             receivedAccelerations,

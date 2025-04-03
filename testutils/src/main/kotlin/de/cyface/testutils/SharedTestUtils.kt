@@ -515,7 +515,7 @@ object SharedTestUtils {
      * @return The database identifier of the created [Measurement].
      */
     @JvmStatic
-    fun insertMeasurementEntry(
+    suspend fun insertMeasurementEntry(
         persistence: DefaultPersistenceLayer<*>,
         modality: Modality
     ): de.cyface.persistence.model.Measurement {

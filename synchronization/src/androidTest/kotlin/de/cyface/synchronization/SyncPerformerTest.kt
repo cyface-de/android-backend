@@ -274,9 +274,9 @@ class SyncPerformerTest {
 
         // Load meta data
         val tracks = persistence.loadTracks(measurementIdentifier)
-        val startLocation = tracks[0].geoLocations[0]!!
+        val startLocation = tracks[0].geoLocations[0]
         val lastTrack = tracks[tracks.size - 1].geoLocations
-        val endLocation = lastTrack[lastTrack.size - 1]!!
+        val endLocation = lastTrack[lastTrack.size - 1]
         val deviceId = UUID.randomUUID()
         val startRecord = GeoLocation(
             startLocation.timestamp,

@@ -56,5 +56,5 @@ interface PersistenceBehaviour {
      * [de.cyface.persistence.model.MeasurementStatus.OPEN] or [de.cyface.persistence.model.MeasurementStatus.PAUSED] `Measurement`
      */
     @Throws(NoSuchMeasurementException::class)
-    fun loadCurrentlyCapturedMeasurement(): Measurement
+    suspend fun loadCurrentlyCapturedMeasurement(): Measurement
 }

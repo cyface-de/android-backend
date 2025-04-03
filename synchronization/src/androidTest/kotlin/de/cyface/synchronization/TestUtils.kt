@@ -78,7 +78,7 @@ object TestUtils {
     @Suppress("unused") // used in the cyface flavour
     const val TEST_API_URL = "https://replace.with/url" // never use a non-numeric port here!
 
-    fun loadMetaData(
+    suspend fun loadMetaData(
         persistence: DefaultPersistenceLayer<*>,
         measurement: Measurement,
         @Suppress("SameParameterValue") locationCount: Int,
@@ -89,9 +89,9 @@ object TestUtils {
     ): de.cyface.uploader.model.Measurement {
         // Load meta data
         val tracks = persistence.loadTracks(measurement.id)
-        val startLocation = tracks[0].geoLocations[0]!!
+        val startLocation = tracks[0].geoLocations[0]
         val lastTrack = tracks[tracks.size - 1].geoLocations
-        val endLocation = lastTrack[lastTrack.size - 1]!!
+        val endLocation = lastTrack[lastTrack.size - 1]
         val deviceId = UUID.randomUUID()
         val startRecord = GeoLocation(
             startLocation.timestamp, startLocation.lat,

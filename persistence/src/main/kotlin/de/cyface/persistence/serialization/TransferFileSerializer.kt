@@ -38,7 +38,6 @@ import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.DataSerializable
 import de.cyface.utils.CursorIsNullException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.BufferedOutputStream
 import java.io.IOException
@@ -213,10 +212,10 @@ object TransferFileSerializer {
      * @param persistence The `PersistenceLayer` to load the `Measurement` data from
      */
     @Throws(CursorIsNullException::class)
-    private fun loadLocations(
+    private suspend fun loadLocations(
         measurementId: Long,
         persistence: PersistenceLayer<*>
-    ): LocationRecords = runBlocking {
+    ): LocationRecords {
         val serializer = LocationSerializer()
         var cursor: Cursor? = null
         try {
@@ -238,7 +237,7 @@ object TransferFileSerializer {
         } finally {
             cursor?.close()
         }
-        return@runBlocking serializer.result()
+        return serializer.result()
     }
 
     /**

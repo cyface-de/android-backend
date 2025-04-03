@@ -32,6 +32,8 @@ import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.serializer.model.Point3DType
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -77,6 +79,8 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
      * A reference to the [DefaultPersistenceLayer] which implements this behaviour to access it's methods.
      */
     private lateinit var persistenceLayer: DefaultPersistenceLayer<*>
+
+    private val mutex = Mutex()
 
     override fun onStart(persistenceLayer: DefaultPersistenceLayer<*>) {
         this.persistenceLayer = persistenceLayer
@@ -163,12 +167,15 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
             // Using the timestamp of the latest pressure sample
             val timestamp = pressures[pressures.size - 1].timestamp
             val pressure = Pressure(0, timestamp, averagePressure, measurementIdentifier)
+            // runBlocking should be fine here to wait synchronously, as we're not on a UI thread
             runBlocking { persistenceLayer.pressureDao!!.insertAll(pressure) }
         }
     }
 
     /**
      * Stores the provided geo location under the currently active captured measurement.
+     *
+     * `runBlocking` should be fine here to wait synchronously, as we're not on a UI thread
      *
      * @param location The geo location to store.
      * @param measurementIdentifier The identifier of the measurement to store the data to.
@@ -187,7 +194,7 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
      * [MeasurementStatus.OPEN] measurement.
      */
     @Throws(NoSuchMeasurementException::class)
-    private fun refreshIdentifierOfCurrentlyCapturedMeasurement() {
+    private suspend fun refreshIdentifierOfCurrentlyCapturedMeasurement() {
         val (id) = persistenceLayer.loadCurrentlyCapturedMeasurementFromPersistence()
         currentMeasurementIdentifier = id
         Log.d(
@@ -214,22 +221,22 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
      * [MeasurementStatus.OPEN] or [MeasurementStatus.PAUSED] `Measurement`
      */
     @Throws(NoSuchMeasurementException::class)
-    override fun loadCurrentlyCapturedMeasurement(): Measurement {
-        synchronized(this) {
-            if (currentMeasurementIdentifier == null && (persistenceLayer.hasMeasurement(
-                    MeasurementStatus.OPEN
-                )
-                        || persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))
+    override suspend fun loadCurrentlyCapturedMeasurement(): Measurement {
+        return mutex.withLock {
+            if (currentMeasurementIdentifier == null &&
+                (persistenceLayer.hasMeasurement(MeasurementStatus.OPEN) ||
+                        persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))
             ) {
                 refreshIdentifierOfCurrentlyCapturedMeasurement()
                 require(currentMeasurementIdentifier != null)
             }
-            if (currentMeasurementIdentifier == null) {
-                throw NoSuchMeasurementException(
+
+            val id = currentMeasurementIdentifier
+                ?: throw NoSuchMeasurementException(
                     "Trying to load measurement identifier while no measurement was open or paused!"
                 )
-            }
-            return persistenceLayer.loadMeasurement(currentMeasurementIdentifier!!)!!
+
+            persistenceLayer.loadMeasurement(id)!!
         }
     }
 
@@ -242,37 +249,33 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
      * [MeasurementStatus.OPEN].
      */
     @Throws(NoSuchMeasurementException::class)
-    fun updateRecentMeasurement(newStatus: MeasurementStatus) {
+    suspend fun updateRecentMeasurement(newStatus: MeasurementStatus) {
         require(
-            newStatus === MeasurementStatus.FINISHED || newStatus === MeasurementStatus.PAUSED || newStatus === MeasurementStatus.OPEN
+            newStatus === MeasurementStatus.FINISHED ||
+            newStatus === MeasurementStatus.PAUSED ||
+            newStatus === MeasurementStatus.OPEN
         )
+
+        // Do not move `loadCurrentlyCapturedMeasurement()` into mutex as it calls a mutex itself
         val currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().id
-        when (newStatus) {
-            MeasurementStatus.OPEN -> require(
-                persistenceLayer
-                    .loadMeasurementStatus(currentlyCapturedMeasurementId) === MeasurementStatus.PAUSED
-            )
+        mutex.withLock {
+            val currentStatus = persistenceLayer.loadMeasurementStatus(currentlyCapturedMeasurementId)
 
-            MeasurementStatus.PAUSED -> require(
-                persistenceLayer
-                    .loadMeasurementStatus(currentlyCapturedMeasurementId) === MeasurementStatus.OPEN
-            )
+            when (newStatus) {
+                MeasurementStatus.OPEN -> require(currentStatus == MeasurementStatus.PAUSED)
+                MeasurementStatus.PAUSED -> require(currentStatus == MeasurementStatus.OPEN)
+                MeasurementStatus.FINISHED -> require(
+                    currentStatus == MeasurementStatus.OPEN || currentStatus == MeasurementStatus.PAUSED
+                )
+                else -> throw IllegalArgumentException("No supported newState: $newStatus")
+            }
 
-            MeasurementStatus.FINISHED -> require(
-                persistenceLayer.loadMeasurementStatus(currentlyCapturedMeasurementId) === MeasurementStatus.OPEN
-                        || persistenceLayer.loadMeasurementStatus(
-                    currentlyCapturedMeasurementId
-                ) === MeasurementStatus.PAUSED
-            )
+            Log.d(Constants.TAG, "Updating recent measurement to: $newStatus")
 
-            else -> throw IllegalArgumentException("No supported newState: $newStatus")
-        }
-        Log.d(Constants.TAG, "Updating recent measurement to: $newStatus")
-        synchronized(this) {
             try {
                 persistenceLayer.setStatus(currentlyCapturedMeasurementId, newStatus, false)
             } finally {
-                if (newStatus === MeasurementStatus.FINISHED) {
+                if (newStatus == MeasurementStatus.FINISHED) {
                     resetIdentifierOfCurrentlyCapturedMeasurement()
                 }
             }
@@ -286,14 +289,11 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
      * @throws NoSuchMeasurementException When there was no currently captured `Measurement`.
      */
     @Throws(NoSuchMeasurementException::class)
-    fun updateDistance(newDistance: Double) {
+    suspend fun updateDistance(newDistance: Double) {
         require(newDistance >= 0.0)
-        val currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().id
-        synchronized(this) {
-            persistenceLayer.setDistance(
-                currentlyCapturedMeasurementId,
-                newDistance
-            )
+        mutex.withLock {
+            val currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().id
+            persistenceLayer.setDistance(currentlyCapturedMeasurementId, newDistance)
         }
     }
 }

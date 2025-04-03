@@ -76,7 +76,7 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * @param modality The `Modality` to create a new `Measurement` for.
      * @return The newly created `Measurement`.
      */
-    fun newMeasurement(modality: Modality): Measurement
+    suspend fun newMeasurement(modality: Modality): Measurement
 
     /**
      * Provides information about whether there is currently a [Measurement] in the specified
@@ -85,7 +85,7 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * @param status The `MeasurementStatus` in question
      * @return `true` if a `Measurement` of the {@param status} exists.
      */
-    fun hasMeasurement(status: MeasurementStatus): Boolean
+    suspend fun hasMeasurement(status: MeasurementStatus): Boolean
 
     /**
      * Returns all [Measurement]s, no matter the current [MeasurementStatus].
@@ -96,7 +96,7 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * list if there are no such measurements, but never `null`.
      */
     // Used by cyface flavour tests and possibly by implementing apps
-    fun loadMeasurements(): List<Measurement>
+    suspend fun loadMeasurements(): List<Measurement>
 
     /**
      * Provide one specific [Measurement] from the data storage if it exists.
@@ -109,7 +109,7 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * @return The loaded `Measurement` if it exists; `null` otherwise.
      */
     // Sdk implementing apps (SR) use this to load single measurements
-    fun loadMeasurement(measurementIdentifier: Long): Measurement?
+    suspend fun loadMeasurement(measurementIdentifier: Long): Measurement?
 
     /**
      * This method asynchronously loads or creates a new device identifier, if none exists.
@@ -122,14 +122,14 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      *
      * @return The device identifier
      */
-    fun restoreOrCreateDeviceId(): String
+    suspend fun restoreOrCreateDeviceId(): String
 
     /**
      * Removes one [Measurement] from the local persistent data storage.
      *
      * @param measurementIdentifier The id of the `Measurement` to remove.
      */
-    fun delete(measurementIdentifier: Long)
+    suspend fun delete(measurementIdentifier: Long)
 
     /**
      * Loads the [Track]s for the provided [Measurement].
@@ -139,7 +139,7 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * [de.cyface.persistence.model.ParcelableGeoLocation]s exists, an empty list is returned.
      */
     // May be used by SDK implementing app
-    fun loadTracks(measurementIdentifier: Long): List<Track>
+    suspend fun loadTracks(measurementIdentifier: Long): List<Track>
 
     /**
      * Loads the "cleaned" [Track]s for the provided [Measurement].
@@ -151,7 +151,7 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * list is returned.
      */
     // Used by SDK implementing apps (SR, CY)
-    fun loadTracks(
+    suspend fun loadTracks(
         measurementIdentifier: Long,
         locationCleaningStrategy: LocationCleaningStrategy
     ): List<Track>
@@ -174,7 +174,7 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * for deserialization
      * @param measurementId The id of the measurement to update
      */
-    fun storePersistenceFileFormatVersion(
+    suspend fun storePersistenceFileFormatVersion(
         persistenceFileFormatVersion: Short,
         measurementId: Long
     )
@@ -186,7 +186,7 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * @param measurement The `Measurement` which is linked to the `Event`.
      * @param timestamp The timestamp in ms at which the event was triggered
      */
-    fun logEvent(
+    suspend fun logEvent(
         eventType: EventType, measurement: Measurement,
         timestamp: Long = System.currentTimeMillis()
     )
@@ -202,5 +202,5 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * Loads all measurements which are not in the [MeasurementStatus.OPEN] or
      * [MeasurementStatus.PAUSED] state starting with the newest measurement.
      */
-    fun loadCompletedMeasurements(): List<Measurement>
+    suspend fun loadCompletedMeasurements(): List<Measurement>
 }

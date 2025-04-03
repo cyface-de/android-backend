@@ -30,6 +30,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import de.cyface.testutils.SharedTestUtils.cleanupOldAccounts
 import de.cyface.uploader.exception.SynchronisationException
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.junit.After
@@ -124,7 +125,7 @@ class SRTest {
                     0L,
                     IgnoreEventsStrategy(),
                     testListener!!,
-                )
+                ).apply { runBlocking { initialize() } }
             }
 
         // Ensure reproducibility
