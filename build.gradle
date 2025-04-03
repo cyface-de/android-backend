@@ -62,7 +62,7 @@ ext {
     // (!) Match versions `android-app`, `SDK` and `camera-service`.
     // When `android-app` is checkout out, `rootProject.uploaderVersion` in the submodules will point
     // to `android-app/build.gradle` instead of `submodule/build.gradle`.
-    cyfaceSerializationVersion = "4.1.0-alpha16" // FIXME
+    cyfaceSerializationVersion = "4.1.0"
     cyfaceUploaderVersion = "1.5.1"
 
     // Android SDK versions
