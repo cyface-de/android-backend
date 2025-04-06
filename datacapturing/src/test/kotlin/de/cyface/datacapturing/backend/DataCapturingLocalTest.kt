@@ -37,9 +37,9 @@ import de.cyface.testutils.SharedTestUtils.generateGeoLocation
 import io.mockk.MockKAnnotations
 import io.mockk.coVerify
 import io.mockk.spyk
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.MatcherAssert
 import org.hamcrest.Matchers
@@ -98,7 +98,10 @@ class DataCapturingLocalTest {
     private val base = 0
     private val location1 = generateGeoLocation(base, 1L)
 
-    private val testDispatcher = StandardTestDispatcher()
+    // Using unconfirmed dispatched as `testOnLocationCapturedDistanceCalculation` is still
+    // flaky on the CI (CodeQL analysis workflow).
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val testDispatcher = UnconfinedTestDispatcher()
     private val testScope = TestScope(testDispatcher)
 
     private val fileIOHandler = MockFileIOHandler()
