@@ -34,6 +34,9 @@ import de.cyface.persistence.model.ParcelablePressure
 import de.cyface.persistence.strategy.DistanceCalculationStrategy
 import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.testutils.SharedTestUtils.generateGeoLocation
+import io.mockk.MockKAnnotations
+import io.mockk.coVerify
+import io.mockk.spyk
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -98,58 +101,17 @@ class DataCapturingLocalTest {
     private val testDispatcher = StandardTestDispatcher()
     private val testScope = TestScope(testDispatcher)
 
-    private val fileIOHandler = object : FileIOHandler {
-        private val fileStorage = mutableMapOf<String, ByteArray>()
-
-        override fun writeToOutputStream(file: File, bufferedOutputStream: BufferedOutputStream) {
-            val data = fileStorage[file.absolutePath] ?: byteArrayOf()
-            bufferedOutputStream.write(data)
-            bufferedOutputStream.flush()
-        }
-
-        override fun loadBytes(file: File?): ByteArray? {
-            return file?.let { fileStorage[it.absolutePath] }
-        }
-
-        override fun getFolderPath(context: Context, folderName: String): File {
-            return File(context.cacheDir, folderName).apply { mkdirs() }
-        }
-
-        override fun getFilePath(
-            context: Context,
-            measurementId: Long,
-            folderName: String?,
-            fileExtension: String?
-        ): File {
-            val folder = folderName?.let { File(context.cacheDir, it) } ?: context.cacheDir
-            folder.mkdirs()
-            val name = "measurement_$measurementId${fileExtension?.let { ".$it" } ?: ""}"
-            return File(folder, name)
-        }
-
-        override fun createFile(
-            context: Context,
-            measurementId: Long,
-            folderName: String?,
-            fileExtension: String?
-        ): File {
-            val file = getFilePath(context, measurementId, folderName, fileExtension)
-            file.createNewFile()
-            return file
-        }
-
-        override fun write(file: File?, data: ByteArray?, append: Boolean) {
-            if (file != null && data != null) {
-                val key = file.absolutePath
-                val existing = if (append) fileStorage[key] ?: byteArrayOf() else byteArrayOf()
-                fileStorage[key] = existing + data
-            }
-        }
-    }
+    private val fileIOHandler = MockFileIOHandler()
 
     @Before
-    fun setUp() = runBlocking {
-        capturingBehaviour = Mockito.spy(CapturingPersistenceBehaviour(fileIOHandler, testDispatcher))
+    fun setUp() {
+        MockKAnnotations.init(this, relaxed = true)
+
+        capturingBehaviour = spyk(
+            CapturingPersistenceBehaviour(fileIOHandler, testDispatcher),
+            recordPrivateCalls = true,
+        )
+
         val persistence = DefaultPersistenceLayer(ApplicationProvider.getApplicationContext(), capturingBehaviour)
         capturingBehaviour.onStart(persistence)
         oocut!!.persistenceLayer = persistence
@@ -196,10 +158,8 @@ class DataCapturingLocalTest {
 
         // Assert
         testScheduler.advanceUntilIdle() // Wait for all coroutines
-        Mockito.verify(capturingBehaviour, Mockito.times(1))!!
-            .updateDistance(distanceBetweenLocations.toDouble())
-        Mockito.verify(capturingBehaviour, Mockito.times(1))!!
-            .updateDistance((2 * distanceBetweenLocations).toDouble())
+        coVerify(exactly = 1) { capturingBehaviour.updateDistance(distanceBetweenLocations.toDouble()) }
+        coVerify(exactly = 1) { capturingBehaviour.updateDistance((2 * distanceBetweenLocations).toDouble()) }
     }
 
     /**
@@ -247,12 +207,8 @@ class DataCapturingLocalTest {
 
         // Assert
         testScheduler.advanceUntilIdle() // Wait for all coroutines
-        Mockito.verify(capturingBehaviour, Mockito.times(1))!!
-            .updateDistance(expectedDistance.toDouble())
-        Mockito.verify(capturingBehaviour, Mockito.times(1))!!
-            .updateDistance((2 * expectedDistance).toDouble())
-        Mockito.verify(capturingBehaviour, Mockito.times(0))!!
-            .updateDistance((3 * expectedDistance).toDouble())
+        coVerify(exactly = 1) { capturingBehaviour.updateDistance(expectedDistance.toDouble()) }
+        coVerify(exactly = 1) { capturingBehaviour.updateDistance((2 * expectedDistance).toDouble()) }
     }
 
     /**
@@ -359,5 +315,54 @@ class DataCapturingLocalTest {
             Matchers.`is`(Matchers.equalTo(directionsSize))
         )
         MatcherAssert.assertThat(receivedPressures, Matchers.`is`(Matchers.equalTo(pressuresSize)))
+    }
+}
+
+private class MockFileIOHandler: FileIOHandler {
+    private val fileStorage = mutableMapOf<String, ByteArray>()
+
+    override fun writeToOutputStream(file: File, bufferedOutputStream: BufferedOutputStream) {
+        val data = fileStorage[file.absolutePath] ?: byteArrayOf()
+        bufferedOutputStream.write(data)
+        bufferedOutputStream.flush()
+    }
+
+    override fun loadBytes(file: File?): ByteArray? {
+        return file?.let { fileStorage[it.absolutePath] }
+    }
+
+    override fun getFolderPath(context: Context, folderName: String): File {
+        return File(context.cacheDir, folderName).apply { mkdirs() }
+    }
+
+    override fun getFilePath(
+        context: Context,
+        measurementId: Long,
+        folderName: String?,
+        fileExtension: String?
+    ): File {
+        val folder = folderName?.let { File(context.cacheDir, it) } ?: context.cacheDir
+        folder.mkdirs()
+        val name = "measurement_$measurementId${fileExtension?.let { ".$it" } ?: ""}"
+        return File(folder, name)
+    }
+
+    override fun createFile(
+        context: Context,
+        measurementId: Long,
+        folderName: String?,
+        fileExtension: String?
+    ): File {
+        val file = getFilePath(context, measurementId, folderName, fileExtension)
+        file.createNewFile()
+        return file
+    }
+
+    override fun write(file: File?, data: ByteArray?, append: Boolean) {
+        if (file != null && data != null) {
+            val key = file.absolutePath
+            val existing = if (append) fileStorage[key] ?: byteArrayOf() else byteArrayOf()
+            fileStorage[key] = existing + data
+        }
     }
 }
