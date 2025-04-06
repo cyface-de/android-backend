@@ -141,7 +141,7 @@ class MeasurementSerializerTest {
         // Initialization
         oocut = MeasurementSerializer()
         context = InstrumentationRegistry.getInstrumentation().targetContext
-        persistence = DefaultPersistenceLayer(context!!, DefaultPersistenceBehaviour(), mockFileIOHandler)
+        persistence = DefaultPersistenceLayer(context!!, DefaultPersistenceBehaviour(mockFileIOHandler))
         SharedTestUtils.clearPersistenceLayer(context!!, persistence)
 
         // Insert sample data into database

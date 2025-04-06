@@ -20,7 +20,6 @@ package de.cyface.persistence.serialization
 
 import android.content.Context
 import de.cyface.model.Point3D
-import de.cyface.persistence.io.DefaultFileIOHandler
 import de.cyface.persistence.io.FileIOHandler
 import de.cyface.serializer.Point3DSerializer
 import de.cyface.serializer.model.Point3DType
@@ -42,7 +41,7 @@ class Point3DFile {
     /**
      * The [FileIOHandler] used to interact with files.
      */
-    private var fileIOHandler: FileIOHandler? = null
+    private lateinit var fileIOHandler: FileIOHandler
 
     /**
      * The sensor data type of the [Point3D] data.
@@ -53,13 +52,19 @@ class Point3DFile {
      * Constructor which actually creates a new [File] in the persistence layer.
      *
      * @param context The [Context] required to access the underlying persistence layer.
-     * @param measurementId the identifier of the [de.cyface.persistence.model.Measurement] for which the file is to be created
+     * @param measurementId the identifier of the [de.cyface.persistence.model.Measurement] for
+     * which the file is to be created
      * @param type The sensor data type of the `Point3D` data.
      */
-    constructor(context: Context, measurementId: Long, type: Point3DType) {
+    constructor(
+        context: Context,
+        measurementId: Long,
+        type: Point3DType,
+        fileIOHandler: FileIOHandler,
+    ) {
         this.type = type
-        fileIOHandler = DefaultFileIOHandler()
-        file = (fileIOHandler as DefaultFileIOHandler).createFile(
+        this.fileIOHandler = fileIOHandler
+        file = fileIOHandler.createFile(
             context,
             measurementId,
             folderName(type),
@@ -85,7 +90,7 @@ class Point3DFile {
      */
     fun append(dataPoints: List<Point3D?>?) {
         val data = serialize(dataPoints)
-        fileIOHandler!!.write(file, data, true)
+        fileIOHandler.write(file, data, true)
     }
 
     /**

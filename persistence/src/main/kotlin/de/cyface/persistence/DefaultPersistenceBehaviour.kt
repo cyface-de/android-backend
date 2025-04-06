@@ -19,6 +19,8 @@
 package de.cyface.persistence
 
 import de.cyface.persistence.exception.NoSuchMeasurementException
+import de.cyface.persistence.io.DefaultFileIOHandler
+import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.model.Measurement
 
 /**
@@ -29,10 +31,17 @@ import de.cyface.persistence.model.Measurement
  * @version 1.1.0
  * @since 3.0.0
  */
-class DefaultPersistenceBehaviour : PersistenceBehaviour {
+class DefaultPersistenceBehaviour(
+    private val fileIOHandler: FileIOHandler = DefaultFileIOHandler()
+) : PersistenceBehaviour {
     private var persistenceLayer: DefaultPersistenceLayer<*>? = null
+
     override fun onStart(persistenceLayer: DefaultPersistenceLayer<*>) {
         this.persistenceLayer = persistenceLayer
+    }
+
+    override fun fileIoHandler(): FileIOHandler {
+        return fileIOHandler
     }
 
     override fun onNewMeasurement(measurementId: Long) {

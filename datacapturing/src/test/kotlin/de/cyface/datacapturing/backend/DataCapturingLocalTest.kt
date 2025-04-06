@@ -18,29 +18,28 @@
  */
 package de.cyface.datacapturing.backend
 
+import android.content.Context
 import android.os.Parcelable
+import androidx.test.core.app.ApplicationProvider
 import de.cyface.datacapturing.EventHandlingStrategy
 import de.cyface.datacapturing.MessageCodes
 import de.cyface.datacapturing.model.CapturedData
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour
-import de.cyface.datacapturing.persistence.WritingDataCompletedCallback
 import de.cyface.persistence.DefaultPersistenceLayer
-import de.cyface.persistence.DefaultPersistenceLayer.Companion.PERSISTENCE_FILE_FORMAT_VERSION
-import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.exception.NoSuchMeasurementException
-import de.cyface.persistence.model.Measurement
-import de.cyface.persistence.model.MeasurementStatus
-import de.cyface.persistence.model.Modality
+import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.model.ParcelablePoint3D
 import de.cyface.persistence.model.ParcelablePressure
-import de.cyface.persistence.repository.MeasurementRepository
 import de.cyface.persistence.strategy.DistanceCalculationStrategy
 import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.testutils.SharedTestUtils.generateGeoLocation
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.StandardTestDispatcher
+import io.mockk.MockKAnnotations
+import io.mockk.coVerify
+import io.mockk.spyk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.MatcherAssert
 import org.hamcrest.Matchers
@@ -50,14 +49,14 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchers.anyDouble
-import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.Mock
 import org.mockito.Mockito
 import org.mockito.Spy
 import org.mockito.junit.MockitoJUnit
 import org.mockito.junit.MockitoRule
 import org.robolectric.RobolectricTestRunner
+import java.io.BufferedOutputStream
+import java.io.File
 import java.util.Random
 import kotlin.math.abs
 
@@ -71,7 +70,6 @@ import kotlin.math.abs
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner::class)
-//@Config(sdk = [Build.VERSION_CODES.O_MR1]) // To be able to execute tests with Java 8 (instead of 9)
 class DataCapturingLocalTest {
 
     /**
@@ -87,13 +85,7 @@ class DataCapturingLocalTest {
     @Spy
     var oocut: DataCapturingBackgroundService? = null
 
-    /**
-     * Mocking the persistence layer to avoid calling Android system functions.
-     */
-    @Spy
-    var mockPersistence: DefaultPersistenceLayer<CapturingPersistenceBehaviour>? = null
-
-    private lateinit var mockBehaviour: CapturingPersistenceBehaviour
+    private lateinit var capturingBehaviour: CapturingPersistenceBehaviour
 
     @Mock
     var distanceCalculationStrategy: DistanceCalculationStrategy? = null
@@ -102,52 +94,31 @@ class DataCapturingLocalTest {
     var locationCleaningStrategy: LocationCleaningStrategy? = null
 
     @Mock
-    lateinit var mockLocationDao: LocationDao
-
-    @Mock
-    lateinit var mockMeasurementRepository: MeasurementRepository
-
-    @Mock
     var mockEventHandlingStrategy: EventHandlingStrategy? = null
     private val base = 0
     private val location1 = generateGeoLocation(base, 1L)
 
-    private val testDispatcher = StandardTestDispatcher()
+    // Using unconfirmed dispatched as `testOnLocationCapturedDistanceCalculation` is still
+    // flaky on the CI (CodeQL analysis workflow).
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val testDispatcher = UnconfinedTestDispatcher()
     private val testScope = TestScope(testDispatcher)
 
-    // Kotlin-friendly Mockito.any()
-    inline fun <reified T> any(): T = Mockito.any(T::class.java)
+    private val fileIOHandler = MockFileIOHandler()
 
     @Before
-    fun setUp() = runBlocking {
-        // Replace attributes of DataCapturingBackgroundService with mocked objects
-        Mockito.`when`(mockPersistence!!.locationDao).thenReturn(mockLocationDao)
-        Mockito.`when`(mockPersistence!!.measurementRepository).thenReturn(mockMeasurementRepository)
-        Mockito.`when`(mockLocationDao.insertAll(Mockito.any())).thenReturn(Unit)
-        val fakeMeasurements = listOf(
-            Measurement(
-                MeasurementStatus.OPEN,
-                Modality.BICYCLE,
-                PERSISTENCE_FILE_FORMAT_VERSION,
-                0.0,
-                1L,
-                0L,
-            )
+    fun setUp() {
+        MockKAnnotations.init(this, relaxed = true)
+
+        capturingBehaviour = spyk(
+            CapturingPersistenceBehaviour(fileIOHandler, testDispatcher),
+            recordPrivateCalls = true,
         )
-        Mockito.`when`(
-            mockMeasurementRepository.loadAllByStatus(MeasurementStatus.OPEN)
-        ).thenReturn(fakeMeasurements)
-        Mockito.`when`(
-            mockMeasurementRepository.loadAllByStatus(MeasurementStatus.PAUSED)
-        ).thenReturn(emptyList())
-        Mockito.`when`(mockMeasurementRepository.updateDistance(anyLong(), anyDouble()))
-            .thenReturn(1) // number of updates always need to be 1
-        Mockito.`when`(mockPersistence!!.loadMeasurement(anyLong()))
-            .thenReturn(fakeMeasurements[0])
-        mockBehaviour = Mockito.spy(CapturingPersistenceBehaviour(testDispatcher))
-        mockBehaviour.onStart(mockPersistence!!)
-        oocut!!.persistenceLayer = mockPersistence!!
-        oocut!!.capturingBehaviour = mockBehaviour
+
+        val persistence = DefaultPersistenceLayer(ApplicationProvider.getApplicationContext(), capturingBehaviour)
+        capturingBehaviour.onStart(persistence)
+        oocut!!.persistenceLayer = persistence
+        oocut!!.capturingBehaviour = capturingBehaviour
         oocut!!.eventHandlingStrategy = mockEventHandlingStrategy
         oocut!!.distanceCalculationStrategy = distanceCalculationStrategy
         oocut!!.locationCleaningStrategy = locationCleaningStrategy
@@ -190,10 +161,8 @@ class DataCapturingLocalTest {
 
         // Assert
         testScheduler.advanceUntilIdle() // Wait for all coroutines
-        Mockito.verify(mockBehaviour, Mockito.times(1))!!
-            .updateDistance(distanceBetweenLocations.toDouble())
-        Mockito.verify(mockBehaviour, Mockito.times(1))!!
-            .updateDistance((2 * distanceBetweenLocations).toDouble())
+        coVerify(exactly = 1) { capturingBehaviour.updateDistance(distanceBetweenLocations.toDouble()) }
+        coVerify(exactly = 1) { capturingBehaviour.updateDistance((2 * distanceBetweenLocations).toDouble()) }
     }
 
     /**
@@ -241,12 +210,8 @@ class DataCapturingLocalTest {
 
         // Assert
         testScheduler.advanceUntilIdle() // Wait for all coroutines
-        Mockito.verify(mockBehaviour, Mockito.times(1))!!
-            .updateDistance(expectedDistance.toDouble())
-        Mockito.verify(mockBehaviour, Mockito.times(1))!!
-            .updateDistance((2 * expectedDistance).toDouble())
-        Mockito.verify(mockBehaviour, Mockito.times(0))!!
-            .updateDistance((3 * expectedDistance).toDouble())
+        coVerify(exactly = 1) { capturingBehaviour.updateDistance(expectedDistance.toDouble()) }
+        coVerify(exactly = 1) { capturingBehaviour.updateDistance((2 * expectedDistance).toDouble()) }
     }
 
     /**
@@ -254,6 +219,7 @@ class DataCapturingLocalTest {
      * `TransactionTooLargeException`.
      */
     @Test
+    @SuppressWarnings("LongMethod")
     fun testSplitOfLargeCapturedDataInstances() {
         // Arrange
         val someLargeOddNumber = 1247
@@ -308,15 +274,6 @@ class DataCapturingLocalTest {
                 CapturedData::class.java
             )
         )
-        Mockito.doAnswer { invocation ->
-            val callback = invocation.arguments[2] as WritingDataCompletedCallback
-            callback.writingDataCompleted() // manually trigger callback if needed
-            null
-        }.`when`(mockBehaviour).storeData(
-            any<CapturedData>(),
-            Mockito.anyLong(),
-            any<WritingDataCompletedCallback>(),
-        )
 
         // Call test method.
         oocut!!.onDataCaptured(data)
@@ -361,5 +318,54 @@ class DataCapturingLocalTest {
             Matchers.`is`(Matchers.equalTo(directionsSize))
         )
         MatcherAssert.assertThat(receivedPressures, Matchers.`is`(Matchers.equalTo(pressuresSize)))
+    }
+}
+
+private class MockFileIOHandler: FileIOHandler {
+    private val fileStorage = mutableMapOf<String, ByteArray>()
+
+    override fun writeToOutputStream(file: File, bufferedOutputStream: BufferedOutputStream) {
+        val data = fileStorage[file.absolutePath] ?: byteArrayOf()
+        bufferedOutputStream.write(data)
+        bufferedOutputStream.flush()
+    }
+
+    override fun loadBytes(file: File?): ByteArray? {
+        return file?.let { fileStorage[it.absolutePath] }
+    }
+
+    override fun getFolderPath(context: Context, folderName: String): File {
+        return File(context.cacheDir, folderName).apply { mkdirs() }
+    }
+
+    override fun getFilePath(
+        context: Context,
+        measurementId: Long,
+        folderName: String?,
+        fileExtension: String?
+    ): File {
+        val folder = folderName?.let { File(context.cacheDir, it) } ?: context.cacheDir
+        folder.mkdirs()
+        val name = "measurement_$measurementId${fileExtension?.let { ".$it" } ?: ""}"
+        return File(folder, name)
+    }
+
+    override fun createFile(
+        context: Context,
+        measurementId: Long,
+        folderName: String?,
+        fileExtension: String?
+    ): File {
+        val file = getFilePath(context, measurementId, folderName, fileExtension)
+        file.createNewFile()
+        return file
+    }
+
+    override fun write(file: File?, data: ByteArray?, append: Boolean) {
+        if (file != null && data != null) {
+            val key = file.absolutePath
+            val existing = if (append) fileStorage[key] ?: byteArrayOf() else byteArrayOf()
+            fileStorage[key] = existing + data
+        }
     }
 }
