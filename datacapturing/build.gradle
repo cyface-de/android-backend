@@ -130,6 +130,7 @@ dependencies {
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 
     // Dependencies for local unit tests
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$rootProject.ext.coroutinesVersion")
     testImplementation project(":testutils")
     // If Junit symbols are unresolvable make sure Build Variant is set to debug
     testImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
