@@ -25,6 +25,8 @@ import de.cyface.datacapturing.model.CapturedData
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceBehaviour
 import de.cyface.persistence.exception.NoSuchMeasurementException
+import de.cyface.persistence.io.DefaultFileIOHandler
+import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
@@ -54,7 +56,8 @@ import java.util.concurrent.TimeUnit
  * @param ioDispatcher The dispatcher to run the async tasks on (fixes flaky tests)
  */
 class CapturingPersistenceBehaviour(
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val fileIOHandler: FileIOHandler = DefaultFileIOHandler(),
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : PersistenceBehaviour {
     /**
      * A threadPool to execute operations on their own background threads.
@@ -97,6 +100,10 @@ class CapturingPersistenceBehaviour(
         threadPool = Executors.newCachedThreadPool()
     }
 
+    override fun fileIoHandler(): FileIOHandler {
+        return fileIOHandler
+    }
+
     override fun onNewMeasurement(measurementId: Long) {
         currentMeasurementIdentifier = measurementId
     }
@@ -131,21 +138,24 @@ class CapturingPersistenceBehaviour(
             accelerationsFile = Point3DFile(
                 persistenceLayer.context!!,
                 measurementIdentifier,
-                Point3DType.ACCELERATION
+                Point3DType.ACCELERATION,
+                fileIOHandler,
             )
         }
         if (rotationsFile == null && data.rotations.isNotEmpty()) {
             rotationsFile = Point3DFile(
                 persistenceLayer.context!!,
                 measurementIdentifier,
-                Point3DType.ROTATION
+                Point3DType.ROTATION,
+                fileIOHandler,
             )
         }
         if (directionsFile == null && data.directions.isNotEmpty()) {
             directionsFile = Point3DFile(
                 persistenceLayer.context!!,
                 measurementIdentifier,
-                Point3DType.DIRECTION
+                Point3DType.DIRECTION,
+                fileIOHandler,
             )
         }
         val writer = CapturedDataWriter(

@@ -48,7 +48,6 @@ import de.cyface.persistence.serialization.NoSuchFileException
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.serializer.model.Point3DType
-import kotlinx.coroutines.SupervisorJob
 import java.util.Locale
 import java.util.UUID
 import kotlin.math.abs
@@ -115,17 +114,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
      * to capture live data.
      */
-    constructor(context: Context, persistenceBehaviour: B): this(context, persistenceBehaviour, DefaultFileIOHandler())
-
-    /**
-     * Creates a new completely initialized `PersistenceLayer`.
-     *
-     * @param context The [Context] required to locate the app's internal storage directory.
-     * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
-     * to capture live data.
-     * @param fileIOHandler The handler to load files from.
-     */
-    constructor(context: Context, persistenceBehaviour: B, fileIOHandler: FileIOHandler) {
+    constructor(context: Context, persistenceBehaviour: B) {
         this.context = context
         this.database = Database.build(context.applicationContext)
         this.identifierDao = database.identifierDao()
@@ -135,7 +124,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         this.pressureDao = database.pressureDao()
         this.attachmentDao = database.attachmentDao()
         this.persistenceBehaviour = persistenceBehaviour
-        this.fileIOHandler = fileIOHandler
+        this.fileIOHandler = persistenceBehaviour!!.fileIoHandler()
         val accelerationsFolder =
             fileIOHandler.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         val rotationsFolder =
@@ -145,7 +134,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         checkOrCreateFolder(accelerationsFolder)
         checkOrCreateFolder(rotationsFolder)
         checkOrCreateFolder(directionsFolder)
-        persistenceBehaviour!!.onStart(this)
+        persistenceBehaviour.onStart(this)
     }
 
     /**

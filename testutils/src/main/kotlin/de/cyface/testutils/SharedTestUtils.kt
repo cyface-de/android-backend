@@ -373,10 +373,11 @@ object SharedTestUtils {
         insertGeoLocations(database, measurement.id, geoLocations)
 
         // Insert sensor data
+        val fileIOHandler = DefaultFileIOHandler()
         val accelerationsFile =
-            Point3DFile(context, measurementId, Point3DType.ACCELERATION)
-        val rotationsFile = Point3DFile(context, measurementId, Point3DType.ROTATION)
-        val directionsFile = Point3DFile(context, measurementId, Point3DType.DIRECTION)
+            Point3DFile(context, measurementId, Point3DType.ACCELERATION, fileIOHandler)
+        val rotationsFile = Point3DFile(context, measurementId, Point3DType.ROTATION, fileIOHandler)
+        val directionsFile = Point3DFile(context, measurementId, Point3DType.DIRECTION, fileIOHandler)
         val aPoints = mutableListOf<Point3DImpl?>()
         val rPoints = mutableListOf<Point3DImpl?>()
         val dPoints = mutableListOf<Point3DImpl?>()

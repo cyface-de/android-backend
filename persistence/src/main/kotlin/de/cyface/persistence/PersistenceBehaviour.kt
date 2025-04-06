@@ -19,6 +19,7 @@
 package de.cyface.persistence
 
 import de.cyface.persistence.exception.NoSuchMeasurementException
+import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.model.Measurement
 
 /**
@@ -34,6 +35,8 @@ interface PersistenceBehaviour {
      * This is called in the `Persistence`'s constructor.
      */
     fun onStart(persistenceLayer: DefaultPersistenceLayer<*>)
+
+    fun fileIoHandler(): FileIOHandler
 
     /**
      * This is called after a [DefaultPersistenceLayer.newMeasurement] was created.
@@ -53,7 +56,8 @@ interface PersistenceBehaviour {
      *
      * @return The currently captured `Measurement`
      * @throws NoSuchMeasurementException If neither the cache nor the persistence layer have an an
-     * [de.cyface.persistence.model.MeasurementStatus.OPEN] or [de.cyface.persistence.model.MeasurementStatus.PAUSED] `Measurement`
+     * [de.cyface.persistence.model.MeasurementStatus.OPEN] or
+     * [de.cyface.persistence.model.MeasurementStatus.PAUSED] `Measurement`
      */
     @Throws(NoSuchMeasurementException::class)
     suspend fun loadCurrentlyCapturedMeasurement(): Measurement
