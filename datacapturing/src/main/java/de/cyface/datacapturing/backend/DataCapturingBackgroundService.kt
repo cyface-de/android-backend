@@ -54,7 +54,11 @@ import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.utils.DiskConsumption
 import de.cyface.utils.PlaceholderNotificationBuilder
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 import kotlin.math.max
 import kotlin.math.min
@@ -145,6 +149,8 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
      * to filter out cached locations from distance calculation (STAD-140).
      */
     var startupTime: Long = 0
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onBind(intent: Intent): IBinder? {
         Log.v(TAG, "onBind")
@@ -315,13 +321,18 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         this.currentMeasurementIdentifier = measurementIdentifier
 
         // Load Distance (or else we would reset the distance when resuming a measurement)
-        val measurement = runBlocking { persistenceLayer.loadMeasurement(currentMeasurementIdentifier)  }
-        lastDistance = measurement!!.distance
+        serviceScope.launch {
+            val measurement = withContext(Dispatchers.IO) {
+                persistenceLayer.loadMeasurement(currentMeasurementIdentifier)
+            }
 
-        // Ensure we resume measurements with a known file format version
-        val persistenceFileFormatVersion = measurement.fileFormatVersion
-        require(persistenceFileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION) {
-            "Resume a measurement of a previous persistence file format version is not supported!"
+            lastDistance = measurement!!.distance
+
+            // Ensure we resume measurements with a known file format version
+            val persistenceFileFormatVersion = measurement.fileFormatVersion
+            require(persistenceFileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION) {
+                "Resume a measurement of a previous persistence file format version is not supported!"
+            }
         }
 
         // Load sensor frequency
@@ -475,7 +486,9 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         // Store raw, unfiltered track
 
         Log.d(TAG, "Location captured")
-        capturingBehaviour!!.storeLocation(newLocation, currentMeasurementIdentifier)
+        serviceScope.launch(Dispatchers.IO) {
+            capturingBehaviour!!.storeLocation(newLocation, currentMeasurementIdentifier)
+        }
 
         // Check available space
         if (!DiskConsumption.spaceAvailable()) {
@@ -510,7 +523,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         )
         val newDistance = lastDistance + distanceToAdd
         try {
-            runBlocking { capturingBehaviour!!.updateDistance(newDistance) }
+            serviceScope.launch(Dispatchers.IO) { capturingBehaviour!!.updateDistance(newDistance) }
         } catch (e: NoSuchMeasurementException) {
             throw IllegalStateException(e)
         }
@@ -544,7 +557,6 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
          * handler. The weak reference is necessary to avoid memory leaks if the handler outlives
          * the service.
          *
-         *
          * For reference see for example
          * [here](http://www.androiddesignpatterns.com/2013/01/inner-class-handler-memory-leak.html).
          */
@@ -573,7 +585,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         /**
          * The tag used to identify logging messages send to logcat.
          */
-        private const val TAG = Constants.BACKGROUND_TAG
+        internal const val TAG = Constants.BACKGROUND_TAG
 
         /**
          * The maximum size of captured data transmitted to clients of this service in one call.

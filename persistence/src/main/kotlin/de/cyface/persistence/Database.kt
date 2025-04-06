@@ -45,10 +45,6 @@ import de.cyface.persistence.model.Pressure
  * We only need to worry about deadlocks when running manual transactions. See
  * https://www.reddit.com/r/androiddev/comments/9s2m4x/comment/e8nklbg/?utm_source=share&utm_medium=web2x&context=3
  *
- * The Data Access objects (DAOs) implemented are currently only used from `runBlocking` to offer the
- * synchronous API used until now. We might want to add an async API, too, in the future.
- * For this, see: https://developer.android.com/training/data-storage/room/async-queries
- *
  * @author Armin Schnabel
  * @version 1.1.1
  * @since 7.5.0

@@ -48,7 +48,6 @@ import de.cyface.uploader.model.Uploadable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.net.MalformedURLException
 
@@ -96,61 +95,55 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
         val size = DataSerializable.humanReadableSize(file.length(), true)
         Log.d(TAG, "Transferring attachment or compressed measurement ($size})")
 
-        return runBlocking {
-            val deferredResult = CoroutineScope(Dispatchers.IO).async {
-                val result = try {
-                    when (uploadType) {
-                        UploadType.MEASUREMENT ->  {
-                            val endpoint = uploader.measurementsEndpoint(uploadable)
-                            Log.i(TAG, "Uploading $fileName to $endpoint.")
-                            uploader.uploadMeasurement(
-                                jwtAuthToken,
-                                uploadable as Measurement,
-                                file,
-                                progressListener
-                            )
-                        }
-
-                        UploadType.ATTACHMENT -> {
-                            val attachment = uploadable as Attachment
-                            val endpoint = uploader.attachmentsEndpoint(uploadable)
-                            Log.i(TAG, "Uploading $fileName to $endpoint.")
-                            uploader.uploadAttachment(
-                                jwtAuthToken,
-                                attachment,
-                                file,
-                                fileName,
-                                progressListener
-                            )
-                        }
-                    }
-                } catch (e: UploadFailed) {
-                    return@async handleUploadFailed(e, syncResult)
-                } catch (e: MalformedURLException) {
-                    // Catching this temporarily to indicate a hard error to the sync adapter
-                    syncResult.stats.numParseExceptions++
-                    Log.e(TAG, "MalformedURLException in `HttpConnection.upload`.")
-                    throw IllegalArgumentException(e)
-                } catch (e: RuntimeException) {
-                    // Catching this temporarily to indicate a hard error to the sync adapter
-                    syncResult.stats.numParseExceptions++
-
-                    // e.g. when the collector API does respond correctly [DAT-775]
-                    Log.e(TAG, "Uncaught Exception in `HttpConnection.upload`.")
-                    throw e // TODO ensure this is still thrown
+        val result = try {
+            when (uploadType) {
+                UploadType.MEASUREMENT ->  {
+                    val endpoint = uploader.measurementsEndpoint(uploadable)
+                    Log.i(TAG, "Uploading $fileName to $endpoint.")
+                    uploader.uploadMeasurement(
+                        jwtAuthToken,
+                        uploadable as Measurement,
+                        file,
+                        progressListener
+                    )
                 }
 
-                // Upload was successful, measurement can be marked as synced
-                if (result == Result.UPLOAD_SKIPPED) {
-                    syncResult.stats.numSkippedEntries++
-                } else {
-                    syncResult.stats.numUpdates++
+                UploadType.ATTACHMENT -> {
+                    val attachment = uploadable as Attachment
+                    val endpoint = uploader.attachmentsEndpoint(uploadable)
+                    Log.i(TAG, "Uploading $fileName to $endpoint.")
+                    uploader.uploadAttachment(
+                        jwtAuthToken,
+                        attachment,
+                        file,
+                        fileName,
+                        progressListener
+                    )
                 }
-                return@async result
             }
+        } catch (e: UploadFailed) {
+            return handleUploadFailed(e, syncResult)
+        } catch (e: MalformedURLException) {
+            // Catching this temporarily to indicate a hard error to the sync adapter
+            syncResult.stats.numParseExceptions++
+            Log.e(TAG, "MalformedURLException in `HttpConnection.upload`.")
+            throw IllegalArgumentException(e)
+        } catch (e: RuntimeException) {
+            // Catching this temporarily to indicate a hard error to the sync adapter
+            syncResult.stats.numParseExceptions++
 
-            return@runBlocking deferredResult.await()
+            // e.g. when the collector API does respond correctly [DAT-775]
+            Log.e(TAG, "Uncaught Exception in `HttpConnection.upload`.")
+            throw e // TODO ensure this is still thrown
         }
+
+        // Upload was successful, measurement can be marked as synced
+        if (result == Result.UPLOAD_SKIPPED) {
+            syncResult.stats.numSkippedEntries++
+        } else {
+            syncResult.stats.numUpdates++
+        }
+        return result
     }
 
     private fun handleUploadFailed(e: UploadFailed, syncResult: SyncResult): Result {

@@ -47,7 +47,10 @@ import java.security.MessageDigest
  * @version 2.0.1
  * @since 7.8.0
  */
-class Configuration(private val mContext: Context, private val settings: SynchronizationSettings) {
+class Configuration private constructor(
+    private val mContext: Context,
+    private val settings: SynchronizationSettings,
+) {
     private val mPrefs: SharedPreferences =
         mContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private lateinit var mConfigJson: JSONObject
@@ -73,18 +76,8 @@ class Configuration(private val mContext: Context, private val settings: Synchro
         private set
     var registrationEndpointUri: Uri? = null
         private set
-    var userInfoEndpointUri: Uri? = null
-        private set
-    var isHttpsRequired = false
-        private set
-
-    init {
-        try {
-            readConfiguration()
-        } catch (ex: InvalidConfigurationException) {
-            configurationError = ex.message
-        }
-    }
+    private var userInfoEndpointUri: Uri? = null
+    private var isHttpsRequired = false
 
     /**
      * Indicates whether the configuration has changed from the last known valid state.
@@ -231,8 +224,8 @@ class Configuration(private val mContext: Context, private val settings: Synchro
         }
 
     class InvalidConfigurationException : Exception {
-        internal constructor(reason: String?) : super(reason) {}
-        internal constructor(reason: String?, cause: Throwable?) : super(reason, cause) {}
+        internal constructor(reason: String?) : super(reason)
+        internal constructor(reason: String?, cause: Throwable?) : super(reason, cause)
     }
 
     companion object {
@@ -245,6 +238,11 @@ class Configuration(private val mContext: Context, private val settings: Synchro
             var config = sInstance.get()
             if (config == null) {
                 config = Configuration(context, settings)
+                try {
+                    config.readConfiguration()
+                } catch (ex: InvalidConfigurationException) {
+                    config.configurationError = ex.message
+                }
                 sInstance = WeakReference(config)
             }
             return config

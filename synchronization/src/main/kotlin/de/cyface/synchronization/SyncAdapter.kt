@@ -138,8 +138,8 @@ class SyncAdapter private constructor(
                 return@performActionWithFreshTokens
             }
 
+            // It's safe to call `runBlocking` from the background thread here
             try {
-                // It's safe to call `runBlocking` as this is never called from a UI thread
                 val deviceId = runBlocking { persistence.restoreOrCreateDeviceId() }
                 notifySyncStarted()
 
@@ -352,26 +352,18 @@ class SyncAdapter private constructor(
         }
     }
 
-    private fun serializeMeasurement(
+    private suspend fun serializeMeasurement(
         measurement: Measurement,
         persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>
     ): File? {
-        var compressedTransferTempFile: File?
-        runBlocking {
-            compressedTransferTempFile = MeasurementSerializer().writeSerializedCompressed(measurement.id, persistence)
-        }
-        return compressedTransferTempFile
+        return MeasurementSerializer().writeSerializedCompressed(measurement.id, persistence)
     }
 
-    private fun serializeAttachment(
+    private suspend fun serializeAttachment(
         attachment: de.cyface.persistence.model.Attachment,
         persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>
     ): File? {
-        var transferTempFile: File?
-        runBlocking {
-            transferTempFile = MeasurementSerializer().writeSerializedAttachment(attachment, persistence)
-        }
-        return transferTempFile
+        return MeasurementSerializer().writeSerializedAttachment(attachment, persistence)
     }
 
     private suspend fun syncMeasurement(
@@ -674,43 +666,41 @@ class SyncAdapter private constructor(
             endLocation = GeoLocation(l.timestamp, l.lat, l.lon)
         }
 
-        return runBlocking {
-            // Attachments
-            val csvCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.CSV)
-            val jsonCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.JSON)
-            val logCount = csvCount + jsonCount
-            val imageCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.JPG)
-            val allAttachments = persistence.attachmentDao!!.countByMeasurementId(measurement.id)
-            val unsupportedAttachments = allAttachments - logCount - imageCount
-            require(unsupportedAttachments == 0) {
-                "Number of unsupported attachments: $unsupportedAttachments"
-            }
-
-
-            // Non location meta data
-            val deviceType = Build.MODEL
-            val osVersion = "Android " + Build.VERSION.RELEASE
-            val appVersion: String
-            val packageManager = context.packageManager
-            appVersion = try {
-                packageManager.getPackageInfo(context.packageName, 0).versionName
-            } catch (e: PackageManager.NameNotFoundException) {
-                throw IllegalStateException(e)
-            }
-            return@runBlocking de.cyface.uploader.model.Measurement(
-                MeasurementIdentifier(UUID.fromString(deviceId), measurement.id),
-                DeviceMetaData(osVersion, deviceType),
-                ApplicationMetaData(appVersion, CURRENT_TRANSFER_FILE_FORMAT_VERSION),
-                MeasurementMetaData(
-                    measurement.distance,
-                    locationCount.toLong(),
-                    startLocation,
-                    endLocation,
-                    measurement.modality.databaseIdentifier,
-                ),
-                AttachmentMetaData(logCount, imageCount, 0, measurement.filesSize),
-            )
+        // Attachments
+        val csvCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.CSV)
+        val jsonCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.JSON)
+        val logCount = csvCount + jsonCount
+        val imageCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.JPG)
+        val allAttachments = persistence.attachmentDao!!.countByMeasurementId(measurement.id)
+        val unsupportedAttachments = allAttachments - logCount - imageCount
+        require(unsupportedAttachments == 0) {
+            "Number of unsupported attachments: $unsupportedAttachments"
         }
+
+
+        // Non location meta data
+        val deviceType = Build.MODEL
+        val osVersion = "Android " + Build.VERSION.RELEASE
+        val appVersion: String
+        val packageManager = context.packageManager
+        appVersion = try {
+            packageManager.getPackageInfo(context.packageName, 0).versionName
+        } catch (e: PackageManager.NameNotFoundException) {
+            throw IllegalStateException(e)
+        }
+        return de.cyface.uploader.model.Measurement(
+            MeasurementIdentifier(UUID.fromString(deviceId), measurement.id),
+            DeviceMetaData(osVersion, deviceType),
+            ApplicationMetaData(appVersion, CURRENT_TRANSFER_FILE_FORMAT_VERSION),
+            MeasurementMetaData(
+                measurement.distance,
+                locationCount.toLong(),
+                startLocation,
+                endLocation,
+                measurement.modality.databaseIdentifier,
+            ),
+            AttachmentMetaData(logCount, imageCount, 0, measurement.filesSize),
+        )
     }
 
     private fun attachmentMeta(measurement: de.cyface.uploader.model.Measurement, attachmentId: Long): Attachment {

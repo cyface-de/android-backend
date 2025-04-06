@@ -145,7 +145,7 @@ abstract class CapturingProcess internal constructor(
                     "google/sdk_"
                 )))
             ) {
-                accuracy = Math.random() * 30.0
+                accuracy = Math.random() * 25.0
                 verticalAccuracyMeters = accuracy * 2.5
                 altitude = 400.0 + Math.random() * 2 - Math.random()
                 val copy = pressures.toList()

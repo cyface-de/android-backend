@@ -59,9 +59,11 @@ import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
 import de.cyface.synchronization.WiFiSurveyor
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -222,6 +224,8 @@ abstract class DataCapturingService(
      * The strategy used to filter the [ParcelableGeoLocation]s
      */
     private val locationCleaningStrategy: LocationCleaningStrategy
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     init {
         serviceConnection = BackgroundServiceConnection()
@@ -498,29 +502,31 @@ abstract class DataCapturingService(
 
             override fun timedOut() {
                 try {
-                    runBlocking {
-                        val hasOpenMeasurement =
-                            persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
-                        val hasPausedMeasurement =
-                            persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
-                        require(!(hasOpenMeasurement && hasPausedMeasurement))
-                        if (hasOpenMeasurement || hasPausedMeasurement) {
-                            if (hasOpenMeasurement) {
-                                // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
+                    serviceScope.launch {
+                        withContext(Dispatchers.IO) {
+                            val hasOpenMeasurement =
+                                persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
+                            val hasPausedMeasurement =
+                                persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
+                            require(!(hasOpenMeasurement && hasPausedMeasurement))
+                            if (hasOpenMeasurement || hasPausedMeasurement) {
+                                if (hasOpenMeasurement) {
+                                    // _could_ mean {@link DataCapturingBackgroundService} died at some point.
+                                    Log.w(
+                                        Constants.TAG,
+                                        "handleStopFailed: open no-running measurement found, update finished."
+                                    )
+                                }
+                                // When a paused measurement is found, all is normal so no warning needed
+                                persistenceLayer.persistenceBehaviour!!.updateRecentMeasurement(
+                                    MeasurementStatus.FINISHED
+                                )
+                            } else {
                                 Log.w(
                                     Constants.TAG,
-                                    "handleStopFailed: open no-running measurement found, update finished."
+                                    "handleStopFailed: no unfinished measurement found, nothing to do."
                                 )
                             }
-                            // When a paused measurement is found, all is normal so no warning needed
-                            persistenceLayer.persistenceBehaviour!!.updateRecentMeasurement(
-                                MeasurementStatus.FINISHED
-                            )
-                        } else {
-                            Log.w(
-                                Constants.TAG,
-                                "handleStopFailed: no unfinished measurement found, nothing to do."
-                            )
                         }
                     }
 
@@ -556,28 +562,31 @@ abstract class DataCapturingService(
 
             override fun timedOut() {
                 try {
-                    runBlocking {
-                        val hasOpenMeasurement = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
-                        val hasPausedMeasurement =
-                            persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
-                        require(!(hasOpenMeasurement && hasPausedMeasurement))
-                        // There is no good reason why pause is called when there is not even an unfinished measurement
-                        require(hasOpenMeasurement || hasPausedMeasurement)
-                        if (hasOpenMeasurement) {
-                            // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
-                            // We just update the {@link MeasurementStatus} and hope all will be okay.
-                            Log.w(
-                                Constants.TAG,
-                                "handlePauseFailed: open no-running measurement found, update state to pause."
-                            )
-                            persistenceLayer.persistenceBehaviour!!.updateRecentMeasurement(
-                                MeasurementStatus.PAUSED
-                            )
-                        } else {
-                            Log.w(
-                                Constants.TAG,
-                                "handlePauseFailed: paused measurement found, nothing to do."
-                            )
+                    serviceScope.launch {
+                        withContext(Dispatchers.IO) {
+                            val hasOpenMeasurement =
+                                persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
+                            val hasPausedMeasurement =
+                                persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED)
+                            require(!(hasOpenMeasurement && hasPausedMeasurement))
+                            // no reason why pause is called when there is not even an unfinished measurement
+                            require(hasOpenMeasurement || hasPausedMeasurement)
+                            if (hasOpenMeasurement) {
+                                // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
+                                // We just update the {@link MeasurementStatus} and hope all will be okay.
+                                Log.w(
+                                    Constants.TAG,
+                                    "handlePauseFailed: open no-running measurement found, update state to pause."
+                                )
+                                persistenceLayer.persistenceBehaviour!!.updateRecentMeasurement(
+                                    MeasurementStatus.PAUSED
+                                )
+                            } else {
+                                Log.w(
+                                    Constants.TAG,
+                                    "handlePauseFailed: paused measurement found, nothing to do."
+                                )
+                            }
                         }
                     }
 

@@ -37,10 +37,10 @@ import kotlinx.coroutines.runBlocking
 class CyfaceSyncService : Service() {
 
     override fun onCreate() {
-
         synchronized(LOCK) {
             if (syncAdapter == null) {
                 // `onBind()` is called directly after `onCreate()` and requires `syncAdapter` (sync)
+                // `runBlocking` is okay and required here as `onCreate()` cannot be suspended.
                 val collectorApi = runBlocking { collectorApi() }
 
                 syncAdapter = SyncAdapter(

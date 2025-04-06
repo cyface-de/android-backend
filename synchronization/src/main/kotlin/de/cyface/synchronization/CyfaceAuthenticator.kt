@@ -94,19 +94,8 @@ class CyfaceAuthenticator(private val context: Context) :
         // Due to the interface we can only throw NetworkErrorException
         // Thus, we report the specific error type via sendErrorIntent()
         val freshAuthToken = try {
-            runBlocking(Dispatchers.IO) {
-                val deferredResult = CompletableDeferred<String>()
-                val requestSuccessful = auth.performTokenRequest(auth.createTokenRefreshRequest()) { tokenResponse, authException ->
-                    val token = auth.handleAccessTokenResponse(tokenResponse, authException)
-                    deferredResult.complete(token)
-                }
-                if (!requestSuccessful) {
-                    throw IllegalArgumentException("Client authentication method is unsupported")
-                }
-                val token = deferredResult.await()
-                token
-            }
-        } catch (e: Exception) {
+            fetchFreshTokenSync()
+        } catch (e: RuntimeException) {
             ErrorHandler.sendErrorIntent(
                 context,
                 ErrorHandler.ErrorCode.UNKNOWN.code,
@@ -132,6 +121,19 @@ class CyfaceAuthenticator(private val context: Context) :
         result.putString(AccountManager.KEY_AUTHTOKEN, freshAuthToken)
         Log.v(TAG, "getAuthToken: Token refresh requested (async)")
         return result
+    }
+
+    /**
+     * `runBlocking` is necessary here as `getAuthToken()` is a synchronous method called by
+     * Android `AccountAuthenticator` and, thus, er cannot make it suspend.
+     */
+    private fun fetchFreshTokenSync(): String = runBlocking(Dispatchers.IO) {
+        val deferred = CompletableDeferred<String>()
+        val success = auth.performTokenRequest(auth.createTokenRefreshRequest()) { resp, ex ->
+            deferred.complete(auth.handleAccessTokenResponse(resp, ex))
+        }
+        require(success) { "Client authentication method is unsupported" }
+        deferred.await()
     }
 
     override fun getAuthTokenLabel(authTokenType: String): String {
