@@ -112,6 +112,8 @@ class DataCapturingLocalTest {
 
     /**
      * This test case checks the internal workings of the onLocationCaptured method.
+     *
+     * Flaky 2025-04-06: once in the CodeQL Analysis CI flow: "Wanted but not invoked"
      */
     @Test
     @Throws(NoSuchMeasurementException::class)

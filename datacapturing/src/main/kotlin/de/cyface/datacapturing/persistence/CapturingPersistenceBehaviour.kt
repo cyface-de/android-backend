@@ -38,7 +38,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -174,7 +173,7 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
             // Using the timestamp of the latest pressure sample
             val timestamp = pressures[pressures.size - 1].timestamp
             val pressure = Pressure(0, timestamp, averagePressure, measurementIdentifier)
-            scope.launch { withContext(Dispatchers.IO) { persistenceLayer.pressureDao!!.insertAll(pressure) } }
+            scope.launch(Dispatchers.IO) { persistenceLayer.pressureDao!!.insertAll(pressure) }
         }
     }
 

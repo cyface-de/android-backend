@@ -58,6 +58,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 import kotlin.math.max
 import kotlin.math.min
@@ -321,7 +322,9 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
 
         // Load Distance (or else we would reset the distance when resuming a measurement)
         serviceScope.launch {
-            val measurement = persistenceLayer.loadMeasurement(currentMeasurementIdentifier)
+            val measurement = withContext(Dispatchers.IO) {
+                persistenceLayer.loadMeasurement(currentMeasurementIdentifier)
+            }
 
             lastDistance = measurement!!.distance
 
@@ -483,7 +486,9 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         // Store raw, unfiltered track
 
         Log.d(TAG, "Location captured")
-        serviceScope.launch { capturingBehaviour!!.storeLocation(newLocation, currentMeasurementIdentifier) }
+        serviceScope.launch(Dispatchers.IO) {
+            capturingBehaviour!!.storeLocation(newLocation, currentMeasurementIdentifier)
+        }
 
         // Check available space
         if (!DiskConsumption.spaceAvailable()) {
