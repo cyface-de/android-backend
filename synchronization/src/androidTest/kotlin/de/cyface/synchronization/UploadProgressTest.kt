@@ -36,8 +36,6 @@ import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceLayer
-import de.cyface.persistence.PersistenceBehaviour
-import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.content.LocationTable.Companion.getUri
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.MeasurementStatus
@@ -71,21 +69,21 @@ import java.util.LinkedList
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class UploadProgressTest {
-    private lateinit var persistence: PersistenceLayer<PersistenceBehaviour>
     private var context: Context? = null
     private var contentResolver: ContentResolver? = null
     private var persistenceLayer: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>? = null
     private var accountManager: AccountManager? = null
     private var oocut: SyncAdapter? = null
     private var account: Account? = null
+    private lateinit var capturingBehaviour: DefaultPersistenceBehaviour
 
     @Before
     fun setUp(): Unit = runBlocking {
         context = InstrumentationRegistry.getInstrumentation().targetContext
         contentResolver = context!!.contentResolver
-        persistence = DefaultPersistenceLayer(context!!, DefaultPersistenceBehaviour())
-        clearPersistenceLayer(context!!, persistence)
-        persistenceLayer = DefaultPersistenceLayer(context!!, DefaultPersistenceBehaviour())
+        capturingBehaviour = DefaultPersistenceBehaviour()
+        persistenceLayer = DefaultPersistenceLayer(context!!, capturingBehaviour)
+        clearPersistenceLayer(context!!, persistenceLayer!!)
         persistenceLayer!!.restoreOrCreateDeviceId()
 
         // Ensure reproducibility
@@ -100,7 +98,7 @@ class UploadProgressTest {
 
     @After
     fun tearDown(): Unit = runBlocking {
-        clearPersistenceLayer(context!!, persistence)
+        clearPersistenceLayer(context!!, persistenceLayer!!)
         val oldAccounts = accountManager!!.getAccountsByType(TestUtils.ACCOUNT_TYPE)
         if (oldAccounts.isNotEmpty()) {
             for (oldAccount in oldAccounts) {
@@ -148,11 +146,16 @@ class UploadProgressTest {
             )
 
             // Insert file base data
-            val accelerationsFile =
-                Point3DFile(context!!, measurementIdentifier, Point3DType.ACCELERATION)
-            val rotationsFile = Point3DFile(context!!, measurementIdentifier, Point3DType.ROTATION)
+            val accelerationsFile = Point3DFile(
+                context!!,
+                measurementIdentifier,
+                Point3DType.ACCELERATION,
+                capturingBehaviour.fileIoHandler(),
+            )
+            val rotationsFile =
+                Point3DFile(context!!, measurementIdentifier, Point3DType.ROTATION, capturingBehaviour.fileIoHandler())
             val directionsFile =
-                Point3DFile(context!!, measurementIdentifier, Point3DType.DIRECTION)
+                Point3DFile(context!!, measurementIdentifier, Point3DType.DIRECTION, capturingBehaviour.fileIoHandler())
             insertPoint3D(accelerationsFile, 1501662635973L, 10.1189575, -0.15088624, 0.2921924)
             insertPoint3D(accelerationsFile, 1501662635981L, 10.116563, -0.16765137, 0.3544629)
             insertPoint3D(accelerationsFile, 1501662635983L, 10.171648, -0.2921924, 0.3784131)

@@ -31,8 +31,6 @@ import de.cyface.persistence.content.LocationTable
 import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.strategy.DefaultDistanceCalculation
 import java.io.File
-import java.io.RandomAccessFile
-import java.nio.ByteBuffer
 
 /**
  * This class wraps the [Database] migration code.
@@ -78,7 +76,7 @@ class DatabaseMigrator(val context: Context) {
      * time (~ End of 2023), so it's still possible that SDK 6 will increase the `v6` version before migrating
      * to SDK 7. *If this is the case we need to adjust this migration code to support other `v6` versions, too.*
      */
-    @Suppress("PropertyName")
+    @Suppress("PropertyName", "VariableNaming")
     val MIGRATION_17_18: Migration = migrationFrom17To18()
 
     /**
@@ -87,7 +85,7 @@ class DatabaseMigrator(val context: Context) {
      *
      * In this migration step we calculate the correct `distance` for the migrated data.
      */
-    @Suppress("PropertyName")
+    @Suppress("PropertyName", "VariableNaming")
     val MIGRATION_9_10: Migration = migrationFrom9To10()
 
     companion object {
@@ -95,10 +93,10 @@ class DatabaseMigrator(val context: Context) {
          * Adds the [de.cyface.persistence.model.Measurement.filesSize] column.
          */
         val MIGRATION_19_20 = object : Migration(19, 20) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Add the new filesSize column with default value 0 for existing rows
                 // This should be fine as we don't upload attachments in production, yet.
-                database.execSQL("ALTER TABLE Measurement ADD COLUMN filesSize INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE Measurement ADD COLUMN filesSize INTEGER NOT NULL DEFAULT 0")
             }
         }
 
@@ -106,15 +104,15 @@ class DatabaseMigrator(val context: Context) {
          * Adds the [de.cyface.persistence.model.Attachment] table.
          */
         val MIGRATION_18_19 = object : Migration(18, 19) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL("CREATE TABLE IF NOT EXISTS `Attachment` (" +
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `Attachment` (" +
                         "`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, " +
                         "`status` TEXT NOT NULL, `type` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, " +
                         "`size` INTEGER NOT NULL, `path` TEXT NOT NULL, " +
                         "`lat` REAL, `lon` REAL, `locationTimestamp` INTEGER, `measurementId` INTEGER NOT NULL, " +
                         "FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) " +
                         "ON UPDATE NO ACTION ON DELETE CASCADE )")
-                database.execSQL("CREATE INDEX IF NOT EXISTS `index_Attachment_measurementId` " +
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_Attachment_measurementId` " +
                         "ON `Attachment` (`measurementId`)")
             }
         }
@@ -318,7 +316,7 @@ class DatabaseMigrator(val context: Context) {
          * an empty migration object to `Room` or it will clear and recreate the database.
          */
         val MIGRATION_10_11 = object : Migration(10, 11) {
-            override fun migrate(db: SupportSQLiteDatabase) {}
+            override fun migrate(db: SupportSQLiteDatabase) = Unit
         }
 
         //val MIGRATION_9_10 = is provided from outside the companion object constructor!
@@ -630,7 +628,8 @@ class DatabaseMigrator(val context: Context) {
             }
 
             /**
-             * When `v6` database does not exist, we only migrate the locations and pressures from `measures` version `17`.
+             * When `v6` database does not exist, we only migrate the locations and pressures from
+             * `measures` version `17`.
              *
              * @param database The database to upgrade
              */

@@ -41,7 +41,7 @@ class Point3DFile {
     /**
      * The [FileIOHandler] used to interact with files.
      */
-    private var fileIOHandler: FileIOHandler? = null
+    private lateinit var fileIOHandler: FileIOHandler
 
     /**
      * The sensor data type of the [Point3D] data.
@@ -63,6 +63,7 @@ class Point3DFile {
         fileIOHandler: FileIOHandler,
     ) {
         this.type = type
+        this.fileIOHandler = fileIOHandler
         file = fileIOHandler.createFile(
             context,
             measurementId,
@@ -89,7 +90,7 @@ class Point3DFile {
      */
     fun append(dataPoints: List<Point3D?>?) {
         val data = serialize(dataPoints)
-        fileIOHandler!!.write(file, data, true)
+        fileIOHandler.write(file, data, true)
     }
 
     /**
