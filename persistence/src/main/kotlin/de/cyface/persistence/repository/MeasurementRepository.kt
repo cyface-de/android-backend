@@ -18,11 +18,14 @@
  */
 package de.cyface.persistence.repository
 
+import android.util.Log
 import androidx.annotation.WorkerThread
 import de.cyface.persistence.dao.MeasurementDao
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
+import de.cyface.utils.Constants.TAG
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.onEach
 
 /**
  * The repository offers a common interface for different data sources for a specific data type and
@@ -73,6 +76,7 @@ class MeasurementRepository(private val dao: MeasurementDao) {
     @WorkerThread
     fun observeById(id: Long): Flow<Measurement?> {
         return dao.observeById(id)
+            .onEach { Log.e(TAG, "Measurement updated: $it") }
     }
 
     @WorkerThread

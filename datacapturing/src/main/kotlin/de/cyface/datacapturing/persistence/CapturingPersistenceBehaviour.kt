@@ -31,9 +31,13 @@ import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.serializer.model.Point3DType
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -81,6 +85,8 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
     private lateinit var persistenceLayer: DefaultPersistenceLayer<*>
 
     private val mutex = Mutex()
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onStart(persistenceLayer: DefaultPersistenceLayer<*>) {
         this.persistenceLayer = persistenceLayer
@@ -167,20 +173,17 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
             // Using the timestamp of the latest pressure sample
             val timestamp = pressures[pressures.size - 1].timestamp
             val pressure = Pressure(0, timestamp, averagePressure, measurementIdentifier)
-            // runBlocking should be fine here to wait synchronously, as we're not on a UI thread
-            runBlocking { persistenceLayer.pressureDao!!.insertAll(pressure) }
+            scope.launch { withContext(Dispatchers.IO) { persistenceLayer.pressureDao!!.insertAll(pressure) } }
         }
     }
 
     /**
      * Stores the provided geo location under the currently active captured measurement.
      *
-     * `runBlocking` should be fine here to wait synchronously, as we're not on a UI thread
-     *
      * @param location The geo location to store.
      * @param measurementIdentifier The identifier of the measurement to store the data to.
      */
-    fun storeLocation(location: ParcelableGeoLocation, measurementIdentifier: Long) = runBlocking {
+    suspend fun storeLocation(location: ParcelableGeoLocation, measurementIdentifier: Long) {
         persistenceLayer.locationDao!!.insertAll(GeoLocation(location, measurementIdentifier))
     }
 

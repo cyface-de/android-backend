@@ -483,7 +483,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         // Store raw, unfiltered track
 
         Log.d(TAG, "Location captured")
-        capturingBehaviour!!.storeLocation(newLocation, currentMeasurementIdentifier)
+        serviceScope.launch { capturingBehaviour!!.storeLocation(newLocation, currentMeasurementIdentifier) }
 
         // Check available space
         if (!DiskConsumption.spaceAvailable()) {
@@ -551,7 +551,6 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
          * A weak reference to the [DataCapturingBackgroundService] responsible for this message
          * handler. The weak reference is necessary to avoid memory leaks if the handler outlives
          * the service.
-         *
          *
          * For reference see for example
          * [here](http://www.androiddesignpatterns.com/2013/01/inner-class-handler-memory-leak.html).
