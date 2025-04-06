@@ -23,9 +23,9 @@ import de.cyface.datacapturing.EventHandlingStrategy
 import de.cyface.datacapturing.MessageCodes
 import de.cyface.datacapturing.model.CapturedData
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour
+import de.cyface.datacapturing.persistence.WritingDataCompletedCallback
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.DefaultPersistenceLayer.Companion.PERSISTENCE_FILE_FORMAT_VERSION
-import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Measurement
@@ -115,6 +115,9 @@ class DataCapturingLocalTest {
     private val testDispatcher = StandardTestDispatcher()
     private val testScope = TestScope(testDispatcher)
 
+    // Kotlin-friendly Mockito.any()
+    inline fun <reified T> any(): T = Mockito.any(T::class.java)
+
     @Before
     fun setUp() = runBlocking {
         // Replace attributes of DataCapturingBackgroundService with mocked objects
@@ -157,7 +160,6 @@ class DataCapturingLocalTest {
     @Test
     @Throws(NoSuchMeasurementException::class)
     fun testOnLocationCapturedDistanceCalculation() = testScope.runTest {
-
         // Arrange
         val expectedDistance = 2
         val location2 = generateGeoLocation(base + expectedDistance)
@@ -203,7 +205,6 @@ class DataCapturingLocalTest {
     @Test
     @Throws(NoSuchMeasurementException::class)
     fun testOnLocationCapturedDistanceCalculation_withCachedLocation() = testScope.runTest {
-
         // Arrange
         val expectedDistance = 2
         val cachedLocation = generateGeoLocation(base - expectedDistance, 0L)
@@ -254,6 +255,7 @@ class DataCapturingLocalTest {
      */
     @Test
     fun testSplitOfLargeCapturedDataInstances() {
+        // Arrange
         val someLargeOddNumber = 1247
         val random = Random()
         val accelerationsSize = someLargeOddNumber * 2
@@ -266,7 +268,7 @@ class DataCapturingLocalTest {
         val pressures: MutableList<ParcelablePressure> = mutableListOf()
 
         // Create some random test data.
-        for (i in 0 until accelerationsSize) {
+        repeat((0 until accelerationsSize).count()) {
             accelerations.add(
                 ParcelablePoint3D(
                     abs(random.nextLong()), random.nextFloat(), random.nextFloat(),
@@ -274,7 +276,7 @@ class DataCapturingLocalTest {
                 )
             )
         }
-        for (i in 0 until someLargeOddNumber) {
+        repeat((0 until someLargeOddNumber).count()) {
             rotations.add(
                 ParcelablePoint3D(
                     abs(random.nextLong()), random.nextFloat(), random.nextFloat(),
@@ -282,7 +284,7 @@ class DataCapturingLocalTest {
                 )
             )
         }
-        for (i in 0 until directionsSize) {
+        repeat((0 until directionsSize).count()) {
             directions.add(
                 ParcelablePoint3D(
                     abs(random.nextLong()), random.nextFloat(), random.nextFloat(),
@@ -290,7 +292,7 @@ class DataCapturingLocalTest {
                 )
             )
         }
-        for (i in 0 until pressuresSize) {
+        repeat((0 until pressuresSize).count()) {
             val validPressure = (250L + (Math.random() * 850).toLong()).toDouble()
             pressures.add(ParcelablePressure(abs(random.nextLong()), validPressure))
         }
@@ -299,16 +301,27 @@ class DataCapturingLocalTest {
             CapturedData::class.java
         )
 
+        // Mock
         // Hide call to actual Android message service methods.
         Mockito.doNothing().`when`(oocut)!!.informCaller(
             ArgumentMatchers.eq(MessageCodes.DATA_CAPTURED), ArgumentMatchers.any(
                 CapturedData::class.java
             )
         )
+        Mockito.doAnswer { invocation ->
+            val callback = invocation.arguments[2] as WritingDataCompletedCallback
+            callback.writingDataCompleted() // manually trigger callback if needed
+            null
+        }.`when`(mockBehaviour).storeData(
+            any<CapturedData>(),
+            Mockito.anyLong(),
+            any<WritingDataCompletedCallback>(),
+        )
 
         // Call test method.
         oocut!!.onDataCaptured(data)
 
+        // Assert
         // 1247*2 / 800 = 3,1 --> 4
         // noinspection ConstantConditions
         val maxSensorSize = accelerationsSize.coerceAtLeast(
