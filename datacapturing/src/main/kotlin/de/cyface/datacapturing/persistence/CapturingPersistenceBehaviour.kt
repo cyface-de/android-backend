@@ -32,6 +32,7 @@ import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.serializer.model.Point3DType
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,8 +51,11 @@ import java.util.concurrent.TimeUnit
  * @author Armin Schnabel
  * @version 2.1.3
  * @since 3.0.0
+ * @param ioDispatcher The dispatcher to run the async tasks on (fixes flaky tests)
  */
-class CapturingPersistenceBehaviour : PersistenceBehaviour {
+class CapturingPersistenceBehaviour(
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+) : PersistenceBehaviour {
     /**
      * A threadPool to execute operations on their own background threads.
      */
@@ -86,7 +90,7 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
 
     private val mutex = Mutex()
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
     override fun onStart(persistenceLayer: DefaultPersistenceLayer<*>) {
         this.persistenceLayer = persistenceLayer
