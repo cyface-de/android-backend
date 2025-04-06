@@ -20,6 +20,7 @@ package de.cyface.datacapturing.persistence
 
 import android.util.Log
 import de.cyface.datacapturing.Constants
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService.Companion.TAG
 import de.cyface.datacapturing.model.CapturedData
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceBehaviour
@@ -294,8 +295,12 @@ class CapturingPersistenceBehaviour : PersistenceBehaviour {
     @Throws(NoSuchMeasurementException::class)
     suspend fun updateDistance(newDistance: Double) {
         require(newDistance >= 0.0)
+
+        // Do not call `loadCurrentlyCapturedMeasurement` inside mutex as it calls a mutex lock
+        // itself and will end up in a deadlock!
+        val currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().id
         mutex.withLock {
-            val currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().id
+            Log.e(TAG, "UPDATING: $newDistance")
             persistenceLayer.setDistance(currentlyCapturedMeasurementId, newDistance)
         }
     }

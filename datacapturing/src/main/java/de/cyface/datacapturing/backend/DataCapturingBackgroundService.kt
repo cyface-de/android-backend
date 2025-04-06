@@ -518,7 +518,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         )
         val newDistance = lastDistance + distanceToAdd
         try {
-            serviceScope.launch { capturingBehaviour!!.updateDistance(newDistance) }
+            serviceScope.launch(Dispatchers.IO) { capturingBehaviour!!.updateDistance(newDistance) }
         } catch (e: NoSuchMeasurementException) {
             throw IllegalStateException(e)
         }
@@ -580,7 +580,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         /**
          * The tag used to identify logging messages send to logcat.
          */
-        private const val TAG = Constants.BACKGROUND_TAG
+        internal const val TAG = Constants.BACKGROUND_TAG
 
         /**
          * The maximum size of captured data transmitted to clients of this service in one call.
