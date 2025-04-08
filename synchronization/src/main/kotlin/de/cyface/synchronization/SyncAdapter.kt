@@ -554,6 +554,9 @@ class SyncAdapter private constructor(
             FileType.JSON -> {
                 require(format == 1.toShort())
             }
+            FileType.JSONL -> {
+                require(format == 1.toShort())
+            }
             FileType.JPG -> {
                 require(format == 1.toShort())
             }
@@ -669,7 +672,8 @@ class SyncAdapter private constructor(
         // Attachments
         val csvCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.CSV)
         val jsonCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.JSON)
-        val logCount = csvCount + jsonCount
+        val jsonLineCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.JSONL)
+        val logCount = csvCount + jsonCount + jsonLineCount
         val imageCount = persistence.attachmentDao!!.countByMeasurementIdAndType(measurement.id, FileType.JPG)
         val allAttachments = persistence.attachmentDao!!.countByMeasurementId(measurement.id)
         val unsupportedAttachments = allAttachments - logCount - imageCount
