@@ -43,6 +43,10 @@ internal class MockedUploader : Uploader {
         }
     }
 
+    override fun onUploadFinished(uploadable: Uploadable) {
+        // Nothing to do
+    }
+
     override fun attachmentsEndpoint(uploadable: Uploadable): URL {
         return try {
             URL("https://mocked.cyface.de/api/v123/measurements/did/mid/attachments")

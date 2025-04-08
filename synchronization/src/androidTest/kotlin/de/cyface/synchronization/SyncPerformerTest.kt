@@ -314,6 +314,10 @@ class SyncPerformerTest {
                 return URL("https://mocked.cyface.de/api/v123/measurements")
             }
 
+            override fun onUploadFinished(uploadable: Uploadable) {
+                // Nothing to do
+            }
+
             override fun attachmentsEndpoint(uploadable: Uploadable): URL {
                 return URL("https://mocked.cyface.de/api/v123/measurements/${uploadable.deviceId()}/${uploadable.measurementId()}/attachments")
             }
