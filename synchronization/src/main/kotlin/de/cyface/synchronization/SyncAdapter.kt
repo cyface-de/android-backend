@@ -341,6 +341,7 @@ class SyncAdapter private constructor(
                 }
 
                 persistence.markSyncableAttachmentsAs(MeasurementStatus.SYNCED, measurement.id)
+                uploader.onUploadFinished(measurementMeta) // required for WebdavUploader
                 Log.d(TAG, "Measurement marked as ${MeasurementStatus.SYNCED.name.lowercase()}")
             }
         }
