@@ -327,7 +327,7 @@ object TransferFileSerializer {
         /*val builder = de.cyface.protos.model.Measurement.newBuilder()
             .setFormatVersion(MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION.toInt())
         when (reference.type) {
-            FileType.JSON, FileType.CSV -> {
+            FileType.JSON, FileType.JSONL, FileType.CSV -> {
                 builder.capturingLog = attachment
             }
 

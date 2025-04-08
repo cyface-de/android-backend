@@ -19,6 +19,7 @@
 package de.cyface.persistence.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import de.cyface.persistence.content.BaseColumns
@@ -54,6 +55,11 @@ interface AttachmentDao {
     @Query("SELECT * FROM ${AttachmentTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
     suspend fun loadById(id: Long): Attachment?
 
+    @Query("SELECT ${BaseColumns.ID} FROM ${AttachmentTable.URI_PATH} " +
+            "WHERE ${AttachmentTable.COLUMN_PATH} = :path " +
+            "LIMIT 1")
+    suspend fun loadIdByPath(path: String): Long?
+
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
@@ -62,13 +68,22 @@ interface AttachmentDao {
     suspend fun loadAllByMeasurementId(measurementId: Long): List<Attachment>
 
     @Query("SELECT * FROM ${AttachmentTable.URI_PATH} " +
-            "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId LIMIT 1")
+            "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId " +
+            "LIMIT 1")
     suspend fun loadOneByMeasurementId(measurementId: Long): Attachment?
 
     @Query("SELECT * FROM ${AttachmentTable.URI_PATH} " +
             "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId " +
-            "AND ${AttachmentTable.COLUMN_TYPE} = :type ORDER BY ${BaseColumns.TIMESTAMP} ASC")
+            "AND ${AttachmentTable.COLUMN_TYPE} = :type " +
+            "ORDER BY ${BaseColumns.TIMESTAMP} ASC " +
+            "LIMIT 1")
     suspend fun loadOneByMeasurementIdAndType(measurementId: Long, type: FileType): Attachment?
+
+    @Query("SELECT * FROM ${AttachmentTable.URI_PATH} " +
+            "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId " +
+            "AND ${AttachmentTable.COLUMN_TYPE} = :type " +
+            "ORDER BY ${BaseColumns.TIMESTAMP} ASC")
+    suspend fun loadAllByMeasurementIdAndType(measurementId: Long, type: FileType): List<Attachment>
 
     @Query("SELECT * FROM ${AttachmentTable.URI_PATH} " +
             "WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId " +
@@ -93,6 +108,9 @@ interface AttachmentDao {
 
     @Query("DELETE FROM ${AttachmentTable.URI_PATH}")
     suspend fun deleteAll(): Int
+
+    @Delete
+    suspend fun delete(attachment: Attachment)
 
     @Query("UPDATE ${AttachmentTable.URI_PATH} SET ${AttachmentTable.COLUMN_SIZE} = :size " +
             "WHERE ${BaseColumns.ID} = :id")
