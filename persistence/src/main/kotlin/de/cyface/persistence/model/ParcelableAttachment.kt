@@ -58,7 +58,10 @@ import java.nio.file.Paths
  * to show the captured images on a map, e.g. to delete images before uploading.
  * @param locationTimestamp The timestamp of the last known location, or null if unknown. It allows
  * to identify when the last known location was recorded too long ago. Additionally, it's the link
- * to the location data, e.g. to get additional data like the accuracy.
+ * to the location data, e.g. to get additional data like the accuracy. *ATTENTION*: This is the
+ * UTC time which cannot be compared to the monotonic elapsed system time we get from the camera
+ * sensor and store as image capture time [LEIP-330]. Use the Exif header's
+ * `DeviceSettingDescription.MonotonicGPSTimeMillis` instead to interpolate the image location.
  */
 open class ParcelableAttachment(
     timestamp: Long,

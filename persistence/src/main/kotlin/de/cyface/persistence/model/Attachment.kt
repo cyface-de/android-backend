@@ -51,6 +51,9 @@ import java.nio.file.Path
  * @property lat The latitude of the last known location, e.g. 51.123, or null if unknown.
  * @property lon The longitude of the last known location, e.g. 13.123, or null if unknown.
  * @property locationTimestamp The timestamp of the last known location, or null if unknown.
+ * *ATTENTION*: This is the UTC time which cannot be compared to the monotonic elapsed system time
+ * we get from the camera sensor and store as image capture time [LEIP-330]. Use the Exif header's
+ * `DeviceSettingDescription.MonotonicGPSTimeMillis` instead to interpolate the image location.
  * @property measurementId The device-unique id of the measurement this data point belongs to.
  * This foreign key points to [Measurement.id] and is indexed to avoid full table scan on parent update.
  */
