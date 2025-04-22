@@ -48,6 +48,8 @@ import de.cyface.persistence.serialization.NoSuchFileException
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.serializer.model.Point3DType
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.Locale
 import java.util.UUID
 import kotlin.math.abs
@@ -89,6 +91,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     override val pressureDao: PressureDao?
 
     override val attachmentDao: AttachmentDao?
+
+    private val deviceIdLock = Mutex()
 
     /**
      * **This constructor is only for testing.**
@@ -367,10 +371,13 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     }
 
     override suspend fun restoreOrCreateDeviceId(): String {
-        return try {
-            loadDeviceId().deviceId
-        } catch (e: NoDeviceIdException) {
-            createDeviceId()
+        // Lock required or else the digural MainActivity.onCreate and DCS.initialize create two ids
+        return deviceIdLock.withLock {
+            try {
+                loadDeviceId().deviceId
+            } catch (e: NoDeviceIdException) {
+                createDeviceId()
+            }
         }
     }
 
