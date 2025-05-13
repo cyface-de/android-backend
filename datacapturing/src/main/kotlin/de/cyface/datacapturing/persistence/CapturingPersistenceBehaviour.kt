@@ -280,7 +280,14 @@ class CapturingPersistenceBehaviour(
 
             when (newStatus) {
                 MeasurementStatus.OPEN -> require(currentStatus == MeasurementStatus.PAUSED)
-                MeasurementStatus.PAUSED -> require(currentStatus == MeasurementStatus.OPEN)
+                MeasurementStatus.PAUSED -> {
+                    if (currentStatus == MeasurementStatus.PAUSED) {
+                        // 0.085 % of active users end up here, so we handle this softly [STAD-728]
+                        Log.w(TAG, "Measurement already paused, nothing to do.")
+                        return
+                    }
+                    require (currentStatus == MeasurementStatus.OPEN)
+                }
                 MeasurementStatus.FINISHED -> require(
                     currentStatus == MeasurementStatus.OPEN || currentStatus == MeasurementStatus.PAUSED
                 )
