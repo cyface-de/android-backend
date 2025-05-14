@@ -279,18 +279,32 @@ class CapturingPersistenceBehaviour(
             val currentStatus = persistenceLayer.loadMeasurementStatus(currentlyCapturedMeasurementId)
 
             when (newStatus) {
-                MeasurementStatus.OPEN -> require(currentStatus == MeasurementStatus.PAUSED)
+                MeasurementStatus.OPEN -> {
+                    if (currentStatus == MeasurementStatus.OPEN) {
+                        // See below, this will probably also pop up in the SR crashes
+                        Log.w(TAG, "Measurement already open, nothing to do.")
+                        return
+                    }
+                    require(currentStatus == MeasurementStatus.PAUSED)
+                }
                 MeasurementStatus.PAUSED -> {
                     if (currentStatus == MeasurementStatus.PAUSED) {
-                        // 0.085 % of active users end up here, so we handle this softly [STAD-728]
+                        // 0.85 % of active users end up here, so we handle this softly [STAD-728]
                         Log.w(TAG, "Measurement already paused, nothing to do.")
                         return
                     }
                     require (currentStatus == MeasurementStatus.OPEN)
                 }
-                MeasurementStatus.FINISHED -> require(
-                    currentStatus == MeasurementStatus.OPEN || currentStatus == MeasurementStatus.PAUSED
-                )
+                MeasurementStatus.FINISHED -> {
+                    if (currentStatus == MeasurementStatus.FINISHED) {
+                        // we see crashes in the SR app, so we handle this softly [STAD-731]
+                        Log.w(TAG, "Measurement already finished, nothing to do.")
+                        return
+                    }
+                    require(
+                        currentStatus == MeasurementStatus.OPEN || currentStatus == MeasurementStatus.PAUSED
+                    )
+                }
                 else -> throw IllegalArgumentException("No supported newState: $newStatus")
             }
 
