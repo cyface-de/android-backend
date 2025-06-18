@@ -368,6 +368,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         // Deleting first as a second upload approach would be handled by the API
         val file = attachment.path.toFile()
         require(file.delete())
+        Log.d(TAG, "Deleted attachment ${attachment.path.fileName}")
     }
 
     override suspend fun restoreOrCreateDeviceId(): String {

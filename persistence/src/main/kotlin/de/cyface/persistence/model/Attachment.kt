@@ -64,7 +64,12 @@ import java.nio.file.Path
         parentColumns = arrayOf("_id"),
         childColumns = arrayOf("measurementId"),
         onDelete = ForeignKey.CASCADE
-    )]
+    )],
+    // Add this if this happens again or with the next database migration
+    // Unique, as the file at "path" will be deleted upon upload and next upload will crash
+    /*indices = [
+        Index(value = ["path"], unique = true) // Ensure duplicate file names crash early [LEIP-344]
+    ]*/
 )
 data class Attachment(
     @ColumnInfo(name = "_id") // The CursorAdapter requires a column with the name `_id`
