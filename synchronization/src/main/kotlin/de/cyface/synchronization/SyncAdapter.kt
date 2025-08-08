@@ -689,7 +689,7 @@ class SyncAdapter private constructor(
         val appVersion: String
         val packageManager = context.packageManager
         appVersion = try {
-            packageManager.getPackageInfo(context.packageName, 0).versionName
+            packageManager.getPackageInfo(context.packageName, 0).versionName!!
         } catch (e: PackageManager.NameNotFoundException) {
             throw IllegalStateException(e)
         }
