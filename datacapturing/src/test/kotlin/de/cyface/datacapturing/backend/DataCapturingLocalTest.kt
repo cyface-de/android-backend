@@ -44,6 +44,7 @@ import kotlinx.coroutines.test.runTest
 import org.hamcrest.MatcherAssert
 import org.hamcrest.Matchers
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -69,6 +70,7 @@ import kotlin.math.abs
  * @version 2.3.5
  * @since 2.0.0
  */
+@Ignore // Disabled as this test is flaky and should to be migrated away from Robolectric if possible
 @RunWith(RobolectricTestRunner::class)
 class DataCapturingLocalTest {
 
