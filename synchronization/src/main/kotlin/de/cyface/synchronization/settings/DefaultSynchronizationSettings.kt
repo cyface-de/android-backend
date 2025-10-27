@@ -19,14 +19,19 @@
 package de.cyface.synchronization.settings
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.MultiProcessDataStoreFactory
 import de.cyface.persistence.SetupException
 import de.cyface.synchronization.Settings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.io.File
+import net.openid.appauth.AuthState
+import de.cyface.synchronization.AuthStateManager
+import de.cyface.synchronization.Constants.TAG
 
 data class SyncConfig(val collectorUrl: String, val oAuthConfig: JSONObject)
 
@@ -108,6 +113,8 @@ class DefaultSynchronizationSettings private constructor(
         ) {
             throw SetupException("Invalid URL protocol")
         }
+
+        ensureDefaultConfiguration()
     }
 
     /**
@@ -151,4 +158,41 @@ class DefaultSynchronizationSettings private constructor(
         .map { settings ->
             settings.oAuthConfiguration
         }
+
+    /**
+     * Align stored configuration with the bundled defaults to avoid stale OAuth endpoints
+     * lingering after app updates. This mirrors the behavior of a clean install. [CY-6647]
+     */
+    private fun ensureDefaultConfiguration() {
+        val expectedCollectorUrl = config.collectorUrl
+        val expectedOAuthConfig = config.oAuthConfig.toString()
+        var updated = false
+        runBlocking {
+            dataStore.updateData { currentSettings ->
+                var builder = currentSettings.toBuilder()
+                var changed = false
+                if (currentSettings.collectorUrl != expectedCollectorUrl) {
+                    builder = builder.setCollectorUrl(expectedCollectorUrl)
+                    changed = true
+                }
+                if (currentSettings.oAuthConfiguration != expectedOAuthConfig) {
+                    builder = builder.setOAuthConfiguration(expectedOAuthConfig)
+                    changed = true
+                }
+                if (changed && currentSettings.version < 1) {
+                    builder = builder.setVersion(1)
+                }
+                if (changed) {
+                    updated = true
+                    builder.build()
+                } else {
+                    currentSettings
+                }
+            }
+        }
+        if (updated) {
+            Log.i(TAG, "Auth configuration changed, updating AuthState.")
+            AuthStateManager.getInstance(appContext).replace(AuthState())
+        }
+    }
 }
