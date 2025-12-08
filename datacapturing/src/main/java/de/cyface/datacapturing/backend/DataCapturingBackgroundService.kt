@@ -491,7 +491,7 @@ class DataCapturingBackgroundService : Service(), CapturingProcessListener {
         }
 
         // Check available space
-        if (!DiskConsumption.spaceAvailable()) {
+        if (!DiskConsumption.spaceAvailable(this)) {
             Log.d(TAG, "Space warning event triggered.")
             eventHandlingStrategy!!.handleSpaceWarning(this)
         }
