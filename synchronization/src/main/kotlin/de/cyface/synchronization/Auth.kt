@@ -47,6 +47,11 @@ interface Auth {
     fun userId(): String?
 
     /**
+     * @return `true` if the current auth state has a valid authorization.
+     */
+    fun isAuthorized(): Boolean
+
+    /**
      * Sends the end session request to the auth service to sign out the user.
      */
     fun endSession(activity: FragmentActivity)
