@@ -34,6 +34,10 @@ class MockAuth: Auth {
         return "testUserId"
     }
 
+    override fun isAuthorized(): Boolean {
+        return true
+    }
+
     override fun endSession(activity: FragmentActivity) {
         // Nothing to do
     }
