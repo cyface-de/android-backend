@@ -235,7 +235,7 @@ class OAuth2(context: Context, settings: SynchronizationSettings, caller: String
         // PeriodicSync and syncAutomatically is set dynamically by the {@link WifiSurveyor}
     }
 
-    fun isAuthorized(): Boolean {
+    override fun isAuthorized(): Boolean {
         return stateManager.current.isAuthorized
     }
 
