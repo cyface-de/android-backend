@@ -55,12 +55,18 @@ import de.cyface.uploader.model.metadata.GeoLocation
 import de.cyface.uploader.model.metadata.MeasurementMetaData
 import de.cyface.utils.CursorIsNullException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.io.File
 import java.nio.file.Path
 import java.util.Locale
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * An Android SyncAdapter implementation to transmit data to a Cyface server.
@@ -301,44 +307,64 @@ class SyncAdapter private constructor(
                 val totalAttachments = persistence.attachmentDao!!.countByMeasurementId(measurement.id)
                 val syncedAttachments = totalAttachments - syncableAttachments.size
 
-                for (attachmentIndex in syncableAttachments.indices) {
-                    val attachment = syncableAttachments[attachmentIndex]
+                // Upload attachments in parallel (bounded concurrency) to avoid a per-file
+                // round-trip serialization bottleneck for image-heavy measurements
+                // (e.g. Digural: thousands of JPGs per measurement). Per-attachment progress
+                // is tracked by AttachmentDao (SAVED -> SYNCED) so interrupted runs resume
+                // where they left off.
+                val attachmentError = AtomicBoolean(false)
+                val aborted = AtomicBoolean(false)
+                val semaphore = Semaphore(ATTACHMENT_UPLOAD_PARALLELISM)
 
-                    val localFileName = attachment.path.fileName
-                    Log.d(TAG, "Preparing to upload attachment (id ${attachment.id}: ${localFileName}).")
-                    validateFileFormat(attachment)
+                coroutineScope {
+                    syncableAttachments.mapIndexed { attachmentIndex, attachment ->
+                        async(Dispatchers.IO) {
+                            semaphore.withPermit {
+                                if (attachmentError.get() || aborted.get()) return@withPermit
 
-                    var transferTempFile: File? = null
-                    try {
-                        transferTempFile = serializeAttachment(attachment, persistence)
+                                val localFileName = attachment.path.fileName
+                                Log.d(TAG, "Preparing to upload attachment (id ${attachment.id}: ${localFileName}).")
+                                validateFileFormat(attachment)
 
-                        if (isSyncRequestAborted(account, authority)) return
+                                var transferTempFile: File? = null
+                                try {
+                                    transferTempFile = serializeAttachment(attachment, persistence)
 
-                        val indexWithinMeasurement = 1 + syncedAttachments + attachmentIndex // ccyf is index 0
-                        val progressListener = DefaultUploadProgressListener(
-                            measurementCount,
-                            index,
-                            measurement.id,
-                            attachmentCount,
-                            indexWithinMeasurement,
-                            progressListeners
-                        )
-                        val attachmentMeta = attachmentMeta(measurementMeta, attachment.id)
-                        error = !syncAttachment(
-                            attachmentMeta,
-                            localFileName,
-                            syncPerformer,
-                            transferTempFile,
-                            syncResult,
-                            fromBackground,
-                            persistence,
-                            progressListener
-                        )
-                        if (error) return
-                    } finally {
-                        delete(transferTempFile)
-                    }
+                                    if (isSyncRequestAborted(account, authority)) {
+                                        aborted.set(true)
+                                        return@withPermit
+                                    }
+
+                                    val indexWithinMeasurement = 1 + syncedAttachments + attachmentIndex // ccyf is index 0
+                                    val progressListener = DefaultUploadProgressListener(
+                                        measurementCount,
+                                        index,
+                                        measurement.id,
+                                        attachmentCount,
+                                        indexWithinMeasurement,
+                                        progressListeners
+                                    )
+                                    val attachmentMeta = attachmentMeta(measurementMeta, attachment.id)
+                                    val ok = syncAttachment(
+                                        attachmentMeta,
+                                        localFileName,
+                                        syncPerformer,
+                                        transferTempFile,
+                                        syncResult,
+                                        fromBackground,
+                                        persistence,
+                                        progressListener
+                                    )
+                                    if (!ok) attachmentError.set(true)
+                                } finally {
+                                    delete(transferTempFile)
+                                }
+                            }
+                        }
+                    }.awaitAll()
                 }
+
+                if (aborted.get() || attachmentError.get()) return
 
                 persistence.markSyncableAttachmentsAs(MeasurementStatus.SYNCED, measurement.id)
                 uploader.onUploadFinished(measurementMeta) // required for WebdavUploader
@@ -769,6 +795,17 @@ class SyncAdapter private constructor(
          */
         @Suppress("SpellCheckingInspection", "RedundantSuppression")
         const val COMPRESSED_TRANSFER_FILE_EXTENSION = "ccyf"
+
+        /**
+         * Number of attachment uploads executed concurrently per measurement.
+         *
+         * Image-heavy measurements (Digural) have thousands of attachments; running them
+         * sequentially made each file pay a full HTTP round-trip in the upload path. A small
+         * fixed pool avoids overwhelming the server while largely eliminating round-trip
+         * overhead. Individual upload progress is tracked in the database so interruptions
+         * do not re-upload already-SYNCED attachments.
+         */
+        private const val ATTACHMENT_UPLOAD_PARALLELISM = 4
 
         fun fileNamePrefix(deviceId: String, measurementId: Long): String {
             return "${deviceId}_" + "${measurementId}_"
