@@ -29,6 +29,7 @@
     <string name="error_message_upload_session_expired">Upload session expired.</string>
     <string name="error_message_unexpected_response_code">Unexpected response code</string>
     <string name="error_message_account_not_activated">Account not activated. Please check your emails.</string>
+    <string name="error_message_no_location_data">Measurement skipped: no location data recorded</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unexpected error</string>

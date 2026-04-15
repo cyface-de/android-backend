@@ -29,6 +29,7 @@
     <string name="error_message_upload_session_expired">Upload Sitzung abgelaufen.</string>
     <string name="error_message_unexpected_response_code">Server Antworttyp unerwartet</string>
     <string name="error_message_account_not_activated">Nutzerkonto nicht aktiviert. Bitte E-Mails prüfen.</string>
+    <string name="error_message_no_location_data">Messung übersprungen: keine GPS-Daten vorhanden</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unerwarteter Fehler</string>

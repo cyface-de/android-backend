@@ -312,7 +312,18 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
 
             is NoLocationData -> {
                 syncResult.stats.numSkippedEntries++
-                Log.d(TAG, e.message!!)
+                Log.w(TAG, e.message!!)
+                // Surface as ErrorIntent so Application-level error listeners can forward to
+                // Sentry (if opt-in) - otherwise this is a silent permanent skip with no
+                // visibility on field devices. Legitimate cause: measurement captured entirely
+                // indoors / too briefly to get a GPS fix; the attachments stay on-device and
+                // never upload, so we at least want to know it happened.
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.NO_LOCATION_DATA.code,
+                    e.message,
+                    fromBackground
+                )
                 Result.UPLOAD_SKIPPED
             }
 

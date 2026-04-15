@@ -138,6 +138,9 @@ class ErrorHandler : BroadcastReceiver() {
             ErrorCode.ACCOUNT_NOT_ACTIVATED -> errorMessage =
                 context.getString(R.string.error_message_account_not_activated)
 
+            ErrorCode.NO_LOCATION_DATA -> errorMessage =
+                context.getString(R.string.error_message_no_location_data)
+
             else -> errorMessage = context.getString(R.string.error_message_unknown_error)
         }
         for (errorListener in errorListeners) {
@@ -178,7 +181,9 @@ class ErrorHandler : BroadcastReceiver() {
         UPLOAD_SESSION_EXPIRED(
             20
         ),
-        UNEXPECTED_RESPONSE_CODE(21), ACCOUNT_NOT_ACTIVATED(22); // MEASUREMENT_ENTRY_IS_IRRETRIEVABLE(X),
+        UNEXPECTED_RESPONSE_CODE(21), ACCOUNT_NOT_ACTIVATED(22), NO_LOCATION_DATA(
+            23
+        ); // MEASUREMENT_ENTRY_IS_IRRETRIEVABLE(X),
 
         companion object {
             fun getValueForCode(code: Int): ErrorCode? {
