@@ -312,7 +312,18 @@ class SyncAdapter private constructor(
                 // (e.g. Digural: thousands of JPGs per measurement). Per-attachment progress
                 // is tracked by AttachmentDao (SAVED -> SYNCED) so interrupted runs resume
                 // where they left off.
-                val attachmentError = AtomicBoolean(false)
+                //
+                // A single attachment failure does *not* abort the batch: each attachment's
+                // status transitions independently, so letting every parallel worker run to
+                // completion gives the sync as much progress as possible per cycle. Failed
+                // attachments stay SAVED and are retried on the next sync. This matters for
+                // WebDAV on Nextcloud: an interrupted PUT leaves the target filename locked
+                // server-side for minutes to an hour; retrying it repeatedly returns 423
+                // Locked / 403 Forbidden until the lock expires, and we don't want those
+                // stragglers to prevent *other* attachments in the same measurement from
+                // making progress.
+                //
+                // Only an explicit sync cancel (aborted) short-circuits remaining work.
                 val aborted = AtomicBoolean(false)
                 val semaphore = Semaphore(ATTACHMENT_UPLOAD_PARALLELISM)
 
@@ -320,7 +331,7 @@ class SyncAdapter private constructor(
                     syncableAttachments.mapIndexed { attachmentIndex, attachment ->
                         async(Dispatchers.IO) {
                             semaphore.withPermit {
-                                if (attachmentError.get() || aborted.get()) return@withPermit
+                                if (aborted.get()) return@withPermit
 
                                 val localFileName = attachment.path.fileName
                                 Log.d(TAG, "Preparing to upload attachment (id ${attachment.id}: ${localFileName}).")
@@ -345,7 +356,11 @@ class SyncAdapter private constructor(
                                         progressListeners
                                     )
                                     val attachmentMeta = attachmentMeta(measurementMeta, attachment.id)
-                                    val ok = syncAttachment(
+                                    // syncAttachment already marks SYNCED on success and
+                                    // increments syncResult.stats on failure; the attachment
+                                    // stays SAVED on failure and will be retried next cycle.
+                                    // We deliberately ignore the return value.
+                                    syncAttachment(
                                         attachmentMeta,
                                         localFileName,
                                         syncPerformer,
@@ -355,7 +370,6 @@ class SyncAdapter private constructor(
                                         persistence,
                                         progressListener
                                     )
-                                    if (!ok) attachmentError.set(true)
                                 } finally {
                                     delete(transferTempFile)
                                 }
@@ -364,11 +378,26 @@ class SyncAdapter private constructor(
                     }.awaitAll()
                 }
 
-                if (aborted.get() || attachmentError.get()) return
+                if (aborted.get()) return
 
-                persistence.markSyncableAttachmentsAs(MeasurementStatus.SYNCED, measurement.id)
-                uploader.onUploadFinished(measurementMeta) // required for WebdavUploader
-                Log.d(TAG, "Measurement marked as ${MeasurementStatus.SYNCED.name.lowercase()}")
+                // Only advance the measurement's status once every attachment is either
+                // SYNCED or SKIPPED (i.e. no SAVED stragglers remain). Re-query the DAO so
+                // transient failures keep the measurement in SYNCABLE_ATTACHMENTS and the
+                // next sync cycle can retry just the remaining work.
+                val remainingSaved = persistence.attachmentDao!!
+                    .loadAllByMeasurementIdAndStatus(measurement.id, AttachmentStatus.SAVED)
+                    .size
+                if (remainingSaved == 0) {
+                    persistence.markSyncableAttachmentsAs(MeasurementStatus.SYNCED, measurement.id)
+                    uploader.onUploadFinished(measurementMeta) // required for WebdavUploader
+                    Log.d(TAG, "Measurement marked as ${MeasurementStatus.SYNCED.name.lowercase()}")
+                } else {
+                    Log.i(
+                        TAG,
+                        "Measurement ${measurement.id}: $remainingSaved attachments still pending; " +
+                                "will retry on the next sync cycle"
+                    )
+                }
             }
         }
     }
