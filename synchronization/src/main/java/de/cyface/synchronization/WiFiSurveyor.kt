@@ -323,39 +323,50 @@ class WiFiSurveyor(
          * [setSyncOnUnMeteredNetworkOnly] settings.
          */
         get() {
-            val activeNetworkInfo = connectivityManager.activeNetworkInfo
+            // Happy path: the system has already promoted a default network.
             val activeNetwork = connectivityManager.activeNetwork
-            val networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
-            if (networkCapabilities == null) {
-                Log.w(
-                    TAG,
-                    "isConnectedToSyncableNetwork: returning false as networkCapabilities is null"
-                )
-                // This happened on Xiaomi Mi A2 Android 9.0 in the morning after capturing during the night
-                return false
-            }
-            val isUnMeteredNetwork =
-                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
-
-            val isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected
-            val isSyncableConnection =
-                isConnected && (isUnMeteredNetwork || !syncOnUnMeteredNetworkOnly)
-
-            var networkType = "unconnected"
-            if (isConnected) {
-                networkType = if (isUnMeteredNetwork) {
-                    "unMetered"
-                } else {
-                    "metered"
+            val activeCaps = connectivityManager.getNetworkCapabilities(activeNetwork)
+            if (activeCaps != null) {
+                return isSyncable(activeCaps).also { result ->
+                    Log.v(
+                        TAG,
+                        "isConnectedToSyncableNetwork(active): $result " +
+                                "(un_metered=${activeCaps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)}, " +
+                                "internet=${activeCaps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)}, " +
+                                "syncOnUnMeteredOnly=$syncOnUnMeteredNetworkOnly)"
+                    )
                 }
             }
-            Log.v(
+
+            // Fallback: activeNetwork may be null between capability-change events, especially on
+            // kiosk devices with weak/flapping Wi-Fi (BIK-445). Scan known networks rather than
+            // giving up: sync was previously stuck disabled for hours after the first callback
+            // arrived with activeNetwork still null and no later callback re-evaluated state.
+            @Suppress("DEPRECATION")
+            val candidates = connectivityManager.allNetworks
+            for (candidate in candidates) {
+                val caps = connectivityManager.getNetworkCapabilities(candidate) ?: continue
+                if (isSyncable(caps)) {
+                    Log.v(
+                        TAG,
+                        "isConnectedToSyncableNetwork(fallback): true via $candidate"
+                    )
+                    return true
+                }
+            }
+            Log.d(
                 TAG,
-                "isConnectedToSyncableNetwork: " + isSyncableConnection + " (" + networkType + ", "
-                        + (if (syncOnUnMeteredNetworkOnly) "with" else "without") + " syncOnUnMeteredNetworkOnly)"
+                "isConnectedToSyncableNetwork: false (activeNetwork=null, ${candidates.size} candidate(s) scanned)"
             )
-            return isSyncableConnection
+            return false
         }
+
+    private fun isSyncable(capabilities: NetworkCapabilities): Boolean {
+        val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        if (!hasInternet) return false
+        val isUnMetered = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+        return isUnMetered || !syncOnUnMeteredNetworkOnly
+    }
 
     /**
      * Sets whether synchronization should happen only on

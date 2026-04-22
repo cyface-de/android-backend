@@ -52,18 +52,28 @@ class NetworkCallback internal constructor(
             require(capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED))
         }
 
-        // Syncable ("not metered") filter is already included
+        // Trust the (network, capabilities) we were handed, do NOT re-query
+        // ConnectivityManager.activeNetwork here. activeNetwork can still be null (or point to the
+        // previous default) while Android is handing off the default route, so the old code could
+        // miss the transition entirely and stay "disconnected" until another callback fires. With
+        // weak / flapping Wi-Fi on kiosk devices (BIK-445, Digural trucks) the next callback may
+        // never arrive, leaving sync disabled for hours.
+        val isSyncableNow = isSyncable(capabilities)
         val isConnected = surveyor.isConnected
-        val isConnectedToSyncableNetwork = surveyor.isConnectedToSyncableNetwork
-        val syncableConnectionLost = isConnected && !isConnectedToSyncableNetwork
-        val syncableConnectionEstablished = !isConnected && isConnectedToSyncableNetwork
-        if (syncableConnectionEstablished) {
-            Log.v(TAG, "onCapabilitiesChanged.connectionEstablished: setConnected to true")
+        if (isSyncableNow && !isConnected) {
+            Log.v(TAG, "onCapabilitiesChanged.connectionEstablished (network=$network): setConnected to true")
             surveyor.setConnected(true)
-        } else if (syncableConnectionLost) {
-            // This should not be necessary as we have onLost() but we keep it as a safety net for now
-            Log.v(TAG, "onCapabilitiesChanged.connectionLost: setConnected to false.")
+        } else if (!isSyncableNow && isConnected) {
+            // onLost() is the primary path for disconnects; keep this as a safety net.
+            Log.v(TAG, "onCapabilitiesChanged.connectionLost (network=$network): setConnected to false.")
             surveyor.setConnected(false)
         }
+    }
+
+    private fun isSyncable(capabilities: NetworkCapabilities): Boolean {
+        val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        if (!hasInternet) return false
+        val isUnMetered = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+        return isUnMetered || !surveyor.isSyncOnUnMeteredNetworkOnly()
     }
 }
