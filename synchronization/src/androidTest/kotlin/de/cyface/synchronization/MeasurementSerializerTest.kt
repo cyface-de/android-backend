@@ -84,28 +84,28 @@ class MeasurementSerializerTest {
 
     private var measurementId: Long? = null
 
+    private val tempFiles = mutableListOf<File>()
+
+    private fun writeTempFile(data: ByteArray): File {
+        val file = File.createTempFile("sensor", ".tmp")
+        file.writeBytes(data)
+        tempFiles.add(file)
+        return file
+    }
+
     @Before
     @Throws(RemoteException::class)
     fun setUp() = runBlocking {
 
-        // Mock file access layer
+        // Write sensor data to real temp files so FileInputStream works in TransferFileSerializer
         val accelerations = serializeSamplePoints(SAMPLE_ACCELERATIONS, Point3DType.ACCELERATION)
         val serializedRotations = serializeSamplePoints(SAMPLE_ROTATIONS, Point3DType.ROTATION)
         val serializedDirections = serializeSamplePoints(SAMPLE_DIRECTIONS, Point3DType.DIRECTION)
+        val accelerationFile = writeTempFile(accelerations)
+        val rotationFile = writeTempFile(serializedRotations)
+        val directionFile = writeTempFile(serializedDirections)
         val mockFolder = mock<File> {
             on { exists() } doReturn true
-        }
-        val mockAccelerationFile = mock<File> {
-            on { exists() } doReturn true
-            on { length() } doReturn accelerations.size.toLong()
-        }
-        val mockRotationFile = mock<File> {
-            on { exists() } doReturn true
-            on { length() } doReturn serializedRotations.size.toLong()
-        }
-        val mockDirectionFile = mock<File> {
-            on { exists() } doReturn true
-            on { length() } doReturn serializedDirections.size.toLong()
         }
         val mockFileIOHandler = mock<FileIOHandler> {
             on { getFolderPath(any(), any()) } doReturn mockFolder
@@ -116,7 +116,7 @@ class MeasurementSerializerTest {
                     eq(Point3DFile.ACCELERATIONS_FOLDER_NAME),
                     eq(Point3DFile.ACCELERATIONS_FILE_EXTENSION)
                 )
-            } doReturn mockAccelerationFile
+            } doReturn accelerationFile
             on {
                 getFilePath(
                     any(),
@@ -124,7 +124,7 @@ class MeasurementSerializerTest {
                     eq(Point3DFile.ROTATIONS_FOLDER_NAME),
                     eq(Point3DFile.ROTATION_FILE_EXTENSION)
                 )
-            } doReturn mockRotationFile
+            } doReturn rotationFile
             on {
                 getFilePath(
                     any(),
@@ -132,10 +132,7 @@ class MeasurementSerializerTest {
                     eq(Point3DFile.DIRECTIONS_FOLDER_NAME),
                     eq(Point3DFile.DIRECTION_FILE_EXTENSION)
                 )
-            } doReturn mockDirectionFile
-            on { loadBytes(eq(mockAccelerationFile)) } doReturn accelerations
-            on { loadBytes(eq(mockRotationFile)) } doReturn serializedRotations
-            on { loadBytes(eq(mockDirectionFile)) } doReturn serializedDirections
+            } doReturn directionFile
         }
 
         // Initialization
@@ -159,6 +156,8 @@ class MeasurementSerializerTest {
     @After
     fun tearDown() {
         runBlocking { SharedTestUtils.clearPersistenceLayer(context!!, persistence) }
+        tempFiles.forEach { it.delete() }
+        tempFiles.clear()
     }
 
     /**
