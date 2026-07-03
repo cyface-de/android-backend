@@ -142,6 +142,8 @@ object TransferFileSerializer {
             builder.directionsBinary = FileInputStream(directionFile).use { ByteString.readFrom(it) }
         }
 
+        // Whole measurement is in memory (~ 5 MB / hour serialized).
+        // writeTo() streams it to the output without a second copy via toByteArray().
         val transferFileHeader = DataSerializable.transferFileHeader()
         val message = builder.build()
         try {
