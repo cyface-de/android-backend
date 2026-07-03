@@ -117,7 +117,7 @@ object TransferFileSerializer {
                     DataSerializable.humanReadableSize(accelerationFile.length(), true)
                 )
             )
-            builder.accelerationsBinary = ByteString.readFrom(FileInputStream(accelerationFile))
+            builder.accelerationsBinary = FileInputStream(accelerationFile).use { ByteString.readFrom(it) }
         }
         if (rotationFile.exists()) {
             Log.v(
@@ -128,7 +128,7 @@ object TransferFileSerializer {
                     DataSerializable.humanReadableSize(rotationFile.length(), true)
                 )
             )
-            builder.rotationsBinary = ByteString.readFrom(FileInputStream(rotationFile))
+            builder.rotationsBinary = FileInputStream(rotationFile).use { ByteString.readFrom(it) }
         }
         if (directionFile.exists()) {
             Log.v(
@@ -139,7 +139,7 @@ object TransferFileSerializer {
                     DataSerializable.humanReadableSize(directionFile.length(), true)
                 )
             )
-            builder.directionsBinary = ByteString.readFrom(FileInputStream(directionFile))
+            builder.directionsBinary = FileInputStream(directionFile).use { ByteString.readFrom(it) }
         }
 
         val transferFileHeader = DataSerializable.transferFileHeader()
