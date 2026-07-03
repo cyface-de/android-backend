@@ -40,6 +40,7 @@ import de.cyface.utils.CursorIsNullException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedOutputStream
+import java.io.FileInputStream
 import java.io.IOException
 import java.util.Locale
 
@@ -116,8 +117,7 @@ object TransferFileSerializer {
                     DataSerializable.humanReadableSize(accelerationFile.length(), true)
                 )
             )
-            val bytes = persistence.fileIOHandler.loadBytes(accelerationFile)
-            builder.accelerationsBinary = ByteString.copyFrom(bytes)
+            builder.accelerationsBinary = ByteString.readFrom(FileInputStream(accelerationFile))
         }
         if (rotationFile.exists()) {
             Log.v(
@@ -128,8 +128,7 @@ object TransferFileSerializer {
                     DataSerializable.humanReadableSize(rotationFile.length(), true)
                 )
             )
-            val bytes = persistence.fileIOHandler.loadBytes(rotationFile)
-            builder.rotationsBinary = ByteString.copyFrom(bytes)
+            builder.rotationsBinary = ByteString.readFrom(FileInputStream(rotationFile))
         }
         if (directionFile.exists()) {
             Log.v(
@@ -140,20 +139,16 @@ object TransferFileSerializer {
                     DataSerializable.humanReadableSize(directionFile.length(), true)
                 )
             )
-            val bytes = persistence.fileIOHandler.loadBytes(directionFile)
-            builder.directionsBinary = ByteString.copyFrom(bytes)
+            builder.directionsBinary = ByteString.readFrom(FileInputStream(directionFile))
         }
 
-        // Currently loading the whole measurement into memory (~ 5MB / hour serialized).
-        // - To add high-res image data in the future we cannot use the pre-compiled builder but
-        // have to stream the image data without loading it into memory to avoid an OOM exception.
         val transferFileHeader = DataSerializable.transferFileHeader()
-        val measurementBytes = builder.build().toByteArray()
+        val message = builder.build()
         try {
             // The stream must be closed by the caller in a finally catch
             withContext(Dispatchers.IO) {
                 bufferedOutputStream.write(transferFileHeader)
-                bufferedOutputStream.write(measurementBytes)
+                message.writeTo(bufferedOutputStream)
                 bufferedOutputStream.flush()
             }
         } catch (e: IOException) {
@@ -165,7 +160,7 @@ object TransferFileSerializer {
                 Locale.getDefault(),
                 "Serialized %s",
                 DataSerializable.humanReadableSize(
-                    (transferFileHeader.size + measurementBytes.size).toLong(),
+                    (transferFileHeader.size + message.serializedSize).toLong(),
                     true
                 )
             )
