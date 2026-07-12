@@ -265,7 +265,7 @@ class SyncAdapter private constructor(
             if (measurement.status === MeasurementStatus.FINISHED) {
                 var compressedTransferTempFile: File? = null
                 try {
-                    compressedTransferTempFile = serializeMeasurement(measurement, persistence)
+                    compressedTransferTempFile = serializeMeasurement(measurement, persistence, syncResult)
 
                     if (isSyncRequestAborted(account, authority)) return
 
@@ -419,9 +419,14 @@ class SyncAdapter private constructor(
 
     private suspend fun serializeMeasurement(
         measurement: Measurement,
-        persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>
+        persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>,
+        syncResult: SyncResult
     ): File? {
-        return MeasurementSerializer().writeSerializedCompressed(measurement.id, persistence)
+        // Signal progress to SyncManager after each batch so it doesn't kill the sync
+        // for "making no progress" during long serializations (large measurements).
+        return MeasurementSerializer().writeSerializedCompressed(measurement.id, persistence) {
+            syncResult.stats.numInserts++
+        }
     }
 
     private suspend fun serializeAttachment(

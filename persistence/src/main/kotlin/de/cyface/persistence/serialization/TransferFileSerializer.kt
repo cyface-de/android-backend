@@ -73,11 +73,12 @@ object TransferFileSerializer {
     suspend fun loadSerialized(
         bufferedOutputStream: BufferedOutputStream,
         measurementIdentifier: Long,
-        persistence: PersistenceLayer<*>
+        persistence: PersistenceLayer<*>,
+        onBatchSerialized: (() -> Unit)? = null
     ) {
         // Load data from ContentProvider
-        val events = loadEvents(measurementIdentifier, persistence)
-        val locationRecords = loadLocations(measurementIdentifier, persistence)
+        val events = loadEvents(measurementIdentifier, persistence, onBatchSerialized)
+        val locationRecords = loadLocations(measurementIdentifier, persistence, onBatchSerialized)
 
         // Using the modified `MeasurementBytes` class to inject the sensor bytes without parsing
         val builder = MeasurementBytes.newBuilder()
@@ -178,7 +179,8 @@ object TransferFileSerializer {
     @Throws(CursorIsNullException::class)
     private suspend fun loadEvents(
         measurementId: Long,
-        persistence: PersistenceLayer<*>
+        persistence: PersistenceLayer<*>,
+        onBatchSerialized: (() -> Unit)? = null
     ): List<Event?> {
         val serializer = EventSerializer()
         try {
@@ -191,10 +193,10 @@ object TransferFileSerializer {
                     startIndex,
                     DATABASE_QUERY_LIMIT
                 ).use { cursor ->
-                    //if (cursor == null) throw CursorIsNullException()
                     serializer.readFrom(cursor)
                 }
                 startIndex += DATABASE_QUERY_LIMIT
+                onBatchSerialized?.invoke()
             }
         } catch (e: RemoteException) {
             throw java.lang.IllegalStateException(e)
@@ -211,7 +213,8 @@ object TransferFileSerializer {
     @Throws(CursorIsNullException::class)
     private suspend fun loadLocations(
         measurementId: Long,
-        persistence: PersistenceLayer<*>
+        persistence: PersistenceLayer<*>,
+        onBatchSerialized: (() -> Unit)? = null
     ): LocationRecords {
         val serializer = LocationSerializer()
         try {
@@ -227,6 +230,7 @@ object TransferFileSerializer {
                     serializer.readFrom(cursor)
                 }
                 startIndex += DATABASE_QUERY_LIMIT
+                onBatchSerialized?.invoke()
             }
         } catch (e: RemoteException) {
             throw java.lang.IllegalStateException(e)

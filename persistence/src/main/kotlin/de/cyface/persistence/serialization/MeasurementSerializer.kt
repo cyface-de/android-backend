@@ -67,7 +67,8 @@ class MeasurementSerializer {
     @Throws(CursorIsNullException::class)
     suspend fun writeSerializedCompressed(
         measurementId: Long,
-        persistenceLayer: PersistenceLayer<*>
+        persistenceLayer: PersistenceLayer<*>,
+        onBatchSerialized: (() -> Unit)? = null
     ): File? {
 
         // Store the compressed bytes into a temp file to be able to read the byte size for transmission
@@ -85,7 +86,8 @@ class MeasurementSerializer {
                     loadSerializedCompressed(
                         fileOutputStream,
                         measurementId,
-                        persistenceLayer
+                        persistenceLayer,
+                        onBatchSerialized
                     )
                 }
             }
@@ -154,7 +156,8 @@ class MeasurementSerializer {
     private suspend fun loadSerializedCompressed(
         fileOutputStream: OutputStream,
         measurementId: Long,
-        persistenceLayer: PersistenceLayer<*>
+        persistenceLayer: PersistenceLayer<*>,
+        onBatchSerialized: (() -> Unit)? = null
     ) {
         Log.d(TAG, "loadSerializedCompressed: start")
         val startTimestamp = System.currentTimeMillis()
@@ -168,7 +171,7 @@ class MeasurementSerializer {
         val deflaterStream = DeflaterOutputStream(bufferedFileOutputStream, compressor)
         BufferedOutputStream(deflaterStream).use { outputStream ->
             // Injecting the outputStream into which the serialized (in this case compressed) data is written to
-            loadSerialized(outputStream, measurementId, persistenceLayer)
+            loadSerialized(outputStream, measurementId, persistenceLayer, onBatchSerialized)
             outputStream.flush()
         }
         compressor.end()
