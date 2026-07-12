@@ -246,7 +246,6 @@ class SyncAdapter private constructor(
         authority: String
     ) {
         val measurementCount = measurements.size
-        var error: Boolean
 
         for (index in 0 until measurementCount) {
             val measurement = measurements[index]
@@ -279,7 +278,7 @@ class SyncAdapter private constructor(
                         indexWithinMeasurement,
                         progressListeners
                     )
-                    error = !syncMeasurement(
+                    val success = syncMeasurement(
                         measurement,
                         measurementMeta,
                         compressedTransferTempFile,
@@ -289,7 +288,17 @@ class SyncAdapter private constructor(
                         persistence,
                         progressListener
                     )
-                    if (error) return
+                    if (!success) {
+                        Log.w(TAG, "Measurement ${measurement.id} upload failed, skipping to next")
+                        syncResult.stats.numIoExceptions++
+                        continue
+                    }
+                } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                    throw e
+                } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                    Log.w(TAG, "Measurement ${measurement.id} serialization failed, skipping to next", e)
+                    syncResult.stats.numIoExceptions++
+                    continue
                 } finally {
                     delete(compressedTransferTempFile)
                 }
