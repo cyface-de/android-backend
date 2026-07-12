@@ -214,25 +214,22 @@ object TransferFileSerializer {
         persistence: PersistenceLayer<*>
     ): LocationRecords {
         val serializer = LocationSerializer()
-        var cursor: Cursor? = null
         try {
             val count = persistence.locationDao!!.countByMeasurementId(measurementId)
             var startIndex = 0
             while (startIndex < count) {
-                cursor = getLocationCursor(
+                getLocationCursor(
                     persistence.database!!,
                     measurementId,
                     startIndex,
                     DATABASE_QUERY_LIMIT,
-                )
-                //if (cursor == null) throw CursorIsNullException()
-                serializer.readFrom(cursor)
+                ).use { cursor ->
+                    serializer.readFrom(cursor)
+                }
                 startIndex += DATABASE_QUERY_LIMIT
             }
         } catch (e: RemoteException) {
             throw java.lang.IllegalStateException(e)
-        } finally {
-            cursor?.close()
         }
         return serializer.result()
     }
