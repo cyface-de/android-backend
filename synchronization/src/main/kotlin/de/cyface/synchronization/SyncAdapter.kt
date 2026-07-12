@@ -38,6 +38,7 @@ import de.cyface.persistence.model.AttachmentStatus
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.serialization.MeasurementSerializer
+import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.protos.model.File.FileType
 import de.cyface.synchronization.ErrorHandler.ErrorCode
 import de.cyface.uploader.Result
@@ -86,7 +87,8 @@ class SyncAdapter private constructor(
     autoInitialize: Boolean,
     allowParallelSyncs: Boolean,
     private val authenticator: Auth,
-    private val uploader: Uploader
+    private val uploader: Uploader,
+    private val maxMeasurementBytes: Long
 ) : AbstractThreadedSyncAdapter(context, autoInitialize, allowParallelSyncs) {
 
     private val progressListeners: MutableCollection<ConnectionStatusListener> = HashSet()
@@ -97,25 +99,28 @@ class SyncAdapter private constructor(
     private var mockIsConnectedToReturnTrue = false
 
     /**
-     * Creates a new completely initialized `SyncAdapter`. See the documentation of
-     * `AbstractThreadedSyncAdapter` from the Android framework for further information.
-     *
      * @param context The context this adapter is active under.
      * @param autoInitialize More details are available at `AbstractThreadedSyncAdapter`.
      * @param authenticator The authenticator to use for synchronization.
      * @param uploader The uploader to use for synchronization.
+     * @param maxMeasurementBytes Maximum estimated measurement size (bytes) to attempt uploading.
+     *   Measurements exceeding this are skipped before serialization to avoid blocking the sync
+     *   queue (Android's SyncManager kills operations after ~2 min without network progress).
+     *   Use [Long.MAX_VALUE] (default) to let the server decide (e.g. data-collector/gridfs).
      */
     constructor(
         context: Context,
         autoInitialize: Boolean,
         authenticator: Auth,
         uploader: Uploader,
+        maxMeasurementBytes: Long = Long.MAX_VALUE,
     ) : this(
         context,
         autoInitialize,
         false,
         authenticator,
-        uploader
+        uploader,
+        maxMeasurementBytes
     )
 
     init {
@@ -263,6 +268,20 @@ class SyncAdapter private constructor(
 
             // Upload measurement binary first
             if (measurement.status === MeasurementStatus.FINISHED) {
+                // Skip measurements that would exceed the upload size limit before serializing.
+                // Serialization of very large measurements (e.g. 25+ hours, forgotten-to-stop)
+                // takes longer than Android's SyncManager timeout, blocking the sync queue.
+                // This only applies to WebDAV uploads; gridfs (data-collector) has no client-side
+                // limit -- the server decides on max size.
+                val estimatedBytes = estimateMeasurementSize(measurement.id, persistence)
+                if (estimatedBytes > maxMeasurementBytes) {
+                    Log.w(TAG, "Measurement ${measurement.id} too large for upload " +
+                        "(~${estimatedBytes / (1024 * 1024)} MB), marking as skipped")
+                    persistence.markFinishedAs(MeasurementStatus.SKIPPED, measurement.id)
+                    syncResult.stats.numSkippedEntries++
+                    continue
+                }
+
                 var compressedTransferTempFile: File? = null
                 try {
                     compressedTransferTempFile = serializeMeasurement(measurement, persistence, syncResult)
@@ -427,6 +446,30 @@ class SyncAdapter private constructor(
         return MeasurementSerializer().writeSerializedCompressed(measurement.id, persistence) {
             syncResult.stats.numInserts++
         }
+    }
+
+    private suspend fun estimateMeasurementSize(
+        measurementId: Long,
+        persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>
+    ): Long {
+        val accelFile = persistence.fileIOHandler.getFilePath(
+            context, measurementId,
+            Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION
+        )
+        val rotFile = persistence.fileIOHandler.getFilePath(
+            context, measurementId,
+            Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION
+        )
+        val dirFile = persistence.fileIOHandler.getFilePath(
+            context, measurementId,
+            Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION
+        )
+        val sensorBytes = (if (accelFile.exists()) accelFile.length() else 0L) +
+            (if (rotFile.exists()) rotFile.length() else 0L) +
+            (if (dirFile.exists()) dirFile.length() else 0L)
+        // ~40 bytes per location in protobuf (timestamp, lat, lon, speed, accuracy + varint overhead)
+        val locationCount = persistence.locationDao!!.countByMeasurementId(measurementId)
+        return sensorBytes + locationCount * 40L
     }
 
     private suspend fun serializeAttachment(
