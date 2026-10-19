@@ -14,8 +14,8 @@ on:
     branches:
       - main
       - 'release-*'
-  schedule:
-    - cron: '20 15 * * 1'
+  # No `schedule`: GitHub disables a scheduled workflow in a public repository after 60 days without activity.
+  # A disabled workflow also does not run for pushes and pull requests.
 
 # Explicit workflow permissions (as little as required)
 permissions:
@@ -29,6 +29,8 @@ concurrency:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
+    # Not for PRs from forks: the build needs the secrets of this repository
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-26.04
 
     permissions:

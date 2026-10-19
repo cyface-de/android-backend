@@ -981,9 +981,9 @@ Version constraints:
 * `gradle_build.yml` builds and runs the unit tests for each push and pull request to `main` and `release-*`.
 * `gradle_connected-tests.yml` runs the instrumented tests of `persistence`, `datacapturing` and `synchronization` on an API 28 emulator. It excludes tests with `@FlakyTest`.
 * `gradle_publish.yml` runs on version tags: it publishes all modules to GitHub Packages (`publishAll`) and creates the GitHub release.
-* `codeql.yml` runs the CodeQL analysis each week and on pushes and pull requests.
+* `codeql.yml` runs the CodeQL analysis on pushes and pull requests. It has no weekly run, because GitHub disables a scheduled workflow in a public repository after 60 days without activity.
 
-Pull requests from forks are skipped, except for CodeQL. The workflows read `android-utils` with the personal read token in the secrets `GH_READ_ACCOUNT` and `GH_READ_TOKEN`, and give the tokens to Gradle as `ORG_GRADLE_PROJECT_githubUser` and `ORG_GRADLE_PROJECT_githubToken`, not in a file.
+Pull requests from forks are skipped. The workflows read `android-utils` with the personal read token in the secrets `GH_READ_ACCOUNT` and `GH_READ_TOKEN`, and give the tokens to Gradle as `ORG_GRADLE_PROJECT_githubUser` and `ORG_GRADLE_PROJECT_githubToken`, not in a file.
 
 Rules of the workflows (hardening of CY-6748): do not use `${{ github.ref_name }}` or other event values directly in a `run:` script, pass them through `env:`; pass secrets through `env:` of the step that needs them; pin third-party actions to a commit SHA; use `runs-on: ubuntu-26.04`, not `ubuntu-latest`.
 
