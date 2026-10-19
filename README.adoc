@@ -11,6 +11,8 @@ This project contains the Cyface Android SDK which is used by Cyface application
 * <<migration-guide,Migration Guide>>
 * <<developer-guide,Developer Guide>>
 ** <<architecture, Architecture>>
+** <<development, Development>>
+** <<github-workflows, GitHub Workflows>>
 ** <<release-a-new-version, Release a new Version>>
 * <<license,License>>
 
@@ -934,17 +936,66 @@ The `CyfaceSyncService` uploads measurements to the https://github.com/cyface-de
 
 The `SharedTestUtils` contains integration test code used from multiple modules.
 
+[[development]]
+=== Development
+
+Copy `gradle.properties.template` to `gradle.properties` and add `githubUser` and `githubToken` (GitHub Packages).
+
+....
+./gradlew build                          # build all modules and run the unit tests
+./gradlew :persistence:test              # unit tests of one module
+./gradlew :persistence:test --tests "de.cyface.persistence.SomeTest"   # one test class
+./gradlew :persistence:connectedDebugAndroidTest       # instrumented tests (need an emulator or a device)
+./gradlew :datacapturing:connectedDebugAndroidTest
+./gradlew :synchronization:connectedDebugAndroidTest
+./gradlew publishAll                     # publish all modules to GitHub Packages
+....
+
+Process design: the SDK runs in separate Android processes, so that a crash in one part does not affect the others. They talk through an Android `Messenger`.
+
+* `:capturing_process` -- `DataCapturingBackgroundService` (sensor capture)
+* `:persistence_process` -- `StubProvider`, the `ContentProvider` for the database
+* the sync process -- `CyfaceSyncService` (upload). The app must declare it in its manifest.
+
+Data flow:
+
+. `DataCapturingService` (the client API) starts and stops `DataCapturingBackgroundService`.
+. The background service collects the data with `CapturingProcess` implementations, for example `GeoLocationCapturingProcess`.
+. `PersistenceLayer` stores the data with Room DAOs and in binary Protobuf files: `*.cyfa` (accelerometer), `*.cyfr` (gyroscope), `*.cyfd` (magnetometer).
+. `SyncAdapter` serializes a measurement into a compressed `*.ccyf` file and uploads it with the `DefaultUploader` of the `uploader` library.
+
+Extension points: `PersistenceLayer<B>` with a custom `PersistenceBehaviour`, `EventHandlingStrategy` (notifications and events of the app), `LocationCleaningStrategy` and `DistanceCalculationStrategy`.
+
+Room database: name `measures`, version 20, entities `Identifier`, `Measurement`, `Event`, `GeoLocation`, `Pressure`, `Attachment`. The schemas are exported to `<module>/schemas/` and are committed, because the migration tests use them. The migrations are in `DatabaseMigrator.kt`.
+
+Version constraints:
+
+* Kotlin 2.0.21 together with KSP `2.0.21-1.0.28`.
+* Room 2.6.1 is set in three places of the root `build.gradle` (`buildscript.ext`, `plugins {}`, `ext {}`). Keep them the same.
+* Java 21, minSdk 26, compileSdk and targetSdk 35.
+* Cyface libraries from GitHub Packages: `android-utils` 5.1.0, `serialization` 4.1.12, `uploader` 1.6.2. Keep them the same as in `android-app` and `android-camera-service`, which use this repository as a submodule.
+
+[[github-workflows]]
+=== GitHub Workflows
+
+* `gradle_build.yml` builds and runs the unit tests for each push and pull request to `main` and `release-*`.
+* `gradle_connected-tests.yml` runs the instrumented tests of `persistence`, `datacapturing` and `synchronization` on an API 28 emulator. It excludes tests with `@FlakyTest`.
+* `gradle_publish.yml` runs on version tags: it publishes all modules to GitHub Packages (`publishAll`) and creates the GitHub release.
+* `codeql.yml` runs the CodeQL analysis each week and on pushes and pull requests.
+
+Pull requests from forks are skipped, except for CodeQL. The workflows read `android-utils` with the personal read token in the secrets `GH_READ_ACCOUNT` and `GH_READ_TOKEN`, and give the tokens to Gradle as `ORG_GRADLE_PROJECT_githubUser` and `ORG_GRADLE_PROJECT_githubToken`, not in a file.
+
+Rules of the workflows (hardening of CY-6748): do not use `${{ github.ref_name }}` or other event values directly in a `run:` script, pass them through `env:`; pass secrets through `env:` of the step that needs them; pin third-party actions to a commit SHA; use `runs-on: ubuntu-26.04`, not `ubuntu-latest`.
+
+The organization-wide cleanup in `cyface-de/production` (`.github/workflows/registry_cleanup.yml`) deletes old package versions. A version that a build file of the organization names stays.
+
 [[release-a-new-version]]
 === Release a new version
 
-See https://github.com/cyface-de/data-collector#release-a-new-version[Cyface Collector Readme]
-
-* `cyfaceAndroidBackendVersion` in root `build.gradle` is automatically set by the CI
-* Just tag the release and push the tag to Github
-* The Github package is automatically published when a new version is tagged and pushed by our
-https://github.com/cyface-de/android-backend/actions[Github Actions] to
-the https://github.com/cyface-de/android-backend/packages[Github Registry]
-* The tag is automatically marked as a 'new Release' on https://github.com/cyface-de/android-backend/releases[Github]
+* The CI sets `cyfaceAndroidBackendVersion` in the root `build.gradle` from the tag. Do not change it manually.
+* Create an annotated tag with a semantic version (for example `7.14.1`) on `main` and push it. The body of the tag message becomes the release notes.
+* The workflow publishes the packages to the https://github.com/cyface-de/android-backend/packages[Github Registry] and creates the https://github.com/cyface-de/android-backend/releases[GitHub release].
+* A tag with a suffix (for example `7.14.1-beta1`) becomes a pre-release.
 
 
 [[known-issues]]
@@ -959,7 +1010,7 @@ The AVD Cache leads to `Install_failed_Update_Incompatible` after a few builds.
 
 [[license]]
 == License
-Copyright 2017-2025 Cyface GmbH
+Copyright 2017-2026 Cyface GmbH
 
 This file is part of the Cyface SDK for Android.
 
