@@ -96,7 +96,7 @@ class EventRepository(private val dao: EventDao) {
                     "ORDER BY ${BaseColumns.TIMESTAMP} ASC " +
                     "LIMIT ? " +
                     "OFFSET ?",
-            arrayOf(measurementId, limit, offset)
+            arrayOf<Any>(measurementId, limit, offset)
         )
         // Executing `Cursor` based query directly on the `database` without `dao` layer as Room
         // does not support `Cursor` return types with `KSP` properly.

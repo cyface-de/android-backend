@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Cyface GmbH
+ * Copyright 2017-2026 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.5.0
+ * @version 3.6.0
  * @since 1.0.0
  */
 
@@ -29,21 +29,20 @@ plugins {
     // use `:datacapturing:publishToMavenLocal` instead of `publishToMavenLocal` (see custom task `publishAll`)
     // Don't move to root `build.gradle` as this forces SDK and camera_service to define this, too.
     // Keep version in sync with other modules!
-    id 'de.cyface.android-publish' version '1.1.2'
-    id 'kotlin-android'
-    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Only upgrade together with `kotlin_version`
+    id 'de.cyface.android-publish' version '2.0.0'
+    id 'com.google.devtools.ksp' version '2.3.12' // Keep in sync with the root `build.gradle`
     id 'androidx.room'
 }
 
 android {
-    namespace "de.cyface.datacapturing"
+    namespace = "de.cyface.datacapturing"
     compileSdk = rootProject.ext.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName rootProject.ext.cyfaceAndroidBackendVersion
-        testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+        minSdk = rootProject.ext.minSdkVersion
+        // Used as the version of the publication by `de.cyface.android-publish`
+        versionName = rootProject.ext.cyfaceAndroidBackendVersion
+        testInstrumentationRunner = rootProject.ext.testInstrumentationRunner
 
         // Placeholders for AndroidManifest.xml
         manifestPlaceholders = [
@@ -68,6 +67,8 @@ android {
 
     // Required by Roboletric
     testOptions {
+        // A library has no targetSdk of its own, the app sets it. This one is only used by the tests.
+        targetSdk = rootProject.ext.targetSdkVersion
         unitTests {
             includeAndroidResources = true
             returnDefaultValues = true
@@ -76,24 +77,23 @@ android {
 
     compileOptions {
         // Enabling desugaring to support Java 8 and Java 11 features
-        coreLibraryDesugaringEnabled true
+        coreLibraryDesugaringEnabled = true
         // Set Java compatibility
-        sourceCompatibility rootProject.ext.sourceCompatibility
-        targetCompatibility rootProject.ext.targetCompatibility
-    }
-
-    kotlinOptions {
-        jvmTarget = rootProject.ext.kotlinTargetJavaVersion
+        sourceCompatibility = rootProject.ext.sourceCompatibility
+        targetCompatibility = rootProject.ext.targetCompatibility
+        // The Kotlin `jvmTarget` uses the `targetCompatibility`
     }
 
     // Avoid `2 files found with path ...` error
-    packagingOptions {
-        exclude("META-INF/DEPENDENCIES")
+    packaging {
+        resources.excludes += "META-INF/DEPENDENCIES"
     }
 
-    lintOptions {
+    lint {
+        // A library has no targetSdk of its own, the app sets it. This one is only used by lint.
+        targetSdk = rootProject.ext.targetSdkVersion
         // To ignore false-positive lint errors
-        baseline file("lint-baseline.xml")
+        baseline = file("lint-baseline.xml")
     }
 
     buildFeatures { // Required with AGP 8+
@@ -131,7 +131,7 @@ dependencies {
 
     // Dependencies for local unit tests
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$rootProject.ext.coroutinesVersion")
-    testImplementation("io.mockk:mockk:1.13.10")
+    testImplementation("io.mockk:mockk:1.14.11")
     testImplementation project(":testutils")
     // If Junit symbols are unresolvable make sure Build Variant is set to debug
     testImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
