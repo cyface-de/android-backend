@@ -69,7 +69,7 @@
             "columnName": "timestamp",
             "affinity": "INTEGER",
             "notNull": true,
-            "default": 0
+            "defaultValue": "0"
           }
         ],
         "primaryKey": {

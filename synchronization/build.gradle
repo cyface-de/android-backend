@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Cyface GmbH
+ * Copyright 2017-2026 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -24,7 +24,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.4.1
+ * @version 3.5.0
  * @since 1.0.0
  */
 
@@ -32,20 +32,19 @@ plugins {
     // use `:datacapturing:publishToMavenLocal` instead of `publishToMavenLocal` (see custom task `publishAll`)
     // Don't move to root `build.gradle` as this forces SDK and camera_service to define this, too.
     // Keep version in sync with other modules!
-    id 'de.cyface.android-publish' version '1.1.2'
-    id 'kotlin-android'
+    id 'de.cyface.android-publish' version '2.0.0'
     id 'com.google.protobuf' // For Proto DataStore
 }
 
 android {
-    namespace "de.cyface.synchronization"
+    namespace = "de.cyface.synchronization"
     compileSdk = rootProject.ext.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName rootProject.ext.cyfaceAndroidBackendVersion
-        testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+        minSdk = rootProject.ext.minSdkVersion
+        // Used as the version of the publication by `de.cyface.android-publish`
+        versionName = rootProject.ext.cyfaceAndroidBackendVersion
+        testInstrumentationRunner = rootProject.ext.testInstrumentationRunner
 
         // Placeholders for AndroidManifest.xml
         manifestPlaceholders = [
@@ -72,6 +71,8 @@ android {
 
     // Required by Roboletric
     testOptions {
+        // A library has no targetSdk of its own, the app sets it. This one is only used by the tests.
+        targetSdk = rootProject.ext.targetSdkVersion
         unitTests {
             includeAndroidResources = true
             returnDefaultValues = true
@@ -80,30 +81,29 @@ android {
 
     compileOptions {
         // Enabling desugaring to support Java 8 and Java 11 features
-        coreLibraryDesugaringEnabled true
+        coreLibraryDesugaringEnabled = true
         // Set Java compatibility
-        sourceCompatibility rootProject.ext.sourceCompatibility
-        targetCompatibility rootProject.ext.targetCompatibility
+        sourceCompatibility = rootProject.ext.sourceCompatibility
+        targetCompatibility = rootProject.ext.targetCompatibility
+        // The Kotlin `jvmTarget` uses the `targetCompatibility`
     }
 
-    kotlinOptions {
-        jvmTarget = rootProject.ext.kotlinTargetJavaVersion
-    }
-
-    packagingOptions {
+    packaging {
         // To resolve the conflict warning after adding google-api-client dependency
-        exclude 'META-INF/DEPENDENCIES'
+        resources.excludes += 'META-INF/DEPENDENCIES'
     }
 
-    lintOptions {
+    lint {
+        // A library has no targetSdk of its own, the app sets it. This one is only used by lint.
+        targetSdk = rootProject.ext.targetSdkVersion
         // To ignore false-positive lint errors
-        baseline file("lint-baseline.xml")
+        baseline = file("lint-baseline.xml")
     }
 }
 
 dependencies {
     // Proto DataStore with MultiProcess support to store settings
-    implementation  "com.google.protobuf:protobuf-javalite:${protobufVersion}"
+    implementation  "com.google.protobuf:protobuf-javalite:${rootProject.ext.protobufVersion}"
 
     // Cyface dependencies
     api "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
@@ -147,7 +147,7 @@ dependencies {
 // Required for Proto DataStore
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:$protobufVersion"
+        artifact = "com.google.protobuf:protoc:${rootProject.ext.protobufVersion}"
     }
 
     // Generates the java Protobuf-lite code for the Protobuf files in this project. See
@@ -171,10 +171,10 @@ tasks.withType(Test) {
                 TestLogEvent.PASSED,
                 TestLogEvent.SKIPPED,
                 TestLogEvent.STANDARD_OUT
-        exceptionFormat TestExceptionFormat.FULL
-        showExceptions true
-        showCauses true
-        showStackTraces true
+        exceptionFormat = TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
 
         // set options for log level DEBUG and INFO
         debug {
@@ -184,12 +184,18 @@ tasks.withType(Test) {
                     TestLogEvent.SKIPPED,
                     TestLogEvent.STANDARD_ERROR,
                     TestLogEvent.STANDARD_OUT
-            exceptionFormat TestExceptionFormat.FULL
+            exceptionFormat = TestExceptionFormat.FULL
         }
         info.events = debug.events
         info.exceptionFormat = debug.exceptionFormat
+    }
 
-        afterSuite { desc, result ->
+    // Gradle 9 deprecates `afterSuite(Closure)`
+    addTestListener(new TestListener() {
+        void beforeSuite(TestDescriptor desc) {}
+        void beforeTest(TestDescriptor desc) {}
+        void afterTest(TestDescriptor desc, TestResult result) {}
+        void afterSuite(TestDescriptor desc, TestResult result) {
             if (!desc.parent) { // will match the outermost suite
                 def output = "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
                 def startItem = '|  ', endItem = '  |'
@@ -197,5 +203,5 @@ tasks.withType(Test) {
                 println('\n' + ('-' * repeatLength) + '\n' + startItem + output + endItem + '\n' + ('-' * repeatLength))
             }
         }
-    }
+    })
 }

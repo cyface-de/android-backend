@@ -10,7 +10,7 @@ The README is the main documentation. It describes the integration, the API, the
 
 - Keep the README current. When you change the public API, the architecture, a command or a workflow, update the README in the same commit.
 - A change of a Room entity needs a new database version, a migration in `DatabaseMigrator.kt` and the exported schema in `<module>/schemas/`.
-- Keep Kotlin and KSP, and the three Room versions in the root `build.gradle`, together.
+- Keep the KSP versions (root `build.gradle` and the modules) and the three Room versions in the root `build.gradle` together. KSP 2.3+ does not depend on the Kotlin version.
 - `android-app` and `android-camera-service` use this repository as a submodule. Keep the Cyface library versions the same in all three.
 - Follow the rules of the workflows in the README section "GitHub Workflows" for each change of `.github/workflows/`.
 

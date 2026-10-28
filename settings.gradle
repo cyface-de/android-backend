@@ -41,8 +41,8 @@ pluginManagement {
             url = uri("https://maven.pkg.github.com/cyface-de/android-publish")
             // Needed even for public projects: https://github.community/t5/GitHub-API-Development-and/Download-from-Github-Package-Registry-without-authentication/m-p/35255
             credentials {
-                username "$githubUser"
-                password "$githubToken"
+                username = "$githubUser"
+                password = "$githubToken"
             }
         }
     }

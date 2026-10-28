@@ -19,7 +19,7 @@
             "columnName": "finished",
             "affinity": "INTEGER",
             "notNull": true,
-            "default": 1
+            "defaultValue": "1"
           },
           {
             "fieldPath": "vehicle",
@@ -32,7 +32,7 @@
             "columnName": "synced",
             "affinity": "INTEGER",
             "notNull": true,
-            "default": 0
+            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -95,7 +95,7 @@
             "columnName": "is_synced",
             "affinity": "INTEGER",
             "notNull": true,
-            "default": 0
+            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -152,7 +152,7 @@
             "columnName": "is_synced",
             "affinity": "INTEGER",
             "notNull": true,
-            "default": 0
+            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -209,7 +209,7 @@
             "columnName": "is_synced",
             "affinity": "INTEGER",
             "notNull": true,
-            "default": 0
+            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -266,7 +266,7 @@
             "columnName": "is_synced",
             "affinity": "INTEGER",
             "notNull": true,
-            "default": 0
+            "defaultValue": "0"
           }
         ],
         "primaryKey": {

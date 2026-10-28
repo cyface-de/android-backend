@@ -970,10 +970,11 @@ Room database: name `measures`, version 20, entities `Identifier`, `Measurement`
 
 Version constraints:
 
-* Kotlin 2.0.21 together with KSP `2.0.21-1.0.28`.
-* Room 2.6.1 is set in three places of the root `build.gradle` (`buildscript.ext`, `plugins {}`, `ext {}`). Keep them the same.
-* Java 21, minSdk 26, compileSdk and targetSdk 35.
-* Cyface libraries from GitHub Packages: `android-utils` 5.1.0, `serialization` 4.1.12, `uploader` 1.6.2. Keep them the same as in `android-app` and `android-camera-service`, which use this repository as a submodule.
+* Kotlin 2.4.21 and KSP 2.3.12. AGP 9 compiles the Kotlin code (built-in Kotlin), so the modules do not apply `kotlin-android`. KSP 2.3+ has its own version, which does not depend on the Kotlin version.
+* Room 2.8.5 is set in three places of the root `build.gradle` (`buildscript.ext`, `plugins {}`, `ext {}`). Keep them the same.
+* Java 21, Gradle 9.7.1, Android Gradle Plugin 9.4.1, minSdk 26, compileSdk 37, targetSdk 36. A library has no targetSdk of its own: the value in `testOptions` and `lint` is only for the tests and the lint checks. The apps that use this library need compileSdk 37 or higher.
+* The modules `persistence`, `datacapturing` and `synchronization` apply `de.cyface.android-publish` 2.0.0, which needs AGP 9. The plugin publishes the version from `versionName`.
+* Cyface libraries from GitHub Packages: `android-utils` 6.0.0, `serialization` 4.1.12, `uploader` 1.6.2. Keep them the same as in `android-app` and `android-camera-service`, which use this repository as a submodule.
 
 [[github-workflows]]
 === GitHub Workflows

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2025 Cyface GmbH
+ * Copyright 2019-2026 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -23,20 +23,17 @@
  */
 plugins {
     id 'com.android.library'
-    id 'kotlin-android'
-    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Only upgrade together with `kotlin_version`
+    id 'com.google.devtools.ksp' version '2.3.12' // Keep in sync with the root `build.gradle`
     id 'androidx.room'
 }
 
 android {
-    namespace "de.cyface.testutils"
+    namespace = "de.cyface.testutils"
     compileSdk = rootProject.ext.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName rootProject.ext.cyfaceAndroidBackendVersion
-        testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+        minSdk = rootProject.ext.minSdkVersion
+        testInstrumentationRunner = rootProject.ext.testInstrumentationRunner
     }
 
     room {
@@ -54,14 +51,11 @@ android {
 
     compileOptions {
         // Enabling desugaring to support Java 8 and Java 11 features
-        coreLibraryDesugaringEnabled true
+        coreLibraryDesugaringEnabled = true
         // Set Java compatibility
-        sourceCompatibility rootProject.ext.sourceCompatibility
-        targetCompatibility rootProject.ext.targetCompatibility
-    }
-
-    kotlinOptions {
-        jvmTarget = rootProject.ext.kotlinTargetJavaVersion
+        sourceCompatibility = rootProject.ext.sourceCompatibility
+        targetCompatibility = rootProject.ext.targetCompatibility
+        // The Kotlin `jvmTarget` uses the `targetCompatibility`
     }
 }
 

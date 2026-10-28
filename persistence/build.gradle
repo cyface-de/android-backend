@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Cyface GmbH
+ * Copyright 2017-2026 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.6.0
+ * @version 3.7.0
  * @since 1.0.0
  */
 
@@ -29,26 +29,30 @@ plugins {
     // use `:datacapturing:publishToMavenLocal` instead of `publishToMavenLocal` (see custom task `publishAll`)
     // Don't move to root `build.gradle` as this forces SDK and camera_service to define this, too.
     // Keep version in sync with other modules!
-    id 'de.cyface.android-publish' version '1.1.2'
-    id 'kotlin-android'
-    id 'com.google.devtools.ksp' version '2.0.21-1.0.28' // Only upgrade together with `kotlin_version`
+    id 'de.cyface.android-publish' version '2.0.0'
+    id 'com.google.devtools.ksp' version '2.3.12' // Keep in sync with the root `build.gradle`
     id 'androidx.room'
 }
 
 android {
-    namespace "de.cyface.persistence"
+    namespace = "de.cyface.persistence"
     compileSdk = rootProject.ext.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName rootProject.ext.cyfaceAndroidBackendVersion
-        testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+        minSdk = rootProject.ext.minSdkVersion
+        // Used as the version of the publication by `de.cyface.android-publish`
+        versionName = rootProject.ext.cyfaceAndroidBackendVersion
+        testInstrumentationRunner = rootProject.ext.testInstrumentationRunner
     }
 
     room {
         // Write Room database schema to file to record database schema changes in version control
         schemaDirectory("$projectDir/schemas")
+    }
+
+    testOptions {
+        // A library has no targetSdk of its own, the app sets it. This one is only used by the tests.
+        targetSdk = rootProject.ext.targetSdkVersion
     }
 
     buildTypes {
@@ -61,14 +65,11 @@ android {
 
     compileOptions {
         // Enabling desugaring to support Java 8 and Java 11 features
-        coreLibraryDesugaringEnabled true
+        coreLibraryDesugaringEnabled = true
         // Set Java compatibility
-        sourceCompatibility rootProject.ext.sourceCompatibility
-        targetCompatibility rootProject.ext.targetCompatibility
-    }
-
-    kotlinOptions {
-        jvmTarget = rootProject.ext.kotlinTargetJavaVersion
+        sourceCompatibility = rootProject.ext.sourceCompatibility
+        targetCompatibility = rootProject.ext.targetCompatibility
+        // The Kotlin `jvmTarget` uses the `targetCompatibility`
     }
 
     sourceSets {
@@ -76,9 +77,11 @@ android {
         androidTest.assets.srcDirs += files("$projectDir/schemas".toString())
     }
 
-    lintOptions {
+    lint {
+        // A library has no targetSdk of its own, the app sets it. This one is only used by lint.
+        targetSdk = rootProject.ext.targetSdkVersion
         // To ignore false-positive lint errors
-        baseline file("lint-baseline.xml")
+        baseline = file("lint-baseline.xml")
     }
 
     // Uncomment to show more lint warnings
@@ -105,8 +108,6 @@ dependencies {
     // `Room` API used to access database
     // Further room libraries and Kotlin support see Room guide.
     implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
-    // To observe data with `Flow`
-    implementation "androidx.room:room-ktx:$rootProject.ext.roomVersion"
     // To use Room with Kotlin
     ksp "androidx.room:room-compiler:$rootProject.ext.roomVersion"
 
